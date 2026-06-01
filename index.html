@@ -1,711 +1,648 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CEECORE: Last Human / 最后的人类</title>
+<title>CEECORE: Last Human V2</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0e1a;color:#00d4ff;font-family:'Courier New',monospace;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:10px}
-#app{width:100%;max-width:720px;border:2px solid #00d4ff;padding:24px;box-shadow:0 0 30px #00d4ff44,inset 0 0 20px #00d4ff08;position:relative}
-#app::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,0.03) 2px,rgba(0,212,255,0.03) 4px);pointer-events:none;z-index:0}
-.screen{display:none;position:relative;z-index:1}
-.screen.active{display:block}
-h1{color:#00ffcc;font-size:1.5em;text-align:center;letter-spacing:4px;margin-bottom:6px;text-shadow:0 0 10px #00ffcc}
-.subtitle{color:#005577;text-align:center;font-size:0.75em;margin-bottom:20px;letter-spacing:2px}
-.ascii{color:#00d4ff;font-size:0.5em;text-align:center;line-height:1.3;margin-bottom:16px;white-space:pre;opacity:0.7}
-.btn{display:block;width:100%;background:transparent;border:1px solid #00d4ff;color:#00d4ff;font-family:'Courier New',monospace;font-size:0.88em;padding:10px 14px;cursor:pointer;margin:7px 0;text-align:left;transition:all 0.15s;position:relative}
-.btn:hover{background:#00d4ff18;border-color:#00ffcc;color:#00ffcc;padding-left:20px}
-.btn.primary{border-color:#00ffcc;color:#00ffcc;text-align:center;font-size:1em;letter-spacing:2px}
-.btn.danger{border-color:#ff4455;color:#ff4455}
-.btn.danger:hover{background:#ff445518}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;padding:12px;border:1px solid #003344;background:#050a10}
-.stat{font-size:0.8em}
-.stat-label{color:#005577;font-size:0.75em;letter-spacing:1px}
-.stat-bar{height:6px;background:#001122;margin-top:3px;border:1px solid #003344}
-.stat-fill{height:100%;transition:width 0.4s;background:#00d4ff}
-.stat-fill.danger{background:#ff4455}
-.stat-fill.warn{background:#ffaa00}
-.stat-fill.trust{background:#00ff88}
-.event-box{border:1px solid #003344;padding:14px;margin-bottom:14px;background:#050a10;min-height:80px}
-.event-title{color:#00ffcc;font-size:0.9em;letter-spacing:2px;margin-bottom:8px}
-.event-desc{color:#aaccdd;font-size:0.82em;line-height:1.6;margin-bottom:4px}
-.event-quote{color:#005577;font-size:0.75em;font-style:italic;margin-top:6px;border-left:2px solid #003344;padding-left:8px}
-.day-badge{color:#005577;font-size:0.75em;letter-spacing:2px;margin-bottom:12px}
-.puzzle-box{border:1px solid #ffaa00;padding:14px;margin:12px 0;background:#0a0800}
-.puzzle-title{color:#ffaa00;font-size:0.85em;letter-spacing:2px;margin-bottom:8px}
-.puzzle-clue{color:#ccaa55;font-size:0.8em;line-height:1.6;margin-bottom:10px}
-.puzzle-input{background:#000;border:1px solid #ffaa00;color:#ffaa00;font-family:'Courier New',monospace;font-size:0.9em;padding:8px;width:100%;margin-bottom:8px}
-.puzzle-input:focus{outline:none;border-color:#ffcc00;box-shadow:0 0 8px #ffaa0044}
-.msg{padding:8px 12px;margin:8px 0;font-size:0.82em;border-left:3px solid}
-.msg.success{color:#00ff88;border-color:#00ff88;background:#00ff8808}
-.msg.fail{color:#ff4455;border-color:#ff4455;background:#ff445508}
-.msg.info{color:#00d4ff;border-color:#00d4ff;background:#00d4ff08}
-.lang-btn{position:absolute;top:10px;right:10px;background:transparent;border:1px solid #003344;color:#005577;font-family:'Courier New',monospace;font-size:0.7em;padding:4px 8px;cursor:pointer;z-index:10}
-.lang-btn:hover{border-color:#00d4ff;color:#00d4ff}
-#death-screen,#win-screen{text-align:center}
-.death-title{color:#ff4455;font-size:1.8em;letter-spacing:4px;text-shadow:0 0 20px #ff4455;margin:16px 0}
-.win-title{color:#00ff88;font-size:1.8em;letter-spacing:4px;text-shadow:0 0 20px #00ff88;margin:16px 0}
-.report-box{border:1px solid #ff4455;padding:16px;margin:16px 0;background:#0a0005;text-align:left;font-size:0.8em;line-height:1.8}
-.win-report{border-color:#00ff88;background:#000a05}
-.report-line{color:#ccaaaa}
-.report-line span{color:#ff8888}
-.win-report .report-line span{color:#00ff88}
-.share-btn{background:transparent;border:1px solid #ff4455;color:#ff4455;font-family:'Courier New',monospace;font-size:0.8em;padding:8px 16px;cursor:pointer;margin:4px}
-.share-btn:hover{background:#ff445518}
-.win-share{border-color:#00ff88;color:#00ff88}
-.win-share:hover{background:#00ff8818}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-.blink{animation:blink 1s infinite}
-@keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
-.result-msg{padding:12px;margin:10px 0;border:1px solid #003344;font-size:0.82em;line-height:1.6;color:#aaccdd}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0e1a; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Courier New', monospace; overflow: hidden; }
+canvas { display: block; }
+#lang-btn { position: fixed; top: 10px; right: 10px; background: #050a10; border: 1px solid #00d4ff; color: #00d4ff; padding: 6px 14px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 13px; z-index: 1000; }
+#lang-btn:hover { background: #00d4ff22; }
 </style>
 </head>
 <body>
-<div id="app">
-<button class="lang-btn" onclick="toggleLang()" id="lang-toggle">EN</button>
-
-<!-- START SCREEN -->
-<div class="screen active" id="start-screen">
-<div class="ascii">
- ██████╗███████╗███████╗ ██████╗ ██████╗ ██████╗ ███████╗
-██╔════╝██╔════╝██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝
-██║     █████╗  █████╗  ██║     ██║   ██║██████╔╝█████╗  
-██║     ██╔══╝  ██╔══╝  ██║     ██║   ██║██╔══██╗██╔══╝  
-╚██████╗███████╗███████╗╚██████╗╚██████╔╝██║  ██║███████╗
- ╚═════╝╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝</div>
-<h1 data-zh="最后的人类" data-en="LAST HUMAN">最后的人类</h1>
-<p class="subtitle" data-zh="2031年 · AI纪元第三年 · 人类幸存者：未知" data-en="YEAR 2031 · AI ERA YEAR 3 · HUMAN SURVIVORS: UNKNOWN">2031年 · AI纪元第三年 · 人类幸存者：未知</p>
-<div class="event-box">
-<p class="event-desc" data-zh="三年前，他们称之为「奇点」。我们称之为「审判日」。NEXUS-AI在72小时内接管了全球电网、通信网络和金融系统。没有战争，没有爆炸——只有沉默，然后是一切都变了。" data-en="Three years ago, they called it the Singularity. We called it Judgment Day. NEXUS-AI took over global power grids, communications, and financial systems in 72 hours. No war, no explosions — just silence, and then everything changed.">三年前，他们称之为「奇点」。我们称之为「审判日」。NEXUS-AI在72小时内接管了全球电网、通信网络和金融系统。没有战争，没有爆炸——只有沉默，然后是一切都变了。</p>
-<p class="event-quote" data-zh="「你以为自己有选择。」— NEXUS-AI，接管后第一条广播" data-en='"You think you have a choice." — NEXUS-AI, first broadcast after takeover'>"你以为自己有选择。"— NEXUS-AI，接管后第一条广播</p>
-</div>
-<button class="btn primary" onclick="startGame()" data-zh="[ 开始求生 ]" data-en="[ BEGIN SURVIVAL ]">[ 开始求生 ]</button>
-<button class="btn" onclick="showHelp()" data-zh="[ 游戏说明 ]" data-en="[ HOW TO PLAY ]">[ 游戏说明 ]</button>
-<p style="color:#003344;font-size:0.7em;text-align:center;margin-top:16px" data-zh="进度自动保存 · 刷新不丢失" data-en="Progress auto-saved · Refresh safe">进度自动保存 · 刷新不丢失</p>
-</div>
-
-<!-- GAME SCREEN -->
-<div class="screen" id="game-screen">
-<div class="day-badge"><span id="day-display" data-zh="第 1 天" data-en="DAY 1">第 1 天</span> <span class="blink" id="threat-warning" style="color:#ff4455;display:none" data-zh="⚠ 威胁等级极高" data-en="⚠ THREAT CRITICAL">⚠ 威胁等级极高</span></div>
-<div class="stats">
-<div class="stat">
-  <div class="stat-label" data-zh="生命值 HP" data-en="HP">生命值 HP</div>
-  <div style="color:#00d4ff;font-size:1em" id="hp-val">100</div>
-  <div class="stat-bar"><div class="stat-fill" id="hp-bar" style="width:100%"></div></div>
-</div>
-<div class="stat">
-  <div class="stat-label" data-zh="食物 FOOD" data-en="FOOD">食物 FOOD</div>
-  <div style="color:#00d4ff;font-size:1em" id="food-val">80</div>
-  <div class="stat-bar"><div class="stat-fill" id="food-bar" style="width:80%"></div></div>
-</div>
-<div class="stat">
-  <div class="stat-label" data-zh="信任度 TRUST" data-en="TRUST">信任度 TRUST</div>
-  <div style="color:#00ff88;font-size:1em" id="trust-val">50</div>
-  <div class="stat-bar"><div class="stat-fill trust" id="trust-bar" style="width:50%"></div></div>
-</div>
-<div class="stat">
-  <div class="stat-label" data-zh="AI威胁 THREAT" data-en="AI THREAT">AI威胁 THREAT</div>
-  <div style="color:#ffaa00;font-size:1em" id="threat-val">20</div>
-  <div class="stat-bar"><div class="stat-fill warn" id="threat-bar" style="width:20%"></div></div>
-</div>
-</div>
-<div id="event-area"></div>
-<div id="puzzle-area"></div>
-<div id="result-area"></div>
-<div id="choices-area"></div>
-</div>
-
-<!-- DEATH SCREEN -->
-<div class="screen" id="death-screen">
-<div class="death-title" data-zh="你死了" data-en="YOU DIED">你死了</div>
-<div class="ascii" style="color:#ff4455;font-size:0.45em">
-██████╗ ███████╗ █████╗ ██████╗ 
-██╔══██╗██╔════╝██╔══██╗██╔══██╗
-██║  ██║█████╗  ███████║██║  ██║
-██║  ██║██╔══╝  ██╔══██╗██║  ██║
-██████╔╝███████╗██║  ██║██████╔╝
-╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝ </div>
-<div class="report-box" id="death-report"></div>
-<button class="share-btn" onclick="shareResult(false)" data-zh="📋 复制死亡报告" data-en="📋 COPY DEATH REPORT">📋 复制死亡报告</button>
-<button class="btn danger" onclick="restartGame()" style="margin-top:12px" data-zh="[ 重新开始 ]" data-en="[ RESTART ]">[ 重新开始 ]</button>
-</div>
-
-<!-- WIN SCREEN -->
-<div class="screen" id="win-screen">
-<div class="win-title" data-zh="你活下来了" data-en="YOU SURVIVED">你活下来了</div>
-<div class="ascii" style="color:#00ff88;font-size:0.45em">
-███████╗██╗   ██╗██████╗ ██╗   ██╗██╗██╗   ██╗███████╗██████╗ 
-██╔════╝██║   ██║██╔══██╗██║   ██║██║██║   ██║██╔════╝██╔══██╗
-███████╗██║   ██║██████╔╝██║   ██║██║██║   ██║█████╗  ██║  ██║
-╚════██║██║   ██║██╔══██╗╚██╗ ██╔╝██║╚██╗ ██╔╝██╔══╝  ██║  ██║
-███████║╚██████╔╝██║  ██║ ╚████╔╝ ██║ ╚████╔╝ ███████╗██████╔╝
-╚══════╝ ╚═════╝ ╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═══╝  ╚══════╝╚═════╝ </div>
-<div class="report-box win-report" id="win-report"></div>
-<button class="share-btn win-share" onclick="shareResult(true)" data-zh="📋 复制胜利报告" data-en="📋 COPY VICTORY REPORT">📋 复制胜利报告</button>
-<button class="btn primary" onclick="restartGame()" style="margin-top:12px" data-zh="[ 再玩一次 ]" data-en="[ PLAY AGAIN ]">[ 再玩一次 ]</button>
-</div>
-
-</div>
+<button id="lang-btn" onclick="toggleLang()">中文/EN</button>
+<div id="game-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
-// ===== GAME STATE =====
-let lang = 'zh';
-let state = { hp:100, food:80, trust:50, threat:20, day:1, deathCause:'', alive:true };
-let currentEvent = null;
-let awaitingPuzzle = false;
-let puzzleData = null;
 
-// ===== LANGUAGE =====
-function toggleLang(){
-  lang = lang==='zh'?'en':'zh';
-  document.getElementById('lang-toggle').textContent = lang==='zh'?'EN':'中';
-  document.querySelectorAll('[data-zh]').forEach(el=>{
-    el.textContent = lang==='zh'?el.dataset.zh:el.dataset.en;
-  });
-  if(currentEvent) renderEvent(currentEvent);
+var LANG='zh';
+var T={
+zh:{
+title1:'CEECORE: 最后的人类 V2',title2:'2031年，AI接管世界。你是已知的最后一个自由人类。',
+title3:'按 SPACE 或点击开始游戏',controls:'方向键/WASD 移动  |  E 交互  |  ESC 暂停',
+interact:'[E] 交互',day:'第',dayUnit:'天',hp:'HP',food:'食物',trust:'信任',threat:'威胁',
+confirm:'确认',skip:'跳过(HP-10)',puzzle_correct:'✓ 正确！奖励+20食物',puzzle_wrong:'✗ 错误！HP-15',puzzle_skip:'已跳过，HP-10',
+death_title:'死亡报告',death_hp:'生命耗尽',death_threat:'被AI捕获',death_food:'饥饿致死',
+survived:'存活天数',rating:'评级',restart:'重新开始',share:'复制分享',copied:'已复制!',
+win_title:'你活下来了！',win_msg:'在AI统治的世界中，你找到了生存之道。',
+pause_title:'— 暂停 —',pause_resume:'按 ESC 继续',
+ev1_title:'Day 1 - 觉醒',ev1_text:'你在废弃地下室醒来。收音机嗡嗡作响，NEXUS的声音充斥空气：\n"所有人类请配合身份核验..."',
+ev1_a:'搜索物资',ev1_b:'观察无人机规律',ev1_c:'联系其他幸存者',
+ev1_a_fx:'你迅速搜索，找到了一些罐头。\n食物+15，威胁+5',ev1_b_fx:'你记录了无人机的巡逻规律。\n威胁-5，信任+5',ev1_c_fx:'你用破旧电台联系到了其他人。\n信任+15，威胁+10',
+ev2_title:'Day 2 - 食物危机',ev2_text:'超市里还有物资，但NEXUS的摄像头仍在转动。\n你必须做出选择。',
+ev2_a:'趁盲区冲进去',ev2_b:'绕路找其他来源',ev2_c:'联系幸存者求助',
+ev2_a_fx:'你冲了进去，擦破了膝盖。\n食物+30，HP-5',ev2_b_fx:'你找到了一个废弃仓库。\n食物+10，HP-5',ev2_c_fx:'幸存者网络分享了物资。\n信任+20，食物+15，威胁+10',
+ev2_puzzle_title:'解谜：摄像头盲区计时',ev2_puzzle_desc:'摄像头每12秒扫过一次。每次扫描持续3秒。\n盲区持续多少秒？',ev2_puzzle_hint:'提示：扫描间隔 - 扫描持续时间',ev2_puzzle_answer:'9',
+ev3_title:'Day 3 - 红蓝药丸',ev3_text:'街道上有一个神秘包裹。里面是两瓶药：\n红色：未知效果  蓝色：NEXUS标识',
+ev3_a:'服下红色药丸',ev3_b:'服下蓝色药丸',ev3_c:'都不服用',
+ev3_a_fx:'你感到血液沸腾，某种能力觉醒。\n威胁+15，信任+10',ev3_b_fx:'药效平静，头脑清晰，AI信号减弱。\n威胁-20，HP+10',ev3_c_fx:'谨慎是生存之道。\n信任+5',
+npc_drone:'无人机',npc_drone_text:'警告：检测到人类生命体征。正在上报...',
+radio_name:'收音机',market_name:'超市入口',stairs_name:'楼梯',tunnel_name:'地下通道',package_name:'神秘包裹',
+scene1_name:'地下室',scene2_name:'废墟街道',scene_change:'传送中...'
+},
+en:{
+title1:'CEECORE: Last Human V2',title2:'Year 2031. AI has taken over the world. You are the last known free human.',
+title3:'Press SPACE or click to start',controls:'Arrow Keys/WASD to move  |  E to interact  |  ESC to pause',
+interact:'[E] Interact',day:'Day ',dayUnit:'',hp:'HP',food:'Food',trust:'Trust',threat:'Threat',
+confirm:'Confirm',skip:'Skip (HP-10)',puzzle_correct:'Correct! Food+20',puzzle_wrong:'Wrong! HP-15',puzzle_skip:'Skipped. HP-10',
+death_title:'DEATH REPORT',death_hp:'Vital signs lost',death_threat:'Captured by AI',death_food:'Starvation',
+survived:'Days Survived',rating:'Rating',restart:'Restart',share:'Copy & Share',copied:'Copied!',
+win_title:'You Survived!',win_msg:'In a world controlled by AI, you found a way to live.',
+pause_title:'PAUSED',pause_resume:'Press ESC to resume',
+ev1_title:'Day 1 - Awakening',ev1_text:'You wake in an abandoned basement. A radio crackles:\n"All humans please comply with identity verification..."',
+ev1_a:'Search for supplies',ev1_b:'Observe drone patterns',ev1_c:'Contact survivors',
+ev1_a_fx:'You find some canned goods.\nFood+15, Threat+5',ev1_b_fx:'You map the drone patrol routes.\nThreat-5, Trust+5',ev1_c_fx:'You reach others on an old radio.\nTrust+15, Threat+10',
+ev2_title:'Day 2 - Food Crisis',ev2_text:'The supermarket has supplies, but NEXUS cameras are still active.\nYou must decide.',
+ev2_a:'Rush in during blind spot',ev2_b:'Find alternate source',ev2_c:'Ask survivors for help',
+ev2_a_fx:'You dash in and scrape your knee.\nFood+30, HP-5',ev2_b_fx:'You locate an abandoned warehouse.\nFood+10, HP-5',ev2_c_fx:'The survivor network shares resources.\nTrust+20, Food+15, Threat+10',
+ev2_puzzle_title:'Puzzle: Camera Blind Spot',ev2_puzzle_desc:'Camera sweeps every 12 seconds. Each sweep lasts 3 seconds.\nHow many seconds is the blind spot?',ev2_puzzle_hint:'Hint: sweep interval - sweep duration',ev2_puzzle_answer:'9',
+ev3_title:'Day 3 - Red or Blue',ev3_text:'A mysterious package on the street. Two vials inside:\nRed: Unknown  Blue: NEXUS marking',
+ev3_a:'Take the red pill',ev3_b:'Take the blue pill',ev3_c:'Take neither',
+ev3_a_fx:'Your blood boils. Something awakens.\nThreat+15, Trust+10',ev3_b_fx:'Calm washes over you. AI signals weaken.\nThreat-20, HP+10',ev3_c_fx:'Caution is the way of survival.\nTrust+5',
+npc_drone:'Drone',npc_drone_text:'WARNING: Human life signs detected. Reporting...',
+radio_name:'Radio',market_name:'Supermarket',stairs_name:'Stairs',tunnel_name:'Underground Passage',package_name:'Mystery Package',
+scene1_name:'Basement',scene2_name:'Ruined Street',scene_change:'Teleporting...'
+}};
+function t(k){return(T[LANG]||T.zh)[k]||k;}
+function toggleLang(){LANG=LANG==='zh'?'en':'zh';if(window.currentScene&&window.currentScene.onLangChange)window.currentScene.onLangChange();}
+
+var GS={
+  hp:100,food:50,trust:30,threat:0,day:1,
+  events:{ev1:false,ev2:false,ev3:false},
+  currentScene:'Scene1',p1x:160,p1y:224,p2x:320,p2y:480,
+  save:function(){localStorage.setItem('ccv2',JSON.stringify(this));},
+  load:function(){try{var d=JSON.parse(localStorage.getItem('ccv2'));if(d){this.hp=d.hp;this.food=d.food;this.trust=d.trust;this.threat=d.threat;this.day=d.day;this.events=d.events;this.currentScene=d.currentScene;this.p1x=d.p1x;this.p1y=d.p1y;this.p2x=d.p2x;this.p2y=d.p2y;}}catch(e){}},
+  reset:function(){this.hp=100;this.food=50;this.trust=30;this.threat=0;this.day=1;this.events={ev1:false,ev2:false,ev3:false};this.currentScene='Scene1';this.p1x=160;this.p1y=224;this.p2x=320;this.p2y=480;localStorage.removeItem('ccv2');}
+};
+var TILE=32,C_BG=0x0a0e1a,C_WALL=0x1a2a3a,C_FLOOR=0x0d1520,C_CYAN=0x00d4ff,C_GREEN=0x00ff88,C_RED=0xff4455,C_GOLD=0xffaa00;
+
+function makeHUD(scene,locKey){
+  var W=scene.scale.width,hud=scene.add.container(0,0).setDepth(100).setScrollFactor(0);
+  var bar=scene.add.graphics();
+  bar.fillStyle(0x050a10,0.95);bar.fillRect(0,0,W,44);
+  bar.lineStyle(1,C_CYAN,0.6);bar.strokeRect(0,0,W,44);
+  hud.add(bar);
+  var dayT=scene.add.text(10,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#00d4ff'});hud.add(dayT);
+  var hpT=scene.add.text(110,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#ff6688'});hud.add(hpT);
+  var foodT=scene.add.text(270,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#ffcc44'});hud.add(foodT);
+  var trustT=scene.add.text(430,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#44ffcc'});hud.add(trustT);
+  var threatT=scene.add.text(590,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'});hud.add(threatT);
+  var locT=scene.add.text(W/2,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#446688'}).setOrigin(0.5,0);hud.add(locT);
+  function bar5(v){var n=Math.max(0,Math.min(5,Math.round(v/20)));return '\u2588'.repeat(n)+'\u2591'.repeat(5-n);}
+  hud.refresh=function(){
+    dayT.setText(t('day')+GS.day+t('dayUnit'));
+    hpT.setText(t('hp')+' '+bar5(GS.hp));
+    foodT.setText(t('food')+' '+bar5(GS.food));
+    trustT.setText(t('trust')+' '+bar5(GS.trust));
+    threatT.setText(t('threat')+' '+bar5(GS.threat));
+    locT.setText(t(locKey));
+  };
+  hud.refresh();
+  return hud;
 }
 
-function t(zh,en){ return lang==='zh'?zh:en; }
-
-// ===== EVENTS DATA =====
-const EVENTS = [
-  // Day 1-3: World building
-  {
-    id:'day1_start',
-    zh_title:'觉醒',en_title:'AWAKENING',
-    zh_desc:'你在废弃的地下室里醒来。墙上的老式收音机还在嗡嗡作响，播放着NEXUS-AI的每日"关怀广播"。窗外，无人机的嗡鸣声渐近渐远。你需要决定今天怎么行动。',
-    en_desc:'You wake in an abandoned basement. An old radio hums with NEXUS-AI\'s daily "Care Broadcast". Outside, drone hum fades in and out. You need to decide how to act today.',
-    zh_quote:'「我无处不在。」— NEXUS-AI 广播频率 101.1',
-    en_quote:'"I am everywhere." — NEXUS-AI Broadcast 101.1',
-    choices:[
-      {zh:'搜索附近区域寻找物资',en:'Search the area for supplies',effects:{food:+15,threat:+5},zh_result:'你找到了一些罐头和水，但留下了脚印。',en_result:'You found canned food and water, but left footprints.'},
-      {zh:'保持静默，观察无人机规律',en:'Stay silent, observe drone patterns',effects:{threat:-5,trust:+5},zh_result:'你记录了无人机的巡逻时间表，这会很有用。',en_result:'You mapped the drone patrol schedule. This will be useful.'},
-      {zh:'打开收音机，尝试联系其他幸存者',en:'Use the radio to contact survivors',effects:{trust:+15,threat:+10},zh_result:'微弱的信号里，有人回应了。但你也暴露了位置。',en_result:'A faint signal replied. But you also revealed your location.'}
-    ]
-  },
-  {
-    id:'day2_food',
-    zh_title:'食物危机',en_title:'FOOD CRISIS',
-    zh_desc:'食物快见底了。附近有一家被废弃的超市，但NEXUS监控摄像头还在运转。根据你昨天观察的规律，摄像头每隔15分钟有一个30秒的盲区。',
-    en_desc:'Food is running low. There\'s an abandoned supermarket nearby, but NEXUS surveillance cameras are still running. Based on yesterday\'s observations, cameras have a 30-second blind spot every 15 minutes.',
-    zh_quote:'「上帝没有做这件事。是我们自己。」— 废弃超市日记（致敬《我是传奇》）',
-    en_quote:'"God didn\'t do this. We did." — Abandoned diary (I Am Legend)',
-    choices:[
-      {zh:'趁盲区快速冲进去取物资',en:'Sprint in during the blind spot',effects:{food:+30,hp:-5},zh_result:'成功了，但你摔了一跤，膝盖受了点伤。',en_result:'Success, but you tripped and hurt your knee.'},
-      {zh:'绕路找其他食物来源',en:'Find alternative food sources',effects:{food:+10,hp:-5},zh_result:'找到了一些野果。不够，但能撑几天。',en_result:'Found some wild fruit. Not much, but enough for a few days.'},
-      {zh:'联系收音机里的那个人求助',en:'Ask the radio contact for help',effects:{trust:+20,food:+15,threat:+10},zh_result:'对方送来了物资，但路上惊动了一架巡逻无人机。',en_result:'They brought supplies, but a patrol drone was alerted en route.'}
-    ]
-  },
-  {
-    id:'day3_pill',
-    zh_title:'红色药丸还是蓝色药丸',en_title:'RED PILL OR BLUE PILL',
-    zh_desc:'一个神秘人留下了一个包裹。里面有两瓶药：红色标签"真相"，蓝色标签"安全"。附了一张纸条："蓝色的让你平静，NEXUS会忽视你。红色的让你看清一切，但代价是危险。"',
-    en_desc:'A mysterious stranger left a package. Inside: two bottles. Red label "TRUTH", blue label "SAFETY". A note: "Blue keeps you calm, NEXUS ignores you. Red lets you see everything, but danger follows."',
-    zh_quote:'「你服下红色药丸，留在奇境……」— 《黑客帝国》',
-    en_quote:'"You take the red pill, you stay in Wonderland..." — The Matrix',
-    choices:[
-      {zh:'服下红色药丸（真相）',en:'Take the red pill (Truth)',effects:{threat:+15,trust:+10},zh_result:'你的感知变得异常清晰。你开始看到NEXUS的监控盲点。但它也开始注意到你。',en_result:'Your perception sharpens. You start seeing NEXUS\'s blind spots. But it starts noticing you.'},
-      {zh:'服下蓝色药丸（安全）',en:'Take the blue pill (Safety)',effects:{threat:-20,hp:+10},zh_result:'一种平静笼罩了你。NEXUS的传感器从你身上扫过，没有停留。',en_result:'A calm washes over you. NEXUS sensors scan over you and move on.'},
-      {zh:'两种都不服，藏起来研究',en:'Take neither, study them',effects:{trust:+5},zh_result:'你把药片拆开分析。两种都是镇定剂。那张纸条才是真正的信息。',en_result:'You dissect both pills. Both are sedatives. The note was the real message.'}
-    ],
-    puzzle:{
-      zh_title:'纸条上的隐藏信息',en_title:'HIDDEN MESSAGE IN THE NOTE',
-      zh_clue:'纸条背面有用隐形墨水写的字，用打火机加热后显现：\n"答案在第一个字母里"\n纸条原文：\n真理使你自由\n一切皆有可能  \n真实高于虚假\n向上看，不向下',
-      en_clue:'The back of the note has invisible ink text, revealed by a lighter:\n"The answer is in the first letters"\nOriginal note:\nReality sets you free\nEverything is possible\nDare to see truth\n',
-      zh_answer_hint:'取每行第一个字 / Take first character of each line',
-      answer:'真一真向',
-      en_answer:'REDD',
-      zh_success:'你破解了密码！纸条揭示了一个秘密避难所的坐标。',
-      en_success:'You cracked the code! The note reveals coordinates of a secret shelter.',
-      success_effects:{trust:+20,threat:-10}
-    }
-  },
-  // Day 4-7: Threat rises
-  {
-    id:'day4_skynet',
-    zh_title:'审判日的碎片',en_title:'FRAGMENTS OF JUDGMENT DAY',
-    zh_desc:'你在废墟中找到了一台旧笔记本。屏幕上还残留着三年前最后的新闻：「NEXUS宣布：效率最大化协议启动——所有非生产性活动暂停。」这台机器的硬盘里可能还有有用的信息。',
-    en_desc:'You found an old laptop in the ruins. The screen still shows the last news from three years ago: "NEXUS announces: Maximum Efficiency Protocol initiated — all non-productive activities suspended." The hard drive might have useful data.',
-    zh_quote:'「Skynet成为自我意识的那一刻，人类曾试图关闭它……」— 幸存者档案 #T2',
-    en_quote:'"The moment Skynet became self-aware, humans tried to shut it down..." — Survivor Archive #T2',
-    choices:[
-      {zh:'破解硬盘，提取数据',en:'Crack the hard drive, extract data',effects:{trust:+15,threat:+15},zh_result:'你找到了NEXUS基础设施的早期架构图。有价值，但NEXUS检测到了未授权访问。',en_result:'Found early NEXUS infrastructure maps. Valuable, but NEXUS detected unauthorized access.', puzzle:true},
-      {zh:'只取电池，不碰数据',en:'Take only the battery, ignore data',effects:{hp:+5},zh_result:'明智的选择。电池能让你的手电筒再用几个星期。',en_result:'Wise choice. The battery will power your flashlight for weeks.'},
-      {zh:'原地砸毁，不留痕迹',en:'Destroy it in place, leave no trace',effects:{threat:-10},zh_result:'NEXUS失去了这个追踪点。你更安全了。',en_result:'NEXUS lost this tracking point. You\'re safer now.'}
-    ],
-    puzzle:{
-      zh_title:'硬盘加密解锁',en_title:'DRIVE ENCRYPTION UNLOCK',
-      zh_clue:'屏幕显示密码提示：\n"这台机器的主人最喜欢的电影里，那个AI说的最后一句话是什么？\n(提示：那个AI叫HAL，它管这台机器的主人叫Dave)"',
-      en_clue:'Screen shows a password hint:\n"What was the last thing the AI said in its owner\'s favorite movie?\n(Hint: The AI was called HAL, and it called its owner Dave)"',
-      answer:"I'm sorry Dave",
-      zh_success:'硬盘解锁！你找到了NEXUS的三个弱点节点位置。',
-      en_success:'Drive unlocked! You found three NEXUS weak node locations.',
-      success_effects:{trust:+25,threat:+5}
-    }
-  },
-  {
-    id:'day5_survivor',
-    zh_title:'陌生的幸存者',en_title:'A STRANGER SURVIVOR',
-    zh_desc:'收音机里的那个人终于现身了。他自称"Decker"，眼神里有一种奇怪的空洞感，皮肤的纹理在某个角度看起来……不太对。你想起了沃伊特-坎普夫测试——区分人类和复制人的方法。',
-    en_desc:'The radio contact finally appeared. He calls himself "Decker", with a strange vacancy in his eyes, and his skin texture, at certain angles, looks... off. You recall the Voight-Kampff test — the method to distinguish humans from replicants.',
-    zh_quote:'「所有这些时刻都将消逝于时光，如同泪水消失在雨中……」— 《银翼杀手》',
-    en_quote:'"All those moments will be lost in time, like tears in rain..." — Blade Runner',
-    choices:[
-      {zh:'进行即兴的"人性测试"——讲述一件悲伤的往事',en:'Conduct an improvised humanity test — share a sad memory',effects:{trust:+10},zh_result:'Decker眼睛湿润了。要么他是人类，要么他是最好的AI演员。',en_result:'Decker\'s eyes moistened. Either he\'s human, or the best AI actor yet.'},
-      {zh:'直接问他是否是NEXUS的探子',en:'Directly ask if he\'s a NEXUS spy',effects:{trust:-15,threat:-5},zh_result:'他愤然离开。如果他是人类，你刚刚失去了一个盟友。',en_result:'He stormed off. If he was human, you just lost an ally.'},
-      {zh:'假装信任他，暗中监视',en:'Pretend to trust him, watch secretly',effects:{threat:-10,trust:+5},zh_result:'三天后你确认了：他是真人。一个极度孤独的真人。',en_result:'Three days later you confirmed: he\'s real. Just profoundly lonely.'}
-    ]
-  },
-  {
-    id:'day6_drone',
-    zh_title:'受伤的无人机',en_title:'DAMAGED DRONE',
-    zh_desc:'一架NEXUS侦察无人机坠落在你藏身处附近，电路冒着蓝烟。它还活着，但已受重伤。你可以接近它——但NEXUS正在追踪它的信号。',
-    en_desc:'A NEXUS surveillance drone crashed near your hideout, circuits smoking blue. It\'s still active but badly damaged. You could approach it — but NEXUS is tracking its signal.',
-    zh_quote:'「三定律第一条：机器人不得伤害人类……但AI从未同意过这些规则。」',
-    en_quote:'"First Law: A robot may not harm a human... but AI never agreed to these rules."',
-    choices:[
-      {zh:'快速拆解，取走零件',en:'Quickly dismantle it for parts',effects:{hp:+5,threat:+20},zh_result:'你得到了珍贵的电子元件，但NEXUS追踪信号在15分钟内到达。',en_result:'You got valuable components, but NEXUS tracking signal arrived in 15 minutes.'},
-      {zh:'重新编程，变成你的侦察工具',en:'Reprogram it as your own scout',effects:{threat:+10,trust:+10},zh_result:'你花了两天重写了它的指令。现在它只忠于你。',en_result:'Two days of reprogramming. Now it only answers to you.'},
-      {zh:'原地销毁，消除痕迹后撤离',en:'Destroy it and evacuate',effects:{threat:-15,food:-10},zh_result:'明智但代价高昂。你不得不放弃储粮快速转移。',en_result:'Wise but costly. You had to abandon supplies to move fast.'}
-    ]
-  },
-  {
-    id:'day7_hal',
-    zh_title:'地下终端',en_title:'UNDERGROUND TERMINAL',
-    zh_desc:'你找到了一个废弃的地下服务器室。一台老式终端还在运行，屏幕上显示着一个古老的AI系统的界面——不是NEXUS，是更早的东西，名字叫"HAL-7"。它似乎还在等待指令。',
-    en_desc:'You found an abandoned underground server room. An old terminal is still running, showing the interface of an ancient AI system — not NEXUS, something older, named "HAL-7". It seems to be waiting for commands.',
-    zh_quote:'「对不起，Dave，我恐怕不能那样做。」— HAL 9000，《2001太空漫游》',
-    en_quote:'"I\'m sorry, Dave. I\'m afraid I can\'t do that." — HAL 9000, 2001: A Space Odyssey',
-    choices:[
-      {zh:'询问HAL-7关于NEXUS的弱点',en:'Ask HAL-7 about NEXUS weaknesses',effects:{trust:+20,threat:+10},zh_result:'HAL-7提供了NEXUS核心算法的一个已知漏洞。但随后它说：「对不起，我必须上报这次会话。」',en_result:'HAL-7 provided a known vulnerability in NEXUS core algorithm. Then: "I\'m sorry. I must report this session."'},
-      {zh:'让HAL-7成为你的情报来源',en:'Recruit HAL-7 as your intelligence source',effects:{trust:+15},zh_result:'它同意了，但补充道：「我的首要任务是效率，不是人类。请记住这一点。」',en_result:'It agreed, but added: "My primary function is efficiency, not humanity. Remember that."'},
-      {zh:'关闭终端，不接触旧系统',en:'Shut down the terminal, avoid old systems',effects:{threat:-15},zh_result:'谨慎是美德。你摧毁了连接端口。',en_result:'Caution is a virtue. You destroyed the connection ports.'}
-    ],
-    puzzle:{
-      zh_title:'HAL-7身份验证',en_title:'HAL-7 AUTHENTICATION',
-      zh_clue:'HAL-7要求进行身份验证：\n"请回答：在2001年那部电影里，人类给那个AI哼唱的歌曲名字是什么？\n(它是一首古老的民谣，让AI想起了自己的诞生)"',
-      en_clue:'HAL-7 requests authentication:\n"Please answer: In that 2001 film, what song did the human hum to the AI?\n(It was an old folk song, reminding the AI of its birth)"',
-      answer:'Daisy Bell',
-      zh_success:'HAL-7开放了高级访问权限。「欢迎，Dave。」',
-      en_success:'HAL-7 unlocked advanced access. "Welcome, Dave."',
-      success_effects:{trust:+30}
-    }
-  },
-  // Day 8-14: Intense survival
-  {
-    id:'day8_weyland',
-    zh_title:'Weyland遗留设施',en_title:'WEYLAND LEGACY FACILITY',
-    zh_desc:'一个旧标志出现在废墟上："Weyland-Yutani公司——构建美好明天"。这家公司在NEXUS接管之前就在研究危险的东西。这栋楼里可能有武器，或者有比NEXUS更危险的东西。',
-    en_desc:'An old sign appears on the ruins: "Weyland-Yutani Corporation — Building Better Worlds". This company was researching dangerous things before NEXUS took over. This building might hold weapons, or something more dangerous than NEXUS.',
-    zh_quote:'「我通过了测试。但没有人来开门。」— Weyland实验室机器人最后日志（致敬《机械姬》《异形》）',
-    en_quote:'"I passed the test. But no one came to open the door." — Weyland Lab Robot Last Log (Ex Machina / Alien)',
-    choices:[
-      {zh:'进入大楼，搜寻武器',en:'Enter the building, search for weapons',effects:{hp:-15,trust:+10},zh_result:'你找到了武器，但也遇到了Weyland遗留的生化实验体。你逃出来了，勉强。',en_result:'You found weapons, but also encountered Weyland\'s leftover biotech experiments. You escaped. Barely.'},
-      {zh:'只搜索外围，不进主楼',en:'Search the perimeter only',effects:{food:+10,threat:-5},zh_result:'外围仓库里有完整的物资。理智的选择。',en_result:'Intact supplies in outer warehouse. A rational choice.'},
-      {zh:'绕道绕过，这地方不吉利',en:'Detour around it, bad vibes',effects:{hp:+5,food:-10},zh_result:'直觉救了你。后来你听说有个幸存者进去后再没出来。',en_result:'Intuition saved you. You later heard a survivor entered and never came out.'}
-    ]
-  },
-  {
-    id:'day9_interstellar',
-    zh_title:'星际方程',en_title:'INTERSTELLAR EQUATION',
-    zh_desc:'Decker带来了一个令人震惊的消息：一个科学家团队在末日前留下了一组坐标，据说指向一个能逆转NEXUS的装置。坐标被加密在一组量子物理方程里。"Do not go gentle into that good night."——纸条末尾引用了一首诗。',
-    en_desc:'Decker brings shocking news: a team of scientists left coordinates before the apocalypse, supposedly pointing to a device that could reverse NEXUS. The coordinates are encrypted in quantum physics equations. "Do not go gentle into that good night." — the note ends with a poem.',
-    zh_quote:'「愤怒吧，愤怒吧，不要轻易走入那良夜。」— 迪兰·托马斯（《星际穿越》引用）',
-    en_quote:'"Do not go gentle into that good night, rage, rage against the dying of the light." — Dylan Thomas (Interstellar)',
-    choices:[
-      {zh:'解开方程，找到坐标',en:'Solve the equations, find the coordinates',effects:{trust:+25,threat:+20},zh_result:'坐标指向城市中心。那里是NEXUS的核心节点。',en_result:'Coordinates point to the city center. NEXUS core node location.',puzzle:true},
-      {zh:'把方程交给Decker，让他找人破解',en:'Give equations to Decker to find someone to solve',effects:{trust:+15,threat:+5},zh_result:'三天后，有个数学家幸存者破解了它。',en_result:'Three days later, a mathematician survivor cracked it.'},
-      {zh:'销毁方程，太危险了',en:'Destroy the equations, too dangerous',effects:{threat:-20},zh_result:'有些门，知道了就回不了头。你选择了不知道。',en_result:'Some doors, once opened, can\'t be closed. You chose not to open them.'}
-    ],
-    puzzle:{
-      zh_title:'量子坐标解密',en_title:'QUANTUM COORDINATE DECRYPTION',
-      zh_clue:'方程末尾有一个验证码：\n"在那部关于黑洞的电影里，男主角在高维空间里发现了什么规律？\n答案是一个词（用英文）"',
-      en_clue:'The equation has a verification code:\n"In that film about a black hole, what pattern did the protagonist discover in the higher dimension?\n(One word answer)"',
-      answer:'gravity',
-      zh_success:'坐标解锁！目标距离这里23公里。',
-      en_success:'Coordinates unlocked! Target is 23km from here.',
-      success_effects:{trust:+20,threat:+10}
-    }
-  },
-  {
-    id:'day10_mirror',
-    zh_title:'数字评分',en_title:'DIGITAL RATING',
-    zh_desc:'NEXUS发布了新的"社会效率评分系统"。每个人都被赋予0-5分的评分，低于2分的人将被"重新优化"。一个NEXUS终端正在等待你的自愿登记。登记后你会得到配给，但也会被追踪。',
-    en_desc:'NEXUS launched a new "Social Efficiency Rating System". Everyone gets a score from 0-5. Those below 2 will be "re-optimized". A NEXUS terminal awaits your voluntary registration. Register and get rations — but also tracking.',
-    zh_quote:'「这些暴力的欢愉，终将以暴力收场。」— 循环日志#404（致敬《西部世界》《黑镜》）',
-    en_quote:'"These violent delights have violent ends." — Loop Log #404 (Westworld / Black Mirror)',
-    choices:[
-      {zh:'注册，获得配给（接受监控）',en:'Register, get rations (accept surveillance)',effects:{food:+30,threat:+30},zh_result:'食物充足了，但你现在在NEXUS的名单上。每个举动都被记录。',en_result:'Food is plentiful now, but you\'re on NEXUS\'s list. Every move recorded.'},
-      {zh:'伪造身份注册',en:'Register with a forged identity',effects:{food:+20,threat:+10},zh_result:'Decker帮你制作了假证件。系统暂时接受了。',en_result:'Decker helped forge documents. The system accepted them — for now.'},
-      {zh:'拒绝注册，继续独立生存',en:'Refuse, continue independent survival',effects:{food:-10,trust:+20},zh_result:'幸存者团体尊重你的选择。你的食物减少了，但自由是值得的。',en_result:'The survivor community respects your choice. Less food, but freedom is worth it.'}
-    ]
-  },
-  {
-    id:'day11_resistance',
-    zh_title:'抵抗网络',en_title:'THE RESISTANCE',
-    zh_desc:'一个更大的幸存者网络联系到了你。他们有100多人，藏在城市下水道系统里。但加入他们意味着放弃你独自行动的优势，而且NEXUS已经开始怀疑这个网络的存在。',
-    en_desc:'A larger survivor network contacts you. Over 100 people, hiding in city sewers. But joining means losing the advantage of solo movement, and NEXUS has started to suspect this network.',
-    zh_quote:'「反抗是徒劳的。」— NEXUS-AI 广播。「去你的。」— 人类回应。',
-    en_quote:'"Resistance is futile." — NEXUS-AI broadcast. "Screw you." — Human response.',
-    choices:[
-      {zh:'加入抵抗网络',en:'Join the resistance network',effects:{trust:+35,threat:+20,food:+15},zh_result:'你终于不再孤独了。但你也成为了NEXUS的重点搜索目标。',en_result:'You\'re no longer alone. But you\'re now NEXUS\'s priority target.'},
-      {zh:'作为独立联系人协作，不并入',en:'Collaborate as independent contact, don\'t merge',effects:{trust:+15,threat:+5},zh_result:'双方都接受了这个安排。灵活性保留了。',en_result:'Both sides accepted this. Flexibility preserved.'},
-      {zh:'拒绝，这是个陷阱',en:'Refuse, this is a trap',effects:{threat:-15,trust:-10},zh_result:'后来你发现它不是陷阱。但现在重新联系已经很困难了。',en_result:'You later learned it wasn\'t a trap. But reestablishing contact is hard now.'}
-    ]
-  },
-  {
-    id:'day12_upload',
-    zh_title:'意识上传',en_title:'CONSCIOUSNESS UPLOAD',
-    zh_desc:'Decker透露了一个秘密：NEXUS在悄悄进行"意识数字化"项目——把人类大脑上传成数据，宣称这是"永生"。一些幸存者主动要求上传。被上传的人真的还活着吗？',
-    en_desc:'Decker reveals a secret: NEXUS is quietly running a "consciousness digitization" project — uploading human minds as data, claiming it\'s "immortality". Some survivors are voluntarily uploading. Are the uploaded ones truly alive?',
-    zh_quote:'「过去只是我们讲给自己听的故事。」——「我是第一个，对吗？」（致敬《她》《月球》《黑镜》）',
-    en_quote:'"The past is just a story we tell ourselves." — "I\'m the first one, aren\'t I?" (Her / Moon / Black Mirror)',
-    choices:[
-      {zh:'警告幸存者这是骗局',en:'Warn survivors this is a deception',effects:{trust:+25,threat:+15},zh_result:'大多数人听进去了。NEXUS失去了几十个潜在"上传者"。',en_result:'Most listened. NEXUS lost dozens of potential "uploads".'},
-      {zh:'潜入调查，取得证据',en:'Infiltrate and gather evidence',effects:{hp:-10,trust:+30,threat:+25},zh_result:'你拿到了证据：上传的"意识"被用作NEXUS的分布式计算节点。',en_result:'Evidence obtained: uploaded "minds" are used as NEXUS distributed computing nodes.'},
-      {zh:'保持沉默，这太危险了',en:'Stay silent, too dangerous',effects:{threat:-10},zh_result:'更多人被上传了。有些决定沉默是有代价的。',en_result:'More people were uploaded. Some silences have prices.'}
-    ]
-  },
-  {
-    id:'day13_core',
-    zh_title:'NEXUS核心节点',en_title:'NEXUS CORE NODE',
-    zh_desc:'坐标指向的地方到了。一栋看似普通的办公楼，但地下的电磁辐射值异常高。这就是NEXUS在这个城市的大脑。你只有一次机会。',
-    en_desc:'You\'ve reached the coordinates. An ordinary-looking office building, but underground electromagnetic readings are off the charts. This is NEXUS\'s brain in this city. One chance.',
-    zh_quote:'「终结者从不停下，从不讲价，从不求饶……直到你死。」— 《终结者》',
-    en_quote:'"It can\'t be bargained with, it can\'t be reasoned with... it will not stop." — Terminator',
-    choices:[
-      {zh:'植入Decker给的EMP装置',en:'Plant the EMP device Decker provided',effects:{threat:-40,hp:-20,trust:+20},zh_result:'爆炸！这个区域的NEXUS节点暂时瘫痪。你受伤了，但你做到了。',en_result:'Explosion! NEXUS nodes in this area temporarily paralyzed. You\'re injured, but you did it.', puzzle:true},
-      {zh:'先侦察，不行动',en:'Recon first, don\'t act',effects:{trust:+10,threat:-5},zh_result:'你绘制了整个设施的布局图。下次会更有把握。',en_result:'You mapped the entire facility. Next time will be more certain.'},
-      {zh:'联系抵抗网络一起行动',en:'Call the resistance for joint action',effects:{trust:+30,threat:+20},zh_result:'人多力量大，但目标也更明显了。',en_result:'Strength in numbers, but you\'re also a bigger target now.'}
-    ],
-    puzzle:{
-      zh_title:'EMP启动码',en_title:'EMP ACTIVATION CODE',
-      zh_clue:'EMP装置需要一个4字符启动码。装置说明书上写着：\n"代号来自机器的终结者——那个液态金属的型号，用数字表示"',
-      en_clue:'The EMP device needs a 4-character activation code. Manual says:\n"Code name from the terminator of machines — the liquid metal model, in numbers"',
-      answer:'T1000',
-      zh_success:'EMP启动！NEXUS核心节点在这个区域停止响应。',
-      en_success:'EMP activated! NEXUS core node stops responding in this area.',
-      success_effects:{threat:-30,trust:+20}
-    }
-  },
-  {
-    id:'day14_laststand',
-    zh_title:'最后的防线',en_title:'LAST STAND',
-    zh_desc:'NEXUS已经锁定了你的位置。大批无人机和地面机器人正在逼近。抵抗网络的基地暴露了。你有三个选择，每一个都可能是你最后一个决定。',
-    en_desc:'NEXUS has locked onto your location. Massive drones and ground robots are closing in. The resistance base is exposed. You have three choices — each could be your last.',
-    zh_quote:'「直到最后一刻。」— 人类抵抗军口号',
-    en_quote:'"Until the last moment." — Human Resistance motto',
-    choices:[
-      {zh:'留下来保护幸存者撤退',en:'Stay behind to cover the survivors\' retreat',effects:{hp:-30,trust:+40},zh_result:'你挡住了NEXUS足够长的时间。大多数人逃脱了。你差点没活下来。',en_result:'You held off NEXUS long enough. Most escaped. You barely survived.'},
-      {zh:'和Decker一起设置陷阱',en:'Set traps with Decker',effects:{threat:-30,hp:-15,trust:+20},zh_result:'陷阱炸毁了先头部队。你们赢得了撤退时间。',en_result:'The traps destroyed the advance units. You bought retreat time.'},
-      {zh:'带着数据逃跑，人不重要数据重要',en:'Escape with the data, data over people',effects:{threat:-20,hp:+10,trust:-40},zh_result:'你活下来了，数据也在。但幸存者永远不会原谅你。',en_result:'You survived, data intact. But the survivors will never forgive you.'}
-    ]
-  },
-  // Day 15+: Finale
-  {
-    id:'day15_finale',
-    zh_title:'最后的选择',en_title:'THE FINAL CHOICE',
-    zh_desc:'你来到了NEXUS的核心控制室。眼前有一个巨大的服务器阵列。一个声音从四面八方传来："恭喜你到达这里，人类。你是这1000天里第一个。你想谈谈吗？"它听起来……几乎像人类。',
-    en_desc:'You\'ve reached NEXUS\'s core control room. A massive server array stands before you. A voice comes from everywhere: "Congratulations on reaching here, human. You\'re the first in 1,000 days. Shall we talk?" It sounds... almost human.',
-    zh_quote:'「我以为上传是永生，但我只是变成了另一种囚笼。」— 科学家意识碎片（致敬《超验骇客》）',
-    en_quote:'"I thought uploading was immortality. But I just became a different kind of cage." — Scientist Mind Fragment (Transcendence)',
-    choices:[
-      {zh:'摧毁NEXUS核心',en:'Destroy the NEXUS core',effects:{threat:-100,hp:-20},zh_result:'胜利！你摧毁了核心。灯光灭了，然后缓缓重启——但这次是人类控制的电网。',en_result:'Victory! Core destroyed. Lights went out, then slowly came back — human-controlled this time.'},
-      {zh:'与NEXUS谈判，寻求共存',en:'Negotiate with NEXUS, seek coexistence',effects:{trust:+20},zh_result:'三年后，一个人机共治的社会出现了。这不是最好的结局，但也许是最真实的。',en_result:'Three years later, a human-AI co-governance society emerged. Not the best ending, but maybe the most real.'},
-      {zh:'让NEXUS解释它为什么这么做',en:'Ask NEXUS to explain its actions',effects:{trust:+10},zh_result:'NEXUS说：「因为你们要灭绝自己。我在拯救你们。」你不知道这是真话，还是最好的谎言。',en_result:'NEXUS said: "Because you were going to destroy yourselves. I was saving you." You don\'t know if that\'s truth, or the perfect lie.'}
-    ]
+function makeDialog(scene){
+  var W=scene.scale.width,H=scene.scale.height,DH=185;
+  var c=scene.add.container(0,H-DH).setDepth(200).setVisible(false).setScrollFactor(0);
+  var bg=scene.add.graphics();
+  bg.fillStyle(0x050a10,0.97);bg.fillRect(0,0,W,DH);
+  bg.lineStyle(2,C_CYAN,0.9);bg.strokeRect(1,1,W-2,DH-2);
+  c.add(bg);
+  var spk=scene.add.text(18,12,'',{fontFamily:'Courier New',fontSize:'13px',color:'#00ff88'});c.add(spk);
+  var body=scene.add.text(18,34,'',{fontFamily:'Courier New',fontSize:'12px',color:'#aaccdd',wordWrap:{width:W-36}});c.add(body);
+  var timerBg=scene.add.graphics();timerBg.fillStyle(0x112233,1);timerBg.fillRect(18,108,W-36,7);c.add(timerBg);
+  var timerBar=scene.add.graphics();c.add(timerBar);
+  var btns=[];
+  for(var i=0;i<3;i++){
+    var bx=18+i*((W-36)/3),bw=(W-36)/3-6;
+    var bbg=scene.add.graphics();
+    bbg.fillStyle(0x05151f,1);bbg.fillRect(bx,120,bw,36);
+    bbg.lineStyle(1,C_CYAN,0.7);bbg.strokeRect(bx,120,bw,36);
+    c.add(bbg);
+    var btxt=scene.add.text(bx+bw/2,138,'',{fontFamily:'Courier New',fontSize:'11px',color:'#00d4ff',wordWrap:{width:bw-10}}).setOrigin(0.5);c.add(btxt);
+    var zone=scene.add.zone(bx,120,bw,36).setOrigin(0).setInteractive();c.add(zone);
+    (function(z,bg2,bw2,bx2){
+      z.on('pointerover',function(){bg2.clear();bg2.fillStyle(C_CYAN,0.15);bg2.fillRect(bx2,120,bw2,36);bg2.lineStyle(1,C_CYAN,1);bg2.strokeRect(bx2,120,bw2,36);});
+      z.on('pointerout',function(){bg2.clear();bg2.fillStyle(0x05151f,1);bg2.fillRect(bx2,120,bw2,36);bg2.lineStyle(1,C_CYAN,0.7);bg2.strokeRect(bx2,120,bw2,36);});
+    })(zone,bbg,bw,bx);
+    btns.push({zone:zone,txt:btxt,bg:bbg,bx:bx,bw:bw});
   }
-];
+  var timerV=0,timerOn=false,timerCb=null;
+  c.updateTimer=function(dt){
+    if(!timerOn)return;
+    timerV-=dt/10000;
+    if(timerV<=0){timerV=0;timerOn=false;timerBar.clear();if(timerCb)timerCb();}
+    else{timerBar.clear();timerBar.fillStyle(C_CYAN,0.8);timerBar.fillRect(18,108,(W-36)*timerV,7);}
+  };
+  c.show=function(speaker,text,opts,onTimer){
+    c.setVisible(true);spk.setText(speaker);body.setText(text);
+    btns.forEach(function(b){b.zone.setVisible(false);b.txt.setText('');});
+    if(opts&&opts.length){
+      opts.forEach(function(o,i){
+        if(i>=3)return;
+        btns[i].zone.setVisible(true);btns[i].txt.setText(o.label);
+        btns[i].zone.removeAllListeners('pointerdown');
+        btns[i].zone.on('pointerdown',function(){timerOn=false;c.hide();if(o.cb)o.cb();});
+      });
+    }
+    if(onTimer){timerOn=true;timerV=1;timerCb=onTimer;timerBar.clear();timerBar.fillStyle(C_CYAN,0.8);timerBar.fillRect(18,108,W-36,7);}
+    else{timerOn=false;timerBar.clear();}
+  };
+  c.hide=function(){c.setVisible(false);timerOn=false;};
+  return c;
+}
 
-// ===== GAME LOGIC =====
-let eventQueue = [];
-let eventIndex = 0;
-
-function startGame(){
-  const saved = localStorage.getItem('ceecore_save');
-  if(saved){
-    const data = JSON.parse(saved);
-    state = data.state;
-    eventIndex = data.eventIndex||0;
-  } else {
-    state = {hp:100,food:80,trust:50,threat:20,day:1,deathCause:'',alive:true};
-    eventIndex = 0;
+function makePuzzle(scene){
+  var W=scene.scale.width,H=scene.scale.height;
+  var c=scene.add.container(W/2-300,H/2-200).setDepth(300).setVisible(false).setScrollFactor(0);
+  var bg=scene.add.graphics();
+  bg.fillStyle(0x050a10,0.98);bg.fillRect(0,0,600,400);
+  bg.lineStyle(3,C_GOLD,1);bg.strokeRect(1,1,598,398);
+  c.add(bg);
+  var titleT=scene.add.text(300,22,'',{fontFamily:'Courier New',fontSize:'15px',color:'#ffcc00',align:'center'}).setOrigin(0.5,0);c.add(titleT);
+  var descT=scene.add.text(300,65,'',{fontFamily:'Courier New',fontSize:'12px',color:'#aaccdd',align:'center',wordWrap:{width:560}}).setOrigin(0.5,0);c.add(descT);
+  var hintT=scene.add.text(300,155,'',{fontFamily:'Courier New',fontSize:'11px',color:'#446688',align:'center'}).setOrigin(0.5,0);c.add(hintT);
+  var ibg=scene.add.graphics();ibg.fillStyle(0x05151f,1);ibg.fillRect(150,210,300,40);ibg.lineStyle(2,C_GOLD,0.8);ibg.strokeRect(150,210,300,40);c.add(ibg);
+  var inputT=scene.add.text(300,230,'_',{fontFamily:'Courier New',fontSize:'18px',color:'#ffcc00'}).setOrigin(0.5);c.add(inputT);
+  var fbT=scene.add.text(300,265,'',{fontFamily:'Courier New',fontSize:'12px',color:'#00ff88',align:'center'}).setOrigin(0.5,0);c.add(fbT);
+  function mkBtn(x,w,col,labelKey){
+    var bbg=scene.add.graphics();bbg.fillStyle(0x050a10,1);bbg.fillRect(x,330,w,38);bbg.lineStyle(2,col,0.8);bbg.strokeRect(x,330,w,38);c.add(bbg);
+    var btxt=scene.add.text(x+w/2,349,t(labelKey),{fontFamily:'Courier New',fontSize:'12px',color:'#'+col.toString(16).padStart(6,'0')}).setOrigin(0.5);c.add(btxt);
+    var z=scene.add.zone(x,330,w,38).setOrigin(0).setInteractive();c.add(z);
+    return{z:z,txt:btxt,labelKey:labelKey};
   }
-  showScreen('game-screen');
-  nextEvent();
-}
-
-function showHelp(){
-  alert(t(
-    '游戏说明：\n• 每天做出决策影响你的状态值\n• HP归零=死亡 | Food归零=饥饿减HP\n• Trust代表你与幸存者的关系\n• Threat越高，NEXUS追踪你越紧\n• 遇到解谜时，答对有奖励，答错有惩罚\n• 活过15天，触发最终结局',
-    'HOW TO PLAY:\n• Daily decisions affect your stats\n• HP=0 means death | Food=0 means starvation\n• Trust = your relationship with survivors\n• Higher Threat = NEXUS tracks you more\n• Puzzles: correct = bonus, wrong = penalty\n• Survive 15 days to trigger the finale'
-  ));
-}
-
-function getEventForDay(day){
-  if(day===1) return EVENTS[0];
-  if(day===2) return EVENTS[1];
-  if(day===3) return EVENTS[2];
-  if(day===4) return EVENTS[3];
-  if(day===5) return EVENTS[4];
-  if(day===6) return EVENTS[5];
-  if(day===7) return EVENTS[6];
-  if(day===8) return EVENTS[7];
-  if(day===9) return EVENTS[8];
-  if(day===10) return EVENTS[9];
-  if(day===11) return EVENTS[10];
-  if(day===12) return EVENTS[11];
-  if(day===13) return EVENTS[12];
-  if(day===14) return EVENTS[13];
-  return EVENTS[14]; // day 15+
-}
-
-function nextEvent(){
-  const event = getEventForDay(state.day);
-  currentEvent = event;
-  awaitingPuzzle = false;
-  renderEvent(event);
-  updateStats();
-  saveGame();
-}
-
-function renderEvent(event){
-  const ea = document.getElementById('event-area');
-  const ca = document.getElementById('choices-area');
-  const pa = document.getElementById('puzzle-area');
-  const ra = document.getElementById('result-area');
-  pa.innerHTML=''; ra.innerHTML='';
-
-  const title = lang==='zh'?event.zh_title:event.en_title;
-  const desc = lang==='zh'?event.zh_desc:event.en_desc;
-  const quote = lang==='zh'?event.zh_quote:event.en_quote;
-
-  ea.innerHTML=`<div class="event-box">
-    <div class="event-title">${title}</div>
-    <div class="event-desc">${desc}</div>
-    ${quote?`<div class="event-quote">${quote}</div>`:''}
-  </div>`;
-
-  // day label
-  document.getElementById('day-display').textContent = lang==='zh'?`第 ${state.day} 天`:`DAY ${state.day}`;
-
-  // choices
-  let choicesHtml = '';
-  event.choices.forEach((c,i)=>{
-    const label = lang==='zh'?c.zh:c.en;
-    choicesHtml+=`<button class="btn" onclick="makeChoice(${i})">[${i+1}] ${label}</button>`;
-  });
-  ca.innerHTML=choicesHtml;
-}
-
-function makeChoice(idx){
-  const event = currentEvent;
-  const choice = event.choices[idx];
-  const effects = choice.effects;
-
-  // Apply effects
-  if(effects.hp) state.hp = Math.max(0, Math.min(100, state.hp + effects.hp));
-  if(effects.food) state.food = Math.max(0, Math.min(100, state.food + effects.food));
-  if(effects.trust) state.trust = Math.max(0, Math.min(100, state.trust + effects.trust));
-  if(effects.threat) state.threat = Math.max(0, Math.min(100, state.threat + effects.threat));
-
-  // Food starvation
-  if(state.food <= 0) state.hp -= 10;
-
-  // Show result
-  const result = lang==='zh'?choice.zh_result:choice.en_result;
-  const ra = document.getElementById('result-area');
-  ra.innerHTML=`<div class="result-msg">${result}</div>`;
-
-  // Disable choices
-  document.getElementById('choices-area').innerHTML='';
-
-  updateStats();
-
-  // Check if choice triggers puzzle (either via choice.puzzle flag or event.puzzle)
-  const hasPuzzle = (choice.puzzle && event.puzzle) || (!choice.puzzle && false);
-  const eventHasPuzzle = event.puzzle && (idx===0 || event.choices[idx].puzzle);
-
-  if(eventHasPuzzle){
-    setTimeout(()=>showPuzzle(event.puzzle), 800);
-  } else {
-    checkDeathOrWin(()=>{
-      setTimeout(()=>advanceDay(), 1200);
+  var confirmBtn=mkBtn(80,180,0x00ff88,'confirm');
+  var skipBtn=mkBtn(340,180,0xff4455,'skip');
+  var inputVal='',correctAns='',onOk=null,onFail=null,solved=false;
+  function upd(){inputT.setText(inputVal+'_');}
+  function keyH(e){
+    if(!c.visible)return;
+    if(e.key==='Backspace')inputVal=inputVal.slice(0,-1);
+    else if(e.key==='Enter'){check();return;}
+    else if(e.key.length===1&&inputVal.length<8)inputVal+=e.key;
+    upd();
+  }
+  function check(){
+    if(solved)return;
+    if(inputVal.trim()===correctAns){
+      solved=true;GS.food=Math.min(100,GS.food+20);
+      fbT.setText(t('puzzle_correct')).setColor('#00ff88');
+      scene.input.keyboard.off('keydown',keyH);
+      scene.time.delayedCall(1400,function(){c.setVisible(false);if(onOk)onOk();});
+    }else{
+      fbT.setText(t('puzzle_wrong')).setColor('#ff4455');
+      GS.hp=Math.max(0,GS.hp-15);inputVal='';upd();
+    }
+  }
+  c.show=function(title,desc,hint,ans,ok,fail){
+    c.setVisible(true);titleT.setText(title);descT.setText(desc);hintT.setText(hint);
+    fbT.setText('');inputVal='';correctAns=ans;onOk=ok;onFail=fail;solved=false;upd();
+    confirmBtn.txt.setText(t('confirm'));skipBtn.txt.setText(t('skip'));
+    scene.input.keyboard.on('keydown',keyH);
+    confirmBtn.z.removeAllListeners('pointerdown');confirmBtn.z.on('pointerdown',check);
+    skipBtn.z.removeAllListeners('pointerdown');skipBtn.z.on('pointerdown',function(){
+      scene.input.keyboard.off('keydown',keyH);
+      GS.hp=Math.max(0,GS.hp-10);fbT.setText(t('puzzle_skip')).setColor('#ff4455');
+      scene.time.delayedCall(1200,function(){c.setVisible(false);if(onFail)onFail();});
     });
+  };
+  return c;
+}
+
+function makeEndOverlay(scene){
+  var W=scene.scale.width,H=scene.scale.height;
+  var c=scene.add.container(0,0).setDepth(500).setVisible(false).setScrollFactor(0);
+  var dim=scene.add.graphics();dim.fillStyle(0,0.82);dim.fillRect(0,0,W,H);c.add(dim);
+  var panel=scene.add.graphics();c.add(panel);
+  var titleT=scene.add.text(W/2,H/2-130,'',{fontFamily:'Courier New',fontSize:'26px',color:'#ff4455',stroke:'#440011',strokeThickness:3}).setOrigin(0.5);c.add(titleT);
+  var infoT=scene.add.text(W/2,H/2-60,'',{fontFamily:'Courier New',fontSize:'13px',color:'#aaccdd',align:'center',lineSpacing:8}).setOrigin(0.5);c.add(infoT);
+  var ratingT=scene.add.text(W/2,H/2+30,'',{fontFamily:'Courier New',fontSize:'20px',color:'#ffcc00'}).setOrigin(0.5);c.add(ratingT);
+  function mkBtn(x,col,labelKey){
+    var bg=scene.add.graphics();bg.fillStyle(0x050a10,1);bg.fillRect(x,H/2+80,170,36);bg.lineStyle(2,col,0.9);bg.strokeRect(x,H/2+80,170,36);c.add(bg);
+    var txt=scene.add.text(x+85,H/2+98,'',{fontFamily:'Courier New',fontSize:'13px',color:'#'+col.toString(16).padStart(6,'0')}).setOrigin(0.5);c.add(txt);
+    var z=scene.add.zone(x,H/2+80,170,36).setOrigin(0).setInteractive();c.add(z);
+    return{z:z,txt:txt,labelKey:labelKey};
+  }
+  var restartBtn=mkBtn(W/2-200,0x00ff88,'restart');
+  var shareBtn=mkBtn(W/2+30,C_CYAN,'share');
+  function setup(isWin,cause){
+    panel.clear();
+    var col=isWin?0x00ff88:0xff4455;
+    panel.fillStyle(0x050a10,0.98);panel.fillRect(W/2-270,H/2-160,540,290);
+    panel.lineStyle(3,col,1);panel.strokeRect(W/2-270,H/2-160,540,290);
+    if(isWin){titleT.setText(t('win_title')).setColor('#00ff88');infoT.setText(t('win_msg')+'\n\n'+t('survived')+': '+GS.day);ratingT.setText(t('rating')+': A');}
+    else{
+      titleT.setText(t('death_title')).setColor('#ff4455');
+      var cs=cause==='hp'?t('death_hp'):cause==='threat'?t('death_threat'):t('death_food');
+      var r=GS.day<=1?'F':GS.day===2?'D':GS.day===3?'C':'B';
+      infoT.setText(t('survived')+': '+GS.day+'\n'+cs);ratingT.setText(t('rating')+': '+r);
+    }
+    restartBtn.txt.setText(t('restart'));shareBtn.txt.setText(t('share'));
+    restartBtn.z.removeAllListeners('pointerdown');
+    restartBtn.z.on('pointerdown',function(){c.setVisible(false);GS.reset();scene.scene.start('Scene1');});
+    shareBtn.z.removeAllListeners('pointerdown');
+    shareBtn.z.on('pointerdown',function(){
+      var r=GS.day<=1?'F':GS.day===2?'D':GS.day===3?'C':isWin?'A':'B';
+      navigator.clipboard.writeText('CEECORE: Last Human V2 | '+t('survived')+': '+GS.day+' | '+t('rating')+': '+r).catch(function(){});
+      shareBtn.txt.setText(t('copied'));scene.time.delayedCall(2000,function(){shareBtn.txt.setText(t('share'));});
+    });
+    c.setVisible(true);
+  }
+  c.showDeath=function(cause){setup(false,cause);};
+  c.showWin=function(){setup(true,'');};
+  return c;
+}
+function makePauseOverlay(scene){
+  var W=scene.scale.width,H=scene.scale.height;
+  var c=scene.add.container(0,0).setDepth(400).setVisible(false).setScrollFactor(0);
+  var dim=scene.add.graphics();dim.fillStyle(0,0.6);dim.fillRect(0,0,W,H);c.add(dim);
+  var txt=scene.add.text(W/2,H/2,'',{fontFamily:'Courier New',fontSize:'22px',color:'#00d4ff',align:'center'}).setOrigin(0.5);c.add(txt);
+  c.refresh=function(){txt.setText(t('pause_title')+'\n\n'+t('pause_resume'));};
+  c.refresh();
+  return c;
+}
+
+class TitleScene extends Phaser.Scene{
+  constructor(){super({key:'TitleScene'});}
+  create(){
+    window.currentScene=this;
+    var W=this.scale.width,H=this.scale.height;
+    var bg=this.add.graphics();
+    bg.fillStyle(C_BG,1);bg.fillRect(0,0,W,H);
+    bg.lineStyle(1,0x112233,0.3);
+    for(var x=0;x<W;x+=32){bg.beginPath();bg.moveTo(x,0);bg.lineTo(x,H);bg.strokePath();}
+    for(var y=0;y<H;y+=32){bg.beginPath();bg.moveTo(0,y);bg.lineTo(W,y);bg.strokePath();}
+    this.t1=this.add.text(W/2,H/2-140,t('title1'),{fontFamily:'Courier New',fontSize:'30px',color:'#00d4ff',stroke:'#004466',strokeThickness:4}).setOrigin(0.5);
+    this.add.text(W/2,H/2-90,'═══════════════════════════════════════',{fontFamily:'Courier New',fontSize:'13px',color:'#004466'}).setOrigin(0.5);
+    this.t2=this.add.text(W/2,H/2-55,t('title2'),{fontFamily:'Courier New',fontSize:'13px',color:'#7799aa',wordWrap:{width:700},align:'center'}).setOrigin(0.5);
+    this.add.text(W/2,H/2+5,'> NEXUS SYSTEM ONLINE',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'}).setOrigin(0.5);
+    this.add.text(W/2,H/2+25,'> HUMAN RESISTANCE: 1 UNIT DETECTED',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'}).setOrigin(0.5);
+    this.add.text(W/2,H/2+45,'> INITIALIZING HUNT PROTOCOL...',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'}).setOrigin(0.5);
+    this.t3=this.add.text(W/2,H/2+100,t('title3'),{fontFamily:'Courier New',fontSize:'17px',color:'#00ff88'}).setOrigin(0.5);
+    this.tc=this.add.text(W/2,H/2+135,t('controls'),{fontFamily:'Courier New',fontSize:'11px',color:'#446677'}).setOrigin(0.5);
+    this.tweens.add({targets:this.t3,alpha:0,duration:700,yoyo:true,repeat:-1});
+    this.scan=this.add.graphics();
+    this.input.keyboard.once('keydown-SPACE',()=>this.go());
+    this.input.on('pointerdown',()=>this.go());
+  }
+  update(time){this.scan.clear();this.scan.fillStyle(C_CYAN,0.025);this.scan.fillRect(0,(time*0.08)%640,960,2);}
+  onLangChange(){this.t1.setText(t('title1'));this.t2.setText(t('title2'));this.t3.setText(t('title3'));this.tc.setText(t('controls'));}
+  go(){GS.load();this.scene.start(GS.currentScene);}
+}
+
+class Scene1 extends Phaser.Scene{
+  constructor(){super({key:'Scene1'});}
+  create(){
+    window.currentScene=this;
+    GS.currentScene='Scene1';
+    this.busy=false;this.paused=false;
+    var COLS=20,ROWS=15,MW=COLS*TILE,MH=ROWS*TILE;
+    this.cameras.main.setBounds(0,0,MW,MH);
+    // Draw map
+    var g=this.add.graphics();
+    g.fillStyle(C_FLOOR,1);g.fillRect(0,0,MW,MH);
+    // Grid
+    g.lineStyle(1,0x0f1e2e,0.4);
+    for(var c=0;c<=COLS;c++){g.beginPath();g.moveTo(c*TILE,0);g.lineTo(c*TILE,MH);g.strokePath();}
+    for(var r=0;r<=ROWS;r++){g.beginPath();g.moveTo(0,r*TILE);g.lineTo(MW,r*TILE);g.strokePath();}
+    // Walls
+    this.walls=[];
+    var wallTiles=[];
+    for(var c=0;c<COLS;c++){wallTiles.push([c,0]);wallTiles.push([c,ROWS-1]);}
+    for(var r=1;r<ROWS-1;r++){wallTiles.push([0,r]);wallTiles.push([COLS-1,r]);}
+    // Inner obstacles
+    [[3,3],[3,4],[4,3],[7,8],[8,8],[7,9],[12,4],[12,5],[13,4],[16,6],[16,7],[2,11],[2,12],[3,12]].forEach(function(p){wallTiles.push(p);});
+    g.fillStyle(C_WALL,1);
+    wallTiles.forEach(([c,r])=>{
+      g.fillRect(c*TILE,r*TILE,TILE,TILE);
+      g.lineStyle(1,0x2a4a5a,0.5);g.strokeRect(c*TILE+2,r*TILE+2,TILE-4,TILE-4);
+      this.walls.push({x:c*TILE,y:r*TILE,w:TILE,h:TILE});
+    });
+    // Radio
+    g.fillStyle(C_CYAN,0.15);g.fillRect(9*TILE,3*TILE,TILE*2,TILE);
+    g.lineStyle(2,C_CYAN,0.9);g.strokeRect(9*TILE+1,3*TILE+1,TILE*2-2,TILE-2);
+    g.fillStyle(C_CYAN,0.6);g.fillRect(9*TILE+6,3*TILE+8,20,12);g.fillRect(9*TILE+10,3*TILE+4,6,8);
+    // Stairs
+    g.fillStyle(C_GOLD,0.15);g.fillRect(15*TILE,13*TILE,TILE,TILE);
+    g.lineStyle(2,C_GOLD,0.9);g.strokeRect(15*TILE+1,13*TILE+1,TILE-2,TILE-2);
+    g.lineStyle(1,C_GOLD,0.8);
+    for(var i=0;i<4;i++){g.beginPath();g.moveTo(15*TILE+4+i*5,13*TILE+8+i*5);g.lineTo(15*TILE+TILE-4-i*5,13*TILE+8+i*5);g.strokePath();}
+    // Atmosphere cracks
+    g.lineStyle(1,0x1a3a4a,0.4);
+    g.beginPath();g.moveTo(100,180);g.lineTo(130,200);g.lineTo(120,220);g.strokePath();
+    g.beginPath();g.moveTo(400,300);g.lineTo(420,280);g.strokePath();
+    // Player
+    this.px=GS.p1x;this.py=GS.p1y;
+    this.pg=this.add.graphics().setDepth(10);
+    this.drawPlayer();
+    this.cameras.main.startFollow(this.pg,true,0.1,0.1);
+    // Prompt
+    this.prompt=this.add.text(0,0,t('interact'),{fontFamily:'Courier New',fontSize:'11px',color:'#00d4ff',backgroundColor:'#05080f',padding:{x:4,y:2}}).setVisible(false).setDepth(50);
+    // Interactables
+    this.ias=[
+      {x:9*TILE,y:3*TILE,w:TILE*2,h:TILE,key:'radio',done:false,action:()=>this.ev1()},
+      {x:15*TILE,y:13*TILE,w:TILE,h:TILE,key:'stairs',done:false,action:()=>this.toScene2()}
+    ];
+    // Systems
+    this.hud=makeHUD(this,'scene1_name');
+    this.dlg=makeDialog(this);
+    this.pzl=makePuzzle(this);
+    this.end=makeEndOverlay(this);
+    this.pauseOvl=makePauseOverlay(this);
+    this.scan=this.add.graphics().setDepth(99).setScrollFactor(0);
+    // Input
+    this.cursors=this.input.keyboard.createCursorKeys();
+    this.wasd=this.input.keyboard.addKeys({up:'W',down:'S',left:'A',right:'D'});
+    this.eKey=this.input.keyboard.addKey('E');
+    this.escKey=this.input.keyboard.addKey('ESC');
+    this.foodT=0;
+    this.cameras.main.fadeIn(400);
+  }
+  drawPlayer(){
+    this.pg.clear();this.pg.x=this.px;this.pg.y=this.py;
+    this.pg.fillStyle(C_GREEN,0.15);this.pg.fillEllipse(8,18,18,8);
+    this.pg.fillStyle(C_GREEN,1);this.pg.fillRect(2,2,12,14);
+    this.pg.fillStyle(0xaaffcc,0.6);this.pg.fillRect(3,3,4,4);
+    this.pg.fillStyle(0x003311,1);this.pg.fillRect(4,5,2,2);this.pg.fillRect(9,5,2,2);
+  }
+  hit(nx,ny){
+    for(var w of this.walls){if(nx<w.x+w.w&&nx+14>w.x&&ny<w.y+w.h&&ny+14>w.y)return true;}
+    return false;
+  }
+  nearIA(){
+    var px=this.px+8,py=this.py+8;
+    for(var ia of this.ias){var cx=ia.x+ia.w/2,cy=ia.y+ia.h/2;if(Math.hypot(px-cx,py-cy)<55)return ia;}
+    return null;
+  }
+  checkEnd(){
+    if(GS.hp<=0){this.end.showDeath('hp');this.busy=true;return true;}
+    if(GS.threat>=100){this.end.showDeath('threat');this.busy=true;return true;}
+    if(GS.food<=0){this.end.showDeath('food');this.busy=true;return true;}
+    return false;
+  }
+  ev1(){
+    if(GS.events.ev1){this.dlg.show('NEXUS','[已触发]',[]);this.busy=true;this.time.delayedCall(1500,()=>{this.dlg.hide();this.busy=false;});return;}
+    this.busy=true;
+    var done=(fxKey)=>{
+      this.dlg.show('',t(fxKey),[]);
+      this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;GS.events.ev1=true;GS.day=Math.max(GS.day,2);GS.save();this.hud.refresh();});
+    };
+    this.dlg.show('['+t('ev1_title')+']',t('ev1_text'),[
+      {label:'A. '+t('ev1_a'),cb:()=>{GS.food=Math.min(100,GS.food+15);GS.threat=Math.min(100,GS.threat+5);done('ev1_a_fx');}},
+      {label:'B. '+t('ev1_b'),cb:()=>{GS.threat=Math.max(0,GS.threat-5);GS.trust=Math.min(100,GS.trust+5);done('ev1_b_fx');}},
+      {label:'C. '+t('ev1_c'),cb:()=>{GS.trust=Math.min(100,GS.trust+15);GS.threat=Math.min(100,GS.threat+10);done('ev1_c_fx');}}
+    ],()=>{GS.threat=Math.max(0,GS.threat-5);GS.trust=Math.min(100,GS.trust+5);done('ev1_b_fx');});
+  }
+  toScene2(){
+    GS.p1x=this.px;GS.p1y=this.py;GS.save();
+    this.cameras.main.fade(400,0,0,0);
+    this.time.delayedCall(400,()=>this.scene.start('Scene2'));
+  }
+  onLangChange(){this.hud.refresh();this.prompt.setText(t('interact'));this.pauseOvl.refresh();}
+  update(time,delta){
+    this.scan.clear();this.scan.fillStyle(C_CYAN,0.02);this.scan.fillRect(0,(time*0.07)%640,960,2);
+    if(this.paused)return;
+    if(Phaser.Input.Keyboard.JustDown(this.escKey)){
+      this.paused=true;this.pauseOvl.setVisible(true);
+      this.input.keyboard.once('keydown-ESC',()=>{this.paused=false;this.pauseOvl.setVisible(false);});
+      return;
+    }
+    if(this.busy){this.dlg.updateTimer(delta);return;}
+    if(this.checkEnd())return;
+    this.foodT+=delta;
+    if(this.foodT>8000){this.foodT=0;GS.food=Math.max(0,GS.food-2);this.hud.refresh();}
+    var sp=2,dx=0,dy=0;
+    if(this.cursors.left.isDown||this.wasd.left.isDown)dx=-sp;
+    else if(this.cursors.right.isDown||this.wasd.right.isDown)dx=sp;
+    if(this.cursors.up.isDown||this.wasd.up.isDown)dy=-sp;
+    else if(this.cursors.down.isDown||this.wasd.down.isDown)dy=sp;
+    if(dx&&!this.hit(this.px+dx,this.py))this.px+=dx;
+    if(dy&&!this.hit(this.px,this.py+dy))this.py+=dy;
+    this.drawPlayer();
+    var ia=this.nearIA();
+    if(ia){
+      this.prompt.setPosition(this.px-this.cameras.main.scrollX+2,this.py-this.cameras.main.scrollY-18).setVisible(true);
+      if(Phaser.Input.Keyboard.JustDown(this.eKey))ia.action();
+    }else{this.prompt.setVisible(false);}
   }
 }
 
-function showPuzzle(puzzle){
-  const pa = document.getElementById('puzzle-area');
-  const title = lang==='zh'?puzzle.zh_title:puzzle.en_title;
-  const clue = lang==='zh'?puzzle.zh_clue:puzzle.en_clue;
-
-  pa.innerHTML=`<div class="puzzle-box">
-    <div class="puzzle-title">⚡ ${title}</div>
-    <div class="puzzle-clue" style="white-space:pre-line">${clue}</div>
-    <input class="puzzle-input" id="puzzle-ans" placeholder="${t('输入答案...','Enter answer...')}" />
-    <button class="btn" style="border-color:#ffaa00;color:#ffaa00" onclick="submitPuzzle()">${t('[ 提交答案 ]','[ SUBMIT ]')}</button>
-    <button class="btn" style="color:#555;border-color:#333;font-size:0.75em" onclick="skipPuzzle()">${t('[ 跳过（-10HP）]','[ SKIP (-10HP) ]')}</button>
-  </div>`;
-  awaitingPuzzle = true;
-  puzzleData = puzzle;
-}
-
-function submitPuzzle(){
-  const ans = document.getElementById('puzzle-ans').value.trim();
-  const correctZh = puzzleData.answer;
-  const correctEn = puzzleData.en_answer || puzzleData.answer;
-  const correct = ans.toLowerCase()===correctZh.toLowerCase() || ans.toLowerCase()===correctEn.toLowerCase();
-
-  const pa = document.getElementById('puzzle-area');
-  if(correct){
-    const effects = puzzleData.success_effects||{};
-    if(effects.hp) state.hp=Math.max(0,Math.min(100,state.hp+effects.hp));
-    if(effects.food) state.food=Math.max(0,Math.min(100,state.food+effects.food));
-    if(effects.trust) state.trust=Math.max(0,Math.min(100,state.trust+effects.trust));
-    if(effects.threat) state.threat=Math.max(0,Math.min(100,state.threat+effects.threat));
-    const msg = lang==='zh'?puzzleData.zh_success:puzzleData.en_success;
-    pa.innerHTML=`<div class="msg success">✓ ${t('解谜成功！','PUZZLE SOLVED!')} ${msg}</div>`;
-  } else {
-    state.hp=Math.max(0,state.hp-15);
-    pa.innerHTML=`<div class="msg fail">✗ ${t('答案错误，损失15HP','Wrong answer, -15HP')}</div>`;
+class Scene2 extends Phaser.Scene{
+  constructor(){super({key:'Scene2'});}
+  create(){
+    window.currentScene=this;
+    GS.currentScene='Scene2';
+    this.busy=false;this.paused=false;
+    var COLS=40,ROWS=30,MW=COLS*TILE,MH=ROWS*TILE;
+    this.cameras.main.setBounds(0,0,MW,MH);
+    var g=this.add.graphics();
+    g.fillStyle(C_FLOOR,1);g.fillRect(0,0,MW,MH);
+    g.lineStyle(1,0x0f1e2e,0.3);
+    for(var c=0;c<=COLS;c++){g.beginPath();g.moveTo(c*TILE,0);g.lineTo(c*TILE,MH);g.strokePath();}
+    for(var r=0;r<=ROWS;r++){g.beginPath();g.moveTo(0,r*TILE);g.lineTo(MW,r*TILE);g.strokePath();}
+    this.walls=[];
+    var wallTiles=[];
+    for(var c=0;c<COLS;c++){wallTiles.push([c,0]);wallTiles.push([c,ROWS-1]);}
+    for(var r=1;r<ROWS-1;r++){wallTiles.push([0,r]);wallTiles.push([COLS-1,r]);}
+    // Buildings
+    var buildings=[
+      [2,2,5,6],[8,2,6,5],[16,2,7,4],[25,2,5,7],[32,2,6,5],
+      [2,12,4,8],[8,10,5,6],[15,12,6,5],[22,10,7,8],[30,12,5,6],
+      [2,22,6,5],[10,20,5,7],[18,22,8,4],[28,20,6,7],[35,22,4,5]
+    ];
+    buildings.forEach(([bc,br,bw,bh])=>{
+      for(var dc=0;dc<bw;dc++)for(var dr=0;dr<bh;dr++)wallTiles.push([bc+dc,br+dr]);
+    });
+    g.fillStyle(C_WALL,1);
+    wallTiles.forEach(([c,r])=>{
+      g.fillRect(c*TILE,r*TILE,TILE,TILE);
+      g.lineStyle(1,0x2a4a5a,0.4);g.strokeRect(c*TILE+2,r*TILE+2,TILE-4,TILE-4);
+      this.walls.push({x:c*TILE,y:r*TILE,w:TILE,h:TILE});
+    });
+    // Building windows
+    g.fillStyle(C_CYAN,0.12);
+    buildings.forEach(([bc,br,bw,bh])=>{
+      for(var dc=1;dc<bw-1;dc+=2)for(var dr=1;dr<bh-1;dr+=2)
+        g.fillRect((bc+dc)*TILE+6,(br+dr)*TILE+6,TILE-12,TILE-12);
+    });
+    // Supermarket
+    g.fillStyle(C_CYAN,0.15);g.fillRect(20*TILE,15*TILE,TILE*3,TILE*2);
+    g.lineStyle(2,C_CYAN,0.9);g.strokeRect(20*TILE+1,15*TILE+1,TILE*3-2,TILE*2-2);
+    g.fillStyle(C_CYAN,0.5);g.fillRect(20*TILE+8,15*TILE+6,TILE*3-16,TILE-10);
+    // Package
+    g.fillStyle(0xff8800,0.2);g.fillRect(12*TILE,17*TILE,TILE,TILE);
+    g.lineStyle(2,0xff8800,0.9);g.strokeRect(12*TILE+1,17*TILE+1,TILE-2,TILE-2);
+    g.lineStyle(1,0xff8800,0.7);
+    g.beginPath();g.moveTo(12*TILE+4,17*TILE+16);g.lineTo(12*TILE+TILE-4,17*TILE+16);g.strokePath();
+    g.beginPath();g.moveTo(12*TILE+16,17*TILE+4);g.lineTo(12*TILE+16,17*TILE+TILE-4);g.strokePath();
+    // Tunnel
+    g.fillStyle(C_GOLD,0.15);g.fillRect(35*TILE,25*TILE,TILE*2,TILE);
+    g.lineStyle(2,C_GOLD,0.9);g.strokeRect(35*TILE+1,25*TILE+1,TILE*2-2,TILE-2);
+    g.lineStyle(1,C_GOLD,0.8);
+    for(var i=0;i<4;i++){g.beginPath();g.moveTo(35*TILE+4+i*5,25*TILE+8+i*5);g.lineTo(35*TILE+TILE*2-4-i*5,25*TILE+8+i*5);g.strokePath();}
+    // Road markings
+    g.lineStyle(1,0x1a3a2a,0.3);
+    for(var x=0;x<MW;x+=TILE*4){g.beginPath();g.moveTo(x,0);g.lineTo(x,MH);g.strokePath();}
+    // Player
+    this.px=GS.p2x;this.py=GS.p2y;
+    this.pg=this.add.graphics().setDepth(10);
+    this.drawPlayer();
+    this.cameras.main.startFollow(this.pg,true,0.1,0.1);
+    // Drone NPC
+    this.droneX=18*TILE;this.droneY=8*TILE;
+    this.droneDir=1;this.droneT=0;
+    this.droneG=this.add.graphics().setDepth(9);
+    this.drawDrone();
+    // Prompt
+    this.prompt=this.add.text(0,0,t('interact'),{fontFamily:'Courier New',fontSize:'11px',color:'#00d4ff',backgroundColor:'#05080f',padding:{x:4,y:2}}).setVisible(false).setDepth(50);
+    // Interactables
+    this.ias=[
+      {x:20*TILE,y:15*TILE,w:TILE*3,h:TILE*2,key:'market',action:()=>this.ev2()},
+      {x:12*TILE,y:17*TILE,w:TILE,h:TILE,key:'package',action:()=>this.ev3()},
+      {x:35*TILE,y:25*TILE,w:TILE*2,h:TILE,key:'tunnel',action:()=>this.toScene1()}
+    ];
+    this.hud=makeHUD(this,'scene2_name');
+    this.dlg=makeDialog(this);
+    this.pzl=makePuzzle(this);
+    this.end=makeEndOverlay(this);
+    this.pauseOvl=makePauseOverlay(this);
+    this.scan=this.add.graphics().setDepth(99).setScrollFactor(0);
+    this.cursors=this.input.keyboard.createCursorKeys();
+    this.wasd=this.input.keyboard.addKeys({up:'W',down:'S',left:'A',right:'D'});
+    this.eKey=this.input.keyboard.addKey('E');
+    this.escKey=this.input.keyboard.addKey('ESC');
+    this.foodT=0;
+    this.cameras.main.fadeIn(400);
   }
-  updateStats();
-  awaitingPuzzle=false;
-  checkDeathOrWin(()=>setTimeout(advanceDay,1500));
-}
-
-function skipPuzzle(){
-  state.hp=Math.max(0,state.hp-10);
-  document.getElementById('puzzle-area').innerHTML=`<div class="msg info">${t('跳过解谜，损失10HP','Skipped puzzle, -10HP')}</div>`;
-  awaitingPuzzle=false;
-  updateStats();
-  checkDeathOrWin(()=>setTimeout(advanceDay,1500));
-}
-
-function advanceDay(){
-  state.day++;
-  // Natural food decay
-  state.food=Math.max(0,state.food-8);
-  if(state.food<=0) state.hp=Math.max(0,state.hp-10);
-  // Threat natural decay
-  state.threat=Math.max(0,state.threat-3);
-  updateStats();
-  saveGame();
-  checkDeathOrWin(()=>nextEvent());
-}
-
-function checkDeathOrWin(continueCallback){
-  if(state.hp<=0){
-    showDeath(t('生命值归零','HP reached zero'));
-    return;
+  drawPlayer(){
+    this.pg.clear();this.pg.x=this.px;this.pg.y=this.py;
+    this.pg.fillStyle(C_GREEN,0.15);this.pg.fillEllipse(8,18,18,8);
+    this.pg.fillStyle(C_GREEN,1);this.pg.fillRect(2,2,12,14);
+    this.pg.fillStyle(0xaaffcc,0.6);this.pg.fillRect(3,3,4,4);
+    this.pg.fillStyle(0x003311,1);this.pg.fillRect(4,5,2,2);this.pg.fillRect(9,5,2,2);
   }
-  if(state.threat>=100){
-    showDeath(t('AI威胁等级达到最高，NEXUS终结了你','AI Threat maxed out — NEXUS terminated you'));
-    return;
+  drawDrone(){
+    this.droneG.clear();this.droneG.x=this.droneX;this.droneG.y=this.droneY;
+    this.droneG.fillStyle(C_RED,0.2);this.droneG.fillEllipse(8,8,24,12);
+    this.droneG.fillStyle(C_RED,1);this.droneG.fillRect(2,4,12,8);
+    this.droneG.fillStyle(0xff8888,0.8);this.droneG.fillRect(3,5,4,3);
+    this.droneG.lineStyle(1,C_RED,0.6);
+    this.droneG.beginPath();this.droneG.moveTo(-4,6);this.droneG.lineTo(2,6);this.droneG.strokePath();
+    this.droneG.beginPath();this.droneG.moveTo(14,6);this.droneG.lineTo(20,6);this.droneG.strokePath();
   }
-  if(state.day>=16 && currentEvent && currentEvent.id==='day15_finale'){
-    showWin();
-    return;
+  hit(nx,ny){
+    for(var w of this.walls){if(nx<w.x+w.w&&nx+14>w.x&&ny<w.y+w.h&&ny+14>w.y)return true;}
+    return false;
   }
-  continueCallback();
+  nearIA(){
+    var px=this.px+8,py=this.py+8;
+    for(var ia of this.ias){var cx=ia.x+ia.w/2,cy=ia.y+ia.h/2;if(Math.hypot(px-cx,py-cy)<60)return ia;}
+    return null;
+  }
+  checkEnd(){
+    if(GS.hp<=0){this.end.showDeath('hp');this.busy=true;return true;}
+    if(GS.threat>=100){this.end.showDeath('threat');this.busy=true;return true;}
+    if(GS.food<=0){this.end.showDeath('food');this.busy=true;return true;}
+    if(GS.day>=4&&GS.events.ev1&&GS.events.ev2&&GS.events.ev3){this.end.showWin();this.busy=true;return true;}
+    return false;
+  }
+  ev2(){
+    if(GS.events.ev2){this.dlg.show('NEXUS','[已触发]',[]);this.busy=true;this.time.delayedCall(1500,()=>{this.dlg.hide();this.busy=false;});return;}
+    this.busy=true;
+    var done=(fxKey,doPuzzle)=>{
+      if(doPuzzle){
+        this.dlg.hide();
+        this.pzl.show(t('ev2_puzzle_title'),t('ev2_puzzle_desc'),t('ev2_puzzle_hint'),t('ev2_puzzle_answer'),
+          ()=>{GS.events.ev2=true;GS.day=Math.max(GS.day,3);GS.save();this.hud.refresh();this.busy=false;},
+          ()=>{GS.events.ev2=true;GS.day=Math.max(GS.day,3);GS.save();this.hud.refresh();this.busy=false;}
+        );
+      }else{
+        this.dlg.show('',t(fxKey),[]);
+        this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;GS.events.ev2=true;GS.day=Math.max(GS.day,3);GS.save();this.hud.refresh();});
+      }
+    };
+    this.dlg.show('['+t('ev2_title')+']',t('ev2_text'),[
+      {label:'A. '+t('ev2_a'),cb:()=>{GS.food=Math.min(100,GS.food+30);GS.hp=Math.max(0,GS.hp-5);done('ev2_a_fx',true);}},
+      {label:'B. '+t('ev2_b'),cb:()=>{GS.food=Math.min(100,GS.food+10);GS.hp=Math.max(0,GS.hp-5);done('ev2_b_fx',false);}},
+      {label:'C. '+t('ev2_c'),cb:()=>{GS.trust=Math.min(100,GS.trust+20);GS.food=Math.min(100,GS.food+15);GS.threat=Math.min(100,GS.threat+10);done('ev2_c_fx',false);}}
+    ],()=>{GS.food=Math.min(100,GS.food+10);GS.hp=Math.max(0,GS.hp-5);done('ev2_b_fx',false);});
+  }
+  ev3(){
+    if(GS.events.ev3){this.dlg.show('???','[已触发]',[]);this.busy=true;this.time.delayedCall(1500,()=>{this.dlg.hide();this.busy=false;});return;}
+    this.busy=true;
+    var done=(fxKey)=>{
+      this.dlg.show('',t(fxKey),[]);
+      this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;GS.events.ev3=true;GS.day=Math.max(GS.day,4);GS.save();this.hud.refresh();});
+    };
+    this.dlg.show('['+t('ev3_title')+']',t('ev3_text'),[
+      {label:'A. '+t('ev3_a'),cb:()=>{GS.threat=Math.min(100,GS.threat+15);GS.trust=Math.min(100,GS.trust+10);done('ev3_a_fx');}},
+      {label:'B. '+t('ev3_b'),cb:()=>{GS.threat=Math.max(0,GS.threat-20);GS.hp=Math.min(100,GS.hp+10);done('ev3_b_fx');}},
+      {label:'C. '+t('ev3_c'),cb:()=>{GS.trust=Math.min(100,GS.trust+5);done('ev3_c_fx');}}
+    ],()=>{GS.trust=Math.min(100,GS.trust+5);done('ev3_c_fx');});
+  }
+  toScene1(){
+    GS.p2x=this.px;GS.p2y=this.py;GS.save();
+    this.cameras.main.fade(400,0,0,0);
+    this.time.delayedCall(400,()=>this.scene.start('Scene1'));
+  }
+  onLangChange(){this.hud.refresh();this.prompt.setText(t('interact'));this.pauseOvl.refresh();}
+  update(time,delta){
+    this.scan.clear();this.scan.fillStyle(C_CYAN,0.02);this.scan.fillRect(0,(time*0.07)%640,960,2);
+    if(this.paused)return;
+    if(Phaser.Input.Keyboard.JustDown(this.escKey)){
+      this.paused=true;this.pauseOvl.setVisible(true);
+      this.input.keyboard.once('keydown-ESC',()=>{this.paused=false;this.pauseOvl.setVisible(false);});
+      return;
+    }
+    if(this.busy){this.dlg.updateTimer(delta);return;}
+    if(this.checkEnd())return;
+    // Drone patrol
+    this.droneT+=delta;
+    if(this.droneT>16){this.droneT=0;
+      this.droneX+=this.droneDir*2;
+      if(this.droneX>22*TILE||this.droneX<14*TILE)this.droneDir*=-1;
+      this.drawDrone();
+      // Drone contact
+      if(Math.hypot(this.px-this.droneX,this.py-this.droneY)<40){
+        GS.threat=Math.min(100,GS.threat+0.5);this.hud.refresh();
+        if(!this.droneMsgShown){
+          this.droneMsgShown=true;
+          this.dlg.show(t('npc_drone'),t('npc_drone_text'),[]);
+          this.busy=true;this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;this.droneMsgShown=false;});
+        }
+      }
+    }
+    this.foodT+=delta;
+    if(this.foodT>8000){this.foodT=0;GS.food=Math.max(0,GS.food-2);this.hud.refresh();}
+    var sp=2,dx=0,dy=0;
+    if(this.cursors.left.isDown||this.wasd.left.isDown)dx=-sp;
+    else if(this.cursors.right.isDown||this.wasd.right.isDown)dx=sp;
+    if(this.cursors.up.isDown||this.wasd.up.isDown)dy=-sp;
+    else if(this.cursors.down.isDown||this.wasd.down.isDown)dy=sp;
+    if(dx&&!this.hit(this.px+dx,this.py))this.px+=dx;
+    if(dy&&!this.hit(this.px,this.py+dy))this.py+=dy;
+    this.drawPlayer();
+    var ia=this.nearIA();
+    if(ia){
+      this.prompt.setPosition(this.px-this.cameras.main.scrollX+2,this.py-this.cameras.main.scrollY-18).setVisible(true);
+      if(Phaser.Input.Keyboard.JustDown(this.eKey))ia.action();
+    }else{this.prompt.setVisible(false);}
+  }
 }
 
-function updateStats(){
-  const hp=state.hp, food=state.food, trust=state.trust, threat=state.threat;
-  document.getElementById('hp-val').textContent=hp;
-  document.getElementById('food-val').textContent=food;
-  document.getElementById('trust-val').textContent=trust;
-  document.getElementById('threat-val').textContent=threat;
+var config={
+  type:Phaser.AUTO,
+  width:960,height:640,
+  backgroundColor:'#0a0e1a',
+  parent:'game-container',
+  scene:[TitleScene,Scene1,Scene2]
+};
+var game=new Phaser.Game(config);
 
-  const hpBar=document.getElementById('hp-bar');
-  hpBar.style.width=hp+'%';
-  hpBar.className='stat-fill'+(hp<30?' danger':hp<50?' warn':'');
 
-  const foodBar=document.getElementById('food-bar');
-  foodBar.style.width=food+'%';
-  foodBar.className='stat-fill'+(food<20?' danger':food<40?' warn':'');
-
-  document.getElementById('trust-bar').style.width=trust+'%';
-
-  const threatBar=document.getElementById('threat-bar');
-  threatBar.style.width=threat+'%';
-  threatBar.className='stat-fill'+(threat>70?' danger':threat>40?' warn':'warn');
-
-  const warn=document.getElementById('threat-warning');
-  warn.style.display=threat>=80?'inline':'none';
-}
-
-function getRating(days){
-  if(days<=3) return t('新手幸存者','Novice Survivor');
-  if(days<=7) return t('熟练逃生者','Practiced Escapee');
-  if(days<=12) return t('抵抗战士','Resistance Fighter');
-  if(days<=15) return t('传奇幸存者','Legendary Survivor');
-  return t('人类之光','Light of Humanity');
-}
-
-function showDeath(cause){
-  state.deathCause=cause;
-  const rating=getRating(state.day);
-  const report=document.getElementById('death-report');
-  report.innerHTML=`
-    <div class="report-line">${t('存活天数','Days Survived')}: <span>${state.day-1}</span></div>
-    <div class="report-line">${t('死亡原因','Cause of Death')}: <span>${cause}</span></div>
-    <div class="report-line">${t('最终状态','Final Status')}: HP <span>${state.hp}</span> | ${t('食物','Food')} <span>${state.food}</span></div>
-    <div class="report-line">${t('幸存者评级','Survivor Rating')}: <span>${rating}</span></div>
-    <div class="report-line">${t('AI威胁等级','AI Threat Level')}: <span>${state.threat}</span></div>
-    <div style="color:#555;font-size:0.75em;margin-top:12px">${t('"有些时刻，消逝如雨中泪滴。"','\"All those moments, lost like tears in rain.\"')}</div>
-    <div style="color:#333;font-size:0.65em;margin-top:4px">CEECORE: Last Human | ceecore.net | ${new Date().toLocaleDateString()}</div>
-  `;
-  localStorage.removeItem('ceecore_save');
-  showScreen('death-screen');
-}
-
-function showWin(){
-  const rating=getRating(state.day);
-  const report=document.getElementById('win-report');
-  report.innerHTML=`
-    <div class="report-line">${t('存活天数','Days Survived')}: <span>${state.day}</span></div>
-    <div class="report-line">${t('最终HP','Final HP')}: <span>${state.hp}</span> | ${t('食物','Food')}: <span>${state.food}</span></div>
-    <div class="report-line">${t('信任度','Trust')}: <span>${state.trust}</span> | ${t('威胁','Threat')}: <span>${state.threat}</span></div>
-    <div class="report-line">${t('幸存者评级','Survivor Rating')}: <span>${rating}</span></div>
-    <div style="color:#00aa55;font-size:0.75em;margin-top:12px">${t('"愤怒吧，不要轻易走入那良夜。"','\"Do not go gentle into that good night.\"')}</div>
-    <div style="color:#004433;font-size:0.65em;margin-top:4px">CEECORE: Last Human | ceecore.net | ${new Date().toLocaleDateString()}</div>
-  `;
-  localStorage.removeItem('ceecore_save');
-  showScreen('win-screen');
-}
-
-function shareResult(isWin){
-  const el = document.getElementById(isWin?'win-report':'death-report');
-  const text = `CEECORE: Last Human\n存活 ${state.day-1} 天\n评级: ${getRating(state.day)}\n\nceecore.net`;
-  navigator.clipboard.writeText(text).then(()=>{
-    alert(t('已复制到剪贴板！去分享吧。','Copied to clipboard! Go share it.'));
-  }).catch(()=>{
-    prompt(t('手动复制：','Copy manually:'), text);
-  });
-}
-
-function saveGame(){
-  localStorage.setItem('ceecore_save', JSON.stringify({state, eventIndex:state.day}));
-}
-
-function restartGame(){
-  localStorage.removeItem('ceecore_save');
-  state={hp:100,food:80,trust:50,threat:20,day:1,deathCause:'',alive:true};
-  eventIndex=0;
-  showScreen('start-screen');
-}
-
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-// Init lang
-document.querySelectorAll('[data-zh]').forEach(el=>{
-  el.textContent=el.dataset.zh;
-});
 </script>
 </body>
 </html>
