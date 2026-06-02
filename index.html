@@ -181,11 +181,7 @@ function drawScene(name){
   if(sceneImg.complete)sceneImg.style.opacity='1';
 }
 
-  const rl=cx.createRadialGradient(195,90,0,195,90,80);
-  rl.addColorStop(0,'rgba(247,118,142,0.3)');rl.addColorStop(1,'rgba(0,0,0,0)');
-  cx.fillStyle=rl;cx.fillRect(0,0,W,H);
-  cx.fillStyle='rgba(247,118,142,0.6)';cx.font='11px Courier New';cx.fillText('// 自我消融中...',12,170);
-}
+
 
 // ── State ─────────────────────────────────────────────────────────
 let battery=73,scanCount=0,scanTimer=30,scanInterval=null,typeTimeout=null;
