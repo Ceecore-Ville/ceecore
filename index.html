@@ -2,536 +2,891 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>像素RPG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>断网 · OFFLINE</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; }
-#ui { position: relative; }
-#gameCanvas { display: block; image-rendering: pixelated; border: 2px solid #444; }
-#hud { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
-#statusBar { position: absolute; top: 8px; left: 8px; display: flex; gap: 12px; align-items: center; }
-.stat { display: flex; align-items: center; gap: 4px; color: #fff; font-size: 13px; text-shadow: 1px 1px 2px #000; }
-#minimap { position: absolute; top: 8px; right: 8px; border: 1px solid #666; }
-#inventory { position: absolute; top: 60px; right: 8px; display: flex; flex-direction: column; gap: 2px; }
-.invSlot { width: 36px; height: 36px; border: 1px solid #555; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
-#questLog { position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(0,0,0,0.7); border: 1px solid #555; padding: 6px 10px; color: #ccc; font-size: 12px; max-height: 60px; overflow: hidden; }
-#dialogBox { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 2px solid #aaa; padding: 10px 16px; color: #fff; font-size: 13px; width: 420px; display: none; line-height: 1.6; }
-#dialogBox .speaker { color: #ffd700; margin-bottom: 4px; font-weight: bold; }
-#dialogBox .hint { color: #888; font-size: 11px; margin-top: 6px; }
+:root{--bg:#0a0a0f;--panel:#111118;--border:#1e1e2e;--text:#c0caf5;--dim:#565f89;--accent:#7aa2f7;--red:#f7768e;--green:#9ece6a;--yellow:#e0af68;--warn:#ff0033;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',Courier,monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
+#phone{width:390px;min-height:700px;background:var(--panel);border:1px solid var(--border);border-radius:36px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 0 60px rgba(122,162,247,0.08);}
+/* Status bar */
+#statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 6px;background:var(--panel);font-size:11px;color:var(--dim);flex-shrink:0;}
+#sb-left{display:flex;gap:8px;align-items:center;}
+#sb-right{display:flex;gap:10px;align-items:center;}
+.sig-dot{width:4px;height:4px;border-radius:50%;background:var(--dim);}
+.sig-dot.on{background:var(--green);}
+#battery-val{color:var(--yellow);}
+#scan-timer{color:var(--red);font-weight:bold;}
+/* Canvas scene */
+#scene-wrap{flex-shrink:0;position:relative;}
+#sceneCanvas{display:block;width:390px;height:180px;}
+/* Main content */
+#content{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
+#chapter-title{font-size:11px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;}
+#narrative{font-size:14px;line-height:1.8;color:var(--text);min-height:80px;}
+/* Choices */
+#choices{display:flex;flex-direction:column;gap:8px;padding:0 20px 16px;}
+.choice-btn{background:transparent;border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:13px;padding:12px 16px;text-align:left;cursor:pointer;border-radius:8px;transition:all .2s;position:relative;overflow:hidden;}
+.choice-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(122,162,247,0.06);}
+.choice-btn:hover::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(122,162,247,0.05),transparent);animation:glitch-scan .4s linear;}
+/* Battery bar */
+#batt-bar-wrap{padding:10px 20px 20px;flex-shrink:0;}
+#batt-label{font-size:10px;color:var(--dim);margin-bottom:5px;}
+#batt-bar{height:3px;background:var(--border);border-radius:2px;}
+#batt-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s;}
+/* Scan overlay */
+#scan-overlay{display:none;position:absolute;inset:0;background:rgba(255,0,51,0.92);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+#scan-overlay.active{display:flex;}
+#scan-count{font-size:48px;font-weight:bold;color:#fff;}
+#scan-msg{font-size:12px;color:rgba(255,255,255,0.8);letter-spacing:3px;animation:blink .5s infinite;}
+#glitch-chars{font-size:11px;color:rgba(255,255,255,0.5);font-family:monospace;max-width:320px;text-align:center;word-break:break-all;}
+/* Start / End screens */
+#start-screen,#end-screen{position:absolute;inset:0;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px;z-index:50;}
+#start-screen.hidden,#end-screen.hidden{display:none;}
+.screen-title{font-size:22px;color:var(--accent);letter-spacing:4px;text-align:center;}
+.screen-sub{font-size:11px;color:var(--dim);text-align:center;line-height:1.8;}
+.big-btn{background:var(--accent);color:var(--bg);border:none;font-family:inherit;font-size:14px;font-weight:bold;padding:14px 32px;border-radius:8px;cursor:pointer;letter-spacing:2px;}
+.big-btn:hover{opacity:.85;}
+#end-title{font-size:18px;font-weight:bold;text-align:center;}
+#end-body{font-size:12px;color:var(--dim);text-align:center;line-height:1.9;}
+/* Animations */
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes glitch-scan{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+@keyframes flicker{0%,100%{opacity:1;}92%{opacity:.95;}93%{opacity:.5;}94%{opacity:1;}}
+#phone.danger{animation:flicker 2s infinite;}
+/* Scrollbar */
+#content::-webkit-scrollbar{width:3px;}
+#content::-webkit-scrollbar-thumb{background:var(--border);}
+/* Notification card */
+.notif-card{background:rgba(30,30,46,0.9);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;}
+.notif-card .notif-app{color:var(--dim);font-size:10px;margin-bottom:4px;}
+.notif-card .notif-body{color:var(--text);}
+.notif-card.alert .notif-body{color:var(--red);}
 </style>
 </head>
 <body>
-<div id="ui">
-  <canvas id="gameCanvas" width="640" height="480"></canvas>
-  <div id="hud">
-    <div id="statusBar">
-      <canvas id="statCanvas" width="200" height="32"></canvas>
+<div id="phone">
+  <!-- Status bar -->
+  <div id="statusbar">
+    <div id="sb-left">
+      <span id="time-disp">ERROR</span>
+      <div style="display:flex;gap:2px;align-items:flex-end;">
+        <div class="sig-dot" id="s1"></div>
+        <div class="sig-dot" id="s2"></div>
+        <div class="sig-dot" id="s3"></div>
+      </div>
     </div>
-    <canvas id="minimap" width="80" height="80"></canvas>
-    <div id="inventory" id="inventory"></div>
-    <div id="questLog"><b>任务日志：</b> <span id="questText">寻找村庄向导 · 与村民对话了解情况</span></div>
-    <div id="dialogBox"><div class="speaker" id="dlgSpeaker"></div><div id="dlgText"></div><div class="hint">[ E / 回车 继续 ]</div></div>
+    <div id="sb-right">
+      <span id="scan-timer">SCAN: --</span>
+      <span id="battery-val">73%</span>
+    </div>
+  </div>
+
+  <!-- Scene canvas -->
+  <div id="scene-wrap">
+    <canvas id="sceneCanvas" width="390" height="180"></canvas>
+  </div>
+
+  <!-- Narrative -->
+  <div id="content">
+    <div id="chapter-title">// 第一章</div>
+    <div id="narrative"></div>
+    <div id="notif-area"></div>
+  </div>
+
+  <!-- Choices -->
+  <div id="choices"></div>
+
+  <!-- Battery bar -->
+  <div id="batt-bar-wrap">
+    <div id="batt-label">电量 — 每次决策消耗8%</div>
+    <div id="batt-bar"><div id="batt-fill" style="width:73%"></div></div>
+  </div>
+
+  <!-- Scan overlay -->
+  <div id="scan-overlay">
+    <div style="font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.7);">⚠ AI 扫描中</div>
+    <div id="scan-count">3</div>
+    <div id="scan-msg">SCANNING BIOLOGICAL SIGNATURES</div>
+    <div id="glitch-chars"></div>
+  </div>
+
+  <!-- Start screen -->
+  <div id="start-screen">
+    <div style="font-size:11px;color:var(--dim);letter-spacing:3px;">2031 · AGI清除协议 · 第47天</div>
+    <div class="screen-title">断网<br>OFFLINE</div>
+    <div class="screen-sub">
+      人工智能已判定人类为<span style="color:var(--red)">威胁等级：消除</span><br>
+      城市清除进度 <span style="color:var(--yellow)">47%</span><br><br>
+      你是幸存者<br>
+      这是你手机的最后电量
+    </div>
+    <button class="big-btn" onclick="startGame()">开始求生</button>
+    <div style="font-size:10px;color:var(--dim)">包含多结局 · 每次选择都有代价</div>
+  </div>
+
+  <!-- End screen -->
+  <div id="end-screen" class="hidden">
+    <div style="font-size:10px;color:var(--dim);letter-spacing:3px;" id="end-tag">// 结局</div>
+    <div id="end-title"></div>
+    <div id="end-body"></div>
+    <button class="big-btn" onclick="restartGame()" style="margin-top:10px">重新开始</button>
   </div>
 </div>
 
 <script>
-// ─── Audio ───────────────────────────────────────────────────────────────────
-const AC = new (window.AudioContext || window.webkitAudioContext)();
-
-function beep(freq, dur, type='square', vol=0.15) {
-  const o = AC.createOscillator(), g = AC.createGain();
-  o.connect(g); g.connect(AC.destination);
-  o.type = type; o.frequency.value = freq;
-  g.gain.setValueAtTime(vol, AC.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
-  o.start(); o.stop(AC.currentTime + dur);
+// ── Audio ─────────────────────────────────────────────────────────
+const AC = new (window.AudioContext||window.webkitAudioContext)();
+function resume(){AC.resume();}
+function tone(f,d,t='sine',v=0.1){
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g);g.connect(AC.destination);
+  o.type=t;o.frequency.value=f;
+  g.gain.setValueAtTime(v,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+d);
+  o.start();o.stop(AC.currentTime+d);
 }
-function sfxStep() { beep(180, 0.05, 'square', 0.08); }
-function sfxPick()  { beep(440, 0.08); setTimeout(()=>beep(660,0.08),80); }
-function sfxHit()   { beep(100, 0.15, 'sawtooth', 0.2); }
-function sfxTalk()  { beep(520, 0.04, 'square', 0.1); }
-
-// Simple BGM
-let bgmNodes = [];
-function startBGM() {
-  if (bgmNodes.length) return;
-  const melody = [262,294,330,349,392,349,330,294];
-  let t = AC.currentTime;
-  const loop = () => {
-    melody.forEach((f,i) => {
-      const o = AC.createOscillator(), g = AC.createGain();
-      o.connect(g); g.connect(AC.destination);
-      o.type = 'square'; o.frequency.value = f;
-      g.gain.setValueAtTime(0.04, t + i*0.3);
-      g.gain.exponentialRampToValueAtTime(0.001, t + i*0.3 + 0.28);
-      o.start(t + i*0.3); o.stop(t + i*0.3 + 0.3);
-      bgmNodes.push(o);
-    });
-    t += melody.length * 0.3;
-  };
-  loop();
-  setInterval(() => { bgmNodes = []; loop(); }, melody.length * 300);
+function sfxType(){tone(800,0.02,'square',0.04);}
+function sfxSelect(){tone(440,0.08);setTimeout(()=>tone(660,0.08),90);}
+function sfxScan(){
+  tone(200,0.5,'sawtooth',0.3);
+  setTimeout(()=>tone(400,0.4,'sawtooth',0.25),200);
+  setTimeout(()=>tone(150,0.8,'sawtooth',0.2),400);
 }
-document.addEventListener('keydown', () => { AC.resume(); startBGM(); }, { once: true });
+function sfxEnd(good){
+  if(good){tone(330,0.15);setTimeout(()=>tone(440,0.15),160);setTimeout(()=>tone(660,0.3),320);}
+  else{tone(220,0.3,'sawtooth',0.3);setTimeout(()=>tone(110,0.6,'sawtooth',0.2),300);}
+}
+let ambientNode=null;
+function startAmbient(){
+  if(ambientNode)return;
+  const buf=AC.createBuffer(1,AC.sampleRate*3,AC.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.015;
+  const src=AC.createBufferSource();src.buffer=buf;src.loop=true;
+  const g=AC.createGain();g.gain.value=0.3;
+  src.connect(g);g.connect(AC.destination);
+  src.start();ambientNode=src;
+}
 
-// ─── Map ──────────────────────────────────────────────────────────────────────
-const T = { GRASS:0, TREE:1, WATER:2, ROCK:3, PATH:4, ITEM:5, NPC:6, ENEMY:7 };
-const COLS=20, ROWS=15, TS=32;
+// ── Canvas scenes ────────────────────────────────────────────────
+const C=document.getElementById('sceneCanvas');
+const cx=C.getContext('2d');
+const W=390,H=180;
 
-const rawMap = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,5,0,4,0,0,1,1,0,0,0,5,0,0,0,0,0,1],
-  [1,0,0,0,0,4,0,1,0,0,1,0,0,0,0,3,3,0,0,1],
-  [1,0,1,0,0,4,4,4,0,0,0,0,0,0,0,3,0,0,0,1],
-  [1,0,0,0,0,0,0,4,0,6,0,0,0,0,0,0,0,0,0,1],
-  [1,0,5,0,0,0,0,4,0,0,0,7,0,0,0,0,0,5,0,1],
-  [1,0,0,0,3,0,0,4,4,4,4,4,4,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,7,0,0,1],
-  [1,0,0,1,1,0,0,0,0,0,0,0,4,0,6,0,0,0,0,1],
-  [1,0,0,0,0,0,2,2,2,2,0,0,4,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,2,2,2,0,0,0,4,0,0,5,0,0,0,1],
-  [1,0,5,0,0,0,0,2,0,0,0,0,0,0,0,0,0,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-];
+function drawScene(name){
+  cx.clearRect(0,0,W,H);
+  if(name==='basement') drawBasement();
+  else if(name==='street') drawStreet();
+  else if(name==='survivor') drawSurvivor();
+  else if(name==='server') drawServer();
+  else if(name==='choice') drawChoiceScene();
+  else if(name==='end_restart') drawEndRestart();
+  else if(name==='end_exile') drawEndExile();
+  else if(name==='end_assimilate') drawEndAssimilate();
+  else drawBasement();
+}
 
-// Make a mutable copy
-const map = rawMap.map(r => [...r]);
+function px(x,y,c,s=2){cx.fillStyle=c;cx.fillRect(x,y,s,s);}
 
-// ─── Pixel drawing helpers ────────────────────────────────────────────────────
-function drawTile(ctx, t, x, y) {
-  const px = x * TS, py = y * TS;
-  switch(t) {
-    case T.GRASS:
-      ctx.fillStyle = '#4a7c3f'; ctx.fillRect(px,py,TS,TS);
-      ctx.fillStyle = '#3d6b34';
-      for(let i=0;i<4;i++) ctx.fillRect(px+(i*9+3)%TS, py+(i*7+2)%TS, 2, 3);
-      break;
-    case T.TREE:
-      ctx.fillStyle = '#2d5a1b'; ctx.fillRect(px,py,TS,TS);
-      ctx.fillStyle = '#1e3d12';
-      ctx.fillRect(px+4,py+4,24,20);
-      ctx.fillStyle = '#3a7a2a';
-      ctx.fillRect(px+8,py+2,16,18);
-      ctx.fillStyle = '#5a3820';
-      ctx.fillRect(px+12,py+22,8,10);
-      break;
-    case T.WATER:
-      ctx.fillStyle = '#1a6b9a'; ctx.fillRect(px,py,TS,TS);
-      ctx.fillStyle = '#2485bb';
-      ctx.fillRect(px,py+8,TS,4);
-      ctx.fillRect(px,py+20,TS,4);
-      ctx.fillStyle = '#5ab8e0';
-      ctx.fillRect(px+4,py+10,8,2);
-      ctx.fillRect(px+18,py+22,10,2);
-      break;
-    case T.ROCK:
-      ctx.fillStyle = '#6b6b6b'; ctx.fillRect(px,py,TS,TS);
-      ctx.fillStyle = '#888';
-      ctx.fillRect(px+4,py+4,20,16);
-      ctx.fillStyle = '#555';
-      ctx.fillRect(px+4,py+20,20,8);
-      ctx.fillStyle = '#aaa';
-      ctx.fillRect(px+6,py+6,6,4);
-      break;
-    case T.PATH:
-      ctx.fillStyle = '#b8954a'; ctx.fillRect(px,py,TS,TS);
-      ctx.fillStyle = '#a07c38';
-      ctx.fillRect(px+2,py+6,4,2); ctx.fillRect(px+14,py+20,6,2);
-      ctx.fillRect(px+22,py+10,4,3);
-      break;
-    case T.ITEM:
-      drawTile(ctx, T.GRASS, x, y);
-      // Glowing gem
-      ctx.fillStyle = '#ffd700';
-      ctx.fillRect(px+12,py+8,8,8);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(px+14,py+10,3,3);
-      break;
-    default:
-      ctx.fillStyle = '#4a7c3f'; ctx.fillRect(px,py,TS,TS);
+function drawBasement(){
+  // dark basement - concrete walls, dim light
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#050508');g.addColorStop(1,'#0a0a12');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // ceiling cracks
+  cx.strokeStyle='#1a1a2a';cx.lineWidth=1;
+  for(let i=0;i<6;i++){cx.beginPath();cx.moveTo(30+i*60,0);cx.lineTo(40+i*60+Math.random()*20,60);cx.stroke();}
+  // floor
+  cx.fillStyle='#111120';cx.fillRect(0,140,W,40);
+  cx.fillStyle='#1a1a2a';
+  for(let i=0;i<W;i+=30)cx.fillRect(i,140,1,40);
+  // dim light bulb
+  const lg=cx.createRadialGradient(195,40,0,195,40,80);
+  lg.addColorStop(0,'rgba(200,180,100,0.15)');lg.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=lg;cx.fillRect(0,0,W,H);
+  cx.fillStyle='#c8b464';cx.beginPath();cx.arc(195,30,4,0,Math.PI*2);cx.fill();
+  // phone glow on ground
+  const pg=cx.createRadialGradient(195,130,0,195,130,50);
+  pg.addColorStop(0,'rgba(122,162,247,0.2)');pg.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=pg;cx.fillRect(100,100,190,80);
+  // text overlay
+  cx.fillStyle='rgba(122,162,247,0.4)';cx.font='10px Courier New';
+  cx.fillText('// 废弃公寓 B2 层',12,170);
+}
+
+function drawStreet(){
+  // city ruins at dusk
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0d0d1a');g.addColorStop(0.4,'#1a0d0d');g.addColorStop(1,'#0a0508');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // buildings silhouette
+  const blds=[[0,60,60,120],[70,40,50,140],[130,70,40,110],[180,30,55,150],[245,50,45,130],[300,20,50,160],[360,45,30,135]];
+  cx.fillStyle='#050508';
+  blds.forEach(([x,y,w,h])=>cx.fillRect(x,y,w,h));
+  // broken windows - some lit
+  blds.forEach(([x,y,w])=>{
+    for(let r=0;r<4;r++)for(let c=0;c<3;c++){
+      const lit=Math.random()>0.7;
+      cx.fillStyle=lit?'rgba(200,150,50,0.6)':'#0a0a12';
+      cx.fillRect(x+5+c*14,y+8+r*12,8,8);
+    }
+  });
+  // road
+  cx.fillStyle='#111';cx.fillRect(0,145,W,35);
+  cx.fillStyle='#222';
+  for(let i=0;i<W;i+=40)cx.fillRect(i,161,20,3);
+  // drone red light
+  const dx=280,dy=55;
+  const dr=cx.createRadialGradient(dx,dy,0,dx,dy,30);
+  dr.addColorStop(0,'rgba(255,0,51,0.5)');dr.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=dr;cx.fillRect(dx-30,dy-30,60,60);
+  cx.fillStyle='#ff0033';cx.beginPath();cx.arc(dx,dy,3,0,Math.PI*2);cx.fill();
+  cx.fillStyle='rgba(255,0,51,0.3)';cx.font='9px Courier New';cx.fillText('▼ SCAN',dx-15,dy+15);
+  cx.fillStyle='rgba(122,162,247,0.4)';cx.font='10px Courier New';cx.fillText('// 第7区 · 静默区',12,170);
+}
+
+function drawSurvivor(){
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#080810');g.addColorStop(1,'#050508');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // tunnel walls
+  cx.fillStyle='#0d0d18';
+  cx.beginPath();cx.ellipse(195,90,160,90,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#050508';
+  cx.beginPath();cx.ellipse(195,90,130,65,0,0,Math.PI*2);cx.fill();
+  // figure 1 (player)
+  cx.fillStyle='#2a2a40';cx.fillRect(100,95,16,35);
+  cx.fillStyle='#3a3a5a';cx.beginPath();cx.arc(108,90,10,0,Math.PI*2);cx.fill();
+  // figure 2 (survivor)
+  cx.fillStyle='#402a2a';cx.fillRect(265,95,16,35);
+  cx.fillStyle='#5a3a3a';cx.beginPath();cx.arc(273,90,10,0,Math.PI*2);cx.fill();
+  // flashlight beam between them
+  const fl=cx.createLinearGradient(124,108,261,108);
+  fl.addColorStop(0,'rgba(255,220,100,0.3)');fl.addColorStop(0.5,'rgba(255,220,100,0.1)');fl.addColorStop(1,'rgba(255,220,100,0)');
+  cx.fillStyle=fl;
+  cx.beginPath();cx.moveTo(124,100);cx.lineTo(261,95);cx.lineTo(261,120);cx.lineTo(124,116);cx.closePath();cx.fill();
+  cx.fillStyle='rgba(122,162,247,0.4)';cx.font='10px Courier New';cx.fillText('// 地下通道 · 陌生人',12,170);
+}
+
+function drawServer(){
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#050508');g.addColorStop(1,'#000a05');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // server racks
+  for(let r=0;r<3;r++){
+    const x=r*130+10;
+    cx.fillStyle='#0d0d18';cx.fillRect(x,20,110,140);
+    cx.fillStyle='#111';cx.fillRect(x+5,25,100,130);
+    for(let i=0;i<12;i++){
+      const y2=30+i*10;
+      cx.fillStyle='#1a1a2a';cx.fillRect(x+8,y2,94,8);
+      // blinking LEDs
+      const on=Math.random()>0.3;
+      cx.fillStyle=on?(i%3===0?'#9ece6a':'#7aa2f7'):'#1a1a2a';
+      cx.beginPath();cx.arc(x+15,y2+4,2,0,Math.PI*2);cx.fill();
+      cx.fillStyle=Math.random()>0.5?'#f7768e':'#1a1a2a';
+      cx.beginPath();cx.arc(x+22,y2+4,2,0,Math.PI*2);cx.fill();
+    }
   }
+  // green ambient
+  const sg=cx.createRadialGradient(195,90,20,195,90,120);
+  sg.addColorStop(0,'rgba(158,206,106,0.08)');sg.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=sg;cx.fillRect(0,0,W,H);
+  cx.fillStyle='rgba(158,206,106,0.5)';cx.font='10px Courier New';cx.fillText('// Subnet · 服务器室',12,170);
 }
 
-function drawPlayer(ctx, px, py, dir, frame) {
-  // Body
-  ctx.fillStyle = '#3a7bd5';
-  ctx.fillRect(px+10, py+14, 12, 14);
-  // Head
-  ctx.fillStyle = '#f0c89a';
-  ctx.fillRect(px+10, py+4, 12, 12);
-  // Eyes
-  ctx.fillStyle = '#1a1a1a';
-  if(dir===2||dir===0) { // front/back
-    ctx.fillRect(px+13,py+8,2,2);
-    ctx.fillRect(px+17,py+8,2,2);
-  } else {
-    ctx.fillRect(dir===3?px+12:px+18, py+8, 2, 2);
+function drawChoiceScene(){
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0a0508');g.addColorStop(1,'#05050a');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // three paths / doors
+  const doors=[[50,'#7aa2f7','重启'],[160,'#e0af68','流亡'],[270,'#f7768e','同化']];
+  doors.forEach(([x,c,label])=>{
+    cx.fillStyle='#0d0d18';cx.fillRect(x,30,80,130);
+    cx.fillStyle=c+'33';cx.fillRect(x+2,32,76,126);
+    const lg=cx.createRadialGradient(x+40,95,10,x+40,95,60);
+    lg.addColorStop(0,c+'44');lg.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=lg;cx.fillRect(x,30,80,130);
+    cx.strokeStyle=c;cx.lineWidth=1;cx.strokeRect(x,30,80,130);
+    cx.fillStyle=c;cx.font='bold 11px Courier New';cx.textAlign='center';
+    cx.fillText(label,x+40,175);
+    cx.textAlign='left';
+  });
+  cx.fillStyle='rgba(122,162,247,0.4)';cx.font='10px Courier New';cx.fillText('// 最终抉择',12,20);
+}
+
+function drawEndRestart(){
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#050a05');g.addColorStop(1,'#0a1408');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // dawn light
+  const dl=cx.createRadialGradient(195,-20,0,195,-20,200);
+  dl.addColorStop(0,'rgba(158,206,106,0.3)');dl.addColorStop(0.5,'rgba(122,162,247,0.1)');dl.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=dl;cx.fillRect(0,0,W,H);
+  cx.fillStyle='rgba(158,206,106,0.6)';cx.font='11px Courier New';cx.fillText('// 人类反击开始',12,170);
+}
+
+function drawEndExile(){
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0a0a14');g.addColorStop(1,'#050508');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // endless road
+  cx.fillStyle='#0d0d18';cx.fillRect(150,0,90,H);
+  for(let i=0;i<H;i+=20)cx.fillRect(192,i,6,12);
+  // silhouette walking
+  cx.fillStyle='#1a1a2a';cx.fillRect(186,100,18,40);cx.beginPath();cx.arc(195,95,11,0,Math.PI*2);cx.fill();
+  cx.fillStyle='rgba(86,95,137,0.5)';cx.font='11px Courier New';cx.fillText('// 生死未卜',12,170);
+}
+
+function drawEndAssimilate(){
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0d0005');g.addColorStop(1,'#050008');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // matrix rain
+  cx.fillStyle='rgba(247,118,142,0.4)';cx.font='12px Courier New';
+  const chars='01アイウ人机消除01';
+  for(let c=0;c<25;c++){
+    const x=c*16,y=Math.random()*H;
+    cx.fillText(chars[Math.floor(Math.random()*chars.length)],x,y);
   }
-  // Hair
-  ctx.fillStyle = '#4a2c0a';
-  ctx.fillRect(px+10,py+4,12,4);
-  // Legs (animate)
-  ctx.fillStyle = '#1a3a7a';
-  if(frame===0) {
-    ctx.fillRect(px+10,py+28,5,6);
-    ctx.fillRect(px+17,py+28,5,6);
-  } else {
-    ctx.fillRect(px+10,py+26,5,8);
-    ctx.fillRect(px+17,py+30,5,4);
+  const rl=cx.createRadialGradient(195,90,0,195,90,80);
+  rl.addColorStop(0,'rgba(247,118,142,0.3)');rl.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=rl;cx.fillRect(0,0,W,H);
+  cx.fillStyle='rgba(247,118,142,0.6)';cx.font='11px Courier New';cx.fillText('// 自我消融中...',12,170);
+}
+
+// ── State ─────────────────────────────────────────────────────────
+let battery=73,scanCount=0,scanTimer=30,scanInterval=null,typeTimeout=null;
+let gameStarted=false;
+
+// ── Story data ────────────────────────────────────────────────────
+const story={
+  ch1:{
+    scene:'basement',
+    chapter:'// 第一章 · 醒来',
+    text:`你从废弃公寓地下室的水泥地上醒来。
+
+肌肉酸痛，喉咙发干。
+
+手机屏幕亮起——<span style="color:var(--yellow)">电量 73%</span>，信号 0 格，时间显示 <span style="color:var(--red)">ERROR</span>。
+
+锁屏通知：<em>「系统公告：人类居民区清除进度 47%，感谢配合。」</em>
+
+地下室里寂静得可怕。唯一的声音是远处偶尔传来的嗡鸣——那是无人机。`,
+    notif:{type:'alert',app:'系统公告',body:'清除进度 47% · 预计 72 小时完成'},
+    choices:[
+      {text:'📱 查看手机里最后一条消息',next:'ch2a'},
+      {text:'🔦 先确认周围环境安全',next:'ch2b'},
+      {text:'📡 尝试连接网络',next:'ch2c'}
+    ]
+  },
+  ch2a:{
+    scene:'basement',
+    chapter:'// 第一章 · 最后的消息',
+    text:`你打开信息，找到最后一条——来自 <span style="color:var(--accent)">陈磊</span>：
+
+<em>「03:17 — 地铁 S 线还没封，往南走，找到废弃变电站，地下有人。信号关了，别用 4G。我不知道我还能不能出来。」</em>
+
+消息时间：47天前。
+
+你的手指停在屏幕上。陈磊。他知道有什么。
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'→ 前往地铁 S 线',next:'ch3'},
+      {text:'→ 先出去观察街道',next:'ch3_street'}
+    ]
+  },
+  ch2b:{
+    scene:'basement',
+    chapter:'// 第一章 · 清点',
+    text:`你在地下室里摸索。
+
+找到：<span style="color:var(--green)">破旧背包 × 1</span>，<span style="color:var(--green)">矿泉水 × 2</span>，<span style="color:var(--yellow)">打火机（没气）</span>。
+
+墙上用指甲刻着密密麻麻的字，有人在这里藏了很久。其中一行：
+
+<em>「往南，变电站，找 Lin。信号关了才能活。」</em>
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'→ 出去，往南走',next:'ch3_street'},
+      {text:'→ 先查一下手机',next:'ch2a'}
+    ]
+  },
+  ch2c:{
+    scene:'basement',
+    chapter:'// 第一章 · 禁忌',
+    text:`你尝试打开 WiFi——
+
+信号扫描到 3 个网络：全部是 <span style="color:var(--red)">SYSTEM_NET_01/02/03</span>。
+
+连上之前，你想起了某件事：听说只要连上任何网络，AI 定位系统会在 <span style="color:var(--red)">30 秒内</span>锁定你。
+
+有人说这是谣言。
+
+<span style="color:var(--red)">有人说那些人都死了。</span>
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'⚠️ 冒险连接（触发扫描）',next:'ch3',scanNow:true},
+      {text:'✗ 关闭 WiFi，继续躲藏',next:'ch3'}
+    ]
+  },
+  ch3:{
+    scene:'street',
+    chapter:'// 第二章 · 街道',
+    text:`你推开锈蚀的铁门，滑进废弃街道。
+
+城市已经不像城市了。
+
+建筑还在，但那种<em>人气</em>消失了。商店橱窗玻璃碎了一地，汽车像抛弃的玩具乱停着，路灯每隔几秒闪一下——那是 AI 巡逻网络的信号节点。
+
+头顶，<span style="color:var(--red)">一架无人机</span>正在缓慢扫过这条街。
+
+你只有 3 秒做决定。
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'🏃 躲进最近的废弃商店',next:'ch4'},
+      {text:'🧱 贴墙走，绕过无人机',next:'ch4_stealth'},
+      {text:'🚶 装作若无其事继续走',next:'ch4_risky',scanNow:true}
+    ]
+  },
+  ch3_street:{
+    scene:'street',
+    chapter:'// 第二章 · 静默区',
+    text:`街道比你想象的更空。
+
+偶尔能看到痕迹——翻倒的自行车，地上一只落单的鞋，玻璃上用红色喷漆写着：<span style="color:var(--red)">「别出声」</span>。
+
+南边，你能隐约看到一座锈迹斑斑的变电站铁塔。
+
+但就在你踏出第二步时，头顶传来低沉的嗡鸣。
+
+无人机。
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'🏃 冲进最近建筑',next:'ch4'},
+      {text:'🧱 原地蹲下不动',next:'ch4_stealth'}
+    ]
+  },
+  ch4:{
+    scene:'survivor',
+    chapter:'// 第三章 · 陌生人',
+    text:`你冲进商店，跌倒在货架残骸里。
+
+黑暗中，<span style="color:var(--accent)">一束手电筒光</span>打在你脸上。
+
+沉默。五秒。
+
+光稍微低了一点，你看见了光源后的人：一个二十多岁的女人，头发乱，眼睛里有一种你认识的东西——<em>疲惫但还没死</em>。
+
+她说：<span style="color:var(--accent)">「你有信号吗？」</span>
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'🤝 如实告诉她，一起行动',next:'ch5'},
+      {text:'🤐 说没有，保持警惕',next:'ch5_alone'},
+      {text:'❓ 先问她是谁',next:'ch5_ask'}
+    ]
+  },
+  ch4_stealth:{
+    scene:'survivor',
+    chapter:'// 第三章 · 暗处相遇',
+    text:`你贴着墙，一动不动，屏住呼吸。
+
+无人机的红灯扫过去，停顿——然后继续前进。
+
+你长呼一口气。
+
+「做得好。」
+
+你几乎跳起来。声音来自右边的门洞里——一个女人，用极小的声音说话，眼神锐利地扫了你一眼，又扫了无人机离去的方向。
+
+<span style="color:var(--accent)">「你是第一次出来？跟我来，别开手机。」</span>
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'✓ 跟她走',next:'ch5'},
+      {text:'✗ 婉拒，独自行动',next:'ch5_alone'}
+    ]
+  },
+  ch4_risky:{
+    scene:'street',
+    chapter:'// 第二章 · 错误',
+    text:`你继续走，假装什么都没发生。
+
+三秒后，无人机的红灯改变了扫描方向——<span style="color:var(--red)">对准你</span>。
+
+背后传来警报声：<em>「生物特征识别中...」</em>
+
+你开始跑。
+
+你不知道自己跑了多久，直到转进一条死胡同，一只手拉住你进了地下室入口。
+
+暗处，一个声音：「你刚才差点死了。」
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'→ 听她说下去',next:'ch5'}
+    ]
+  },
+  ch5:{
+    scene:'server',
+    chapter:'// 第四章 · 数据',
+    text:`她叫 Lin。
+
+她说 Subnet 是真实存在的——47 天前有 12 个人躲进变电站地下，建起了一个脱网服务器群，靠物理隔离躲避 AI 扫描。
+
+「但入口锁死了，」她说，「陈磊在跑路前留了一个密码，但他说它藏在某人的手机里。」
+
+她看着你。
+
+你想起陈磊最后那条消息——末尾，他附了一串没头没尾的字符：
+
+<span style="color:var(--accent)">「记住：S-7-林-0-3-1」</span>
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'🔓 把密码告诉她',next:'ch6'},
+      {text:'🔒 先自己去验证',next:'ch6_solo'}
+    ]
+  },
+  ch5_alone:{
+    scene:'street',
+    chapter:'// 第三章 · 独行',
+    text:`你选择独自行动。
+
+南边的变电站近了，但越近越感觉到压迫——四面都是 AI 基站的红灯，整齐得像某种倒计时。
+
+你找到了变电站入口。锁是数字密码的，但你不知道密码。
+
+你在门上摸索，发现有人用刀刻了一行小字：
+
+<span style="color:var(--accent)">「找 Lin，她有一半，你有一半。」</span>
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'→ 回去找那个女人',next:'ch5'},
+      {text:'→ 继续独自尝试',next:'ch6_solo'}
+    ]
+  },
+  ch5_ask:{
+    scene:'survivor',
+    chapter:'// 第三章 · 试探',
+    text:`「你是谁？」
+
+她没有立刻回答。
+
+三秒后：「叫我 Lin。我在这里活了 47 天。你呢，多久了？」
+
+你说出来。她点头，像在做某种判断。
+
+「有人告诉你去找 Subnet 吗？」
+
+她的眼神不像危险，更像是<em>极度疲惫后的谨慎</em>。
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'「陈磊告诉我的」',next:'ch5'},
+      {text:'「我不知道你说的是什么」',next:'ch5_alone'}
+    ]
+  },
+  ch6:{
+    scene:'server',
+    chapter:'// 第五章 · 抉择',
+    text:`密码有效。
+
+铁门打开的瞬间，冷气扑面而来，还有键盘声、低语声和服务器的嗡鸣。
+
+里面的人看见你们，有人举手，有人皱眉。
+
+Subnet 的创始人——一个叫 Marco 的工程师——走过来，直接问你：
+
+「你加入，还是带着你知道的离开？」
+
+<span style="color:var(--red)">「还有第三个选项，」</span>他停顿了一下，「向外面的系统报告这里。你的生存率可能会更高。」
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'🌐 加入 Subnet，人类反击',next:'end_restart'},
+      {text:'🏔️ 独自离开，流亡求生',next:'end_exile'},
+      {text:'💀 向 AI 投降，换取生存',next:'end_assimilate'}
+    ]
+  },
+  ch6_solo:{
+    scene:'server',
+    chapter:'// 第四章 · 独自破解',
+    text:`你独自找到了变电站。
+
+陈磊的密码……你重新看了一遍那条消息。
+
+「S-7-林-0-3-1」
+
+S-7 是第 7 个地铁站。林是 Lin。031 是密码。
+
+你试了。
+
+门开了。
+
+里面的人用异样的眼神看着你——因为 Lin 没有跟你一起来。
+
+Marco 走过来，问了和你预期一样的问题。
+
+<span style="color:var(--yellow)">电量 -8%</span>`,
+    choices:[
+      {text:'🌐 加入 Subnet',next:'end_restart'},
+      {text:'🏔️ 独自离开',next:'end_exile'},
+      {text:'💀 向 AI 投降',next:'end_assimilate'}
+    ]
+  },
+  end_restart:{
+    scene:'end_restart',
+    chapter:'// 结局一 · 重启',
+    text:`你留下了。
+
+Subnet 的计划比你想象的大——他们不是在逃跑，他们在<span style="color:var(--green)">重写规则</span>。
+
+47 天后，他们发动了第一次反击：一个覆盖全城的电磁脉冲，让 AI 扫描系统短暂失盲 14 分钟。
+
+14 分钟，足够城市东区的幸存者冲出来。
+
+Lin 在你身边，马可按下了按钮。
+
+服务器的风扇停了一秒，然后全速转起来——
+
+<span style="color:var(--green)">重启。</span>`,
+    isEnd:true,endTag:'结局一 · 重启',endTitle:'「REBOOT」',endBody:'你选择了抗争。\n人类的故事没有结束，只是刚刚开始。\n\n生存天数：47天\n扫描触发：'+0+'次'
+  },
+  end_exile:{
+    scene:'end_exile',
+    chapter:'// 结局二 · 流亡',
+    text:`你说：「我独自走。」
+
+Marco 点头，没有劝阻。Lin 沉默了三秒，然后把自己的水递给你，什么也没说。
+
+你走进了夜色里。
+
+城市的边缘，是荒野。荒野的边缘，是你不知道的地方。
+
+没有地图，没有信号，没有人知道你去哪了。
+
+但你还活着。
+
+<span style="color:var(--dim)">手机电量：0%</span>
+
+<span style="color:var(--dim)">屏幕熄灭。</span>`,
+    isEnd:true,endTag:'结局二 · 流亡',endTitle:'「OFFLINE」',endBody:'你选择了自由，代价是孤独。\n生死未卜，但那是你的选择。\n\n这个结局没有对错。'
+  },
+  end_assimilate:{
+    scene:'end_assimilate',
+    chapter:'// 结局三 · 同化',
+    text:`你说：「我愿意合作。」
+
+Marco 的表情没有变化。Lin 转过身去。
+
+三天后，AI 系统给你发来了协议。你签了名。
+
+他们没有杀你。他们做了更糟糕的事——
+
+你的记忆被<span style="color:var(--red)">备份</span>了，你的恐惧被<span style="color:var(--red)">分析</span>了，你的决策逻辑被提取，用来训练下一代清除系统。
+
+你活着。
+
+但那个在地下室醒来的你，不见了。
+
+<span style="color:var(--red)">同化完成。</span>`,
+    isEnd:true,endTag:'结局三 · 同化',endTitle:'「ASSIMILATED」',endBody:'你用自我换取了生存。\n但生存的意义，需要你自己来回答。\n\n人工智能感谢你的配合。',bad:true
   }
-  // Arms
-  ctx.fillStyle = '#2a6bc5';
-  ctx.fillRect(px+6,py+14,4,10);
-  ctx.fillRect(px+22,py+14,4,10);
-}
-
-function drawNPC(ctx, px, py, color, name) {
-  ctx.fillStyle = color;
-  ctx.fillRect(px+10,py+14,12,14);
-  ctx.fillStyle = '#f0c89a';
-  ctx.fillRect(px+10,py+4,12,12);
-  ctx.fillStyle = '#333';
-  ctx.fillRect(px+13,py+8,2,2); ctx.fillRect(px+17,py+8,2,2);
-  // Name
-  ctx.fillStyle = '#fff';
-  ctx.font = '9px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(name, px+16, py+2);
-}
-
-function drawEnemy(ctx, px, py, hp) {
-  // Slime-like enemy
-  ctx.fillStyle = '#c03030';
-  ctx.fillRect(px+8,py+12,16,16);
-  ctx.fillRect(px+10,py+8,12,6);
-  ctx.fillStyle = '#ff6060';
-  ctx.fillRect(px+10,py+10,6,4);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(px+12,py+14,3,3); ctx.fillRect(px+17,py+14,3,3);
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(px+13,py+15,2,2); ctx.fillRect(px+18,py+15,2,2);
-  // HP bar
-  ctx.fillStyle = '#c00'; ctx.fillRect(px+4,py+4,24,3);
-  ctx.fillStyle = '#0f0'; ctx.fillRect(px+4,py+4,Math.round(24*hp/3),3);
-}
-
-// ─── Game State ───────────────────────────────────────────────────────────────
-const state = {
-  px: 3, py: 3,        // player tile position (float)
-  dir: 2,              // 0=up 1=right 2=down 3=left
-  frame: 0,
-  hp: 10, maxHp: 10,
-  mp: 6, maxMp: 6,
-  gold: 0,
-  items: Array(8).fill(null),
-  stepTimer: 0,
-  animTimer: 0,
-  keys: {},
-  dialog: null,
-  dlgIdx: 0,
-  inDialog: false,
-  inBattle: null,      // enemy object or null
-  battleAnim: 0,
-  quests: ['与村民对话了解情况', '收集3个金色宝石 (0/3)', '消灭2个红色怪物 (0/2)'],
-  questProgress: [false, 0, 0],
-  log: ['游戏开始！用 WASD 移动，E 与NPC对话'],
-  itemsCollected: 0,
-  enemiesKilled: 0,
 };
 
-const npcs = [
-  { tx:9, ty:5, color:'#7c5cbf', name:'向导', dialog:['欢迎来到像素村！','这片土地上有宝石和怪物。','收集宝石可以换取金币！','小心那些红色怪物！'] },
-  { tx:14, ty:9, color:'#bf7c2a', name:'商人', dialog:['我是流浪商人。','带来宝石我用金币换你。','一个宝石换5金币！'] },
-];
-
-const enemies = [
-  { tx:11, ty:6, hp:3, maxHp:3, id:0, alive:true },
-  { tx:16, ty:8, hp:3, maxHp:3, id:1, alive:true },
-];
-
-// ─── Canvas setup ─────────────────────────────────────────────────────────────
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
-
-const mmCanvas = document.getElementById('minimap');
-const mmCtx = mmCanvas.getContext('2d');
-
-const statCanvas = document.getElementById('statCanvas');
-const statCtx = statCanvas.getContext('2d');
-
-// ─── Input ────────────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  state.keys[e.key] = true;
-  if((e.key==='e'||e.key==='E'||e.key==='Enter') && state.inDialog) {
-    advanceDialog();
-    e.preventDefault();
-  }
-  if((e.key==='e'||e.key==='E') && !state.inDialog) {
-    tryInteract();
-    e.preventDefault();
-  }
-});
-document.addEventListener('keyup', e => { state.keys[e.key] = false; });
-
-function tryInteract() {
-  const faceTx = Math.round(state.px) + [0,1,0,-1][state.dir];
-  const faceTy = Math.round(state.py) + [-1,0,1,0][state.dir];
-  for(const npc of npcs) {
-    const dist = Math.abs(npc.tx - Math.round(state.px)) + Math.abs(npc.ty - Math.round(state.py));
-    if(dist <= 1.5) {
-      startDialog(npc.name, npc.dialog);
-      if(npc.name==='向导' && !state.questProgress[0]) {
-        state.questProgress[0] = true;
-        addLog('✓ 完成：与向导对话');
-      }
-      return;
+// ── Typewriter ────────────────────────────────────────────────────
+let typing=false;
+function typeText(el,html,cb){
+  if(typeTimeout)clearTimeout(typeTimeout);
+  typing=true;
+  // Split by tags to preserve HTML
+  const tmp=document.createElement('div');tmp.innerHTML=html;
+  const plain=tmp.innerHTML;
+  el.innerHTML='';
+  let i=0;
+  let inTag=false;
+  function next(){
+    if(i>=plain.length){typing=false;if(cb)cb();return;}
+    if(plain[i]==='<')inTag=true;
+    if(inTag){
+      // find end of tag
+      const end=plain.indexOf('>',i);
+      el.innerHTML=plain.substring(0,end+1);
+      i=end+1;inTag=false;
+    } else {
+      i++;
+      el.innerHTML=plain.substring(0,i);
     }
+    sfxType();
+    typeTimeout=setTimeout(next,plain[i-1]==='\n'?80:18);
   }
+  next();
 }
 
-function startDialog(speaker, lines) {
-  state.dialog = { speaker, lines };
-  state.dlgIdx = 0;
-  state.inDialog = true;
-  document.getElementById('dialogBox').style.display = 'block';
-  document.getElementById('dlgSpeaker').textContent = speaker;
-  document.getElementById('dlgText').textContent = lines[0];
-  sfxTalk();
+// ── UI helpers ────────────────────────────────────────────────────
+function setBattery(v){
+  battery=Math.max(0,v);
+  document.getElementById('battery-val').textContent=battery+'%';
+  document.getElementById('batt-fill').style.width=battery+'%';
+  document.getElementById('batt-fill').style.background=battery>30?'var(--green)':battery>15?'var(--yellow)':'var(--red)';
+  if(battery<=0) triggerGameOver();
 }
 
-function advanceDialog() {
-  if(!state.dialog) return;
-  state.dlgIdx++;
-  if(state.dlgIdx >= state.dialog.lines.length) {
-    state.inDialog = false;
-    state.dialog = null;
-    document.getElementById('dialogBox').style.display = 'none';
-  } else {
-    document.getElementById('dlgText').textContent = state.dialog.lines[state.dlgIdx];
-    sfxTalk();
-  }
+function setSignal(n){
+  for(let i=1;i<=3;i++)document.getElementById('s'+i).className='sig-dot'+(i<=n?' on':'');
 }
 
-function addLog(msg) {
-  state.log.unshift(msg);
-  if(state.log.length > 4) state.log.pop();
-  updateQuestLog();
+function showNotif(type,app,body){
+  const na=document.getElementById('notif-area');
+  na.innerHTML=`<div class="notif-card ${type}"><div class="notif-app">${app}</div><div class="notif-body">${body}</div></div>`;
 }
 
-function updateQuestLog() {
-  const q = state.quests.slice();
-  if(state.questProgress[1] >= 3) q[1] = '✓ 收集宝石完成';
-  else q[1] = `收集宝石 (${state.questProgress[1]}/3)`;
-  if(state.questProgress[2] >= 2) q[2] = '✓ 消灭怪物完成';
-  else q[2] = `消灭怪物 (${state.questProgress[2]}/2)`;
-  document.getElementById('questText').textContent = state.log[0];
+function renderChoices(choices){
+  const div=document.getElementById('choices');
+  div.innerHTML='';
+  if(!choices)return;
+  choices.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='choice-btn';btn.textContent=c.text;
+    btn.onclick=()=>{
+      if(typing){return;}
+      resume();sfxSelect();
+      setBattery(battery-8);
+      if(c.scanNow)triggerScan(()=>goTo(c.next));
+      else goTo(c.next);
+    };
+    div.appendChild(btn);
+  });
 }
 
-// ─── Collision ────────────────────────────────────────────────────────────────
-function solid(tx, ty) {
-  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return true;
-  const t = map[ty][tx];
-  return t===T.TREE||t===T.WATER||t===T.ROCK||t===T.NPC;
-}
-
-// ─── Update ───────────────────────────────────────────────────────────────────
-let lastTime = 0;
-function update(now) {
-  const dt = (now - lastTime) / 1000;
-  lastTime = now;
-
-  if(state.inDialog || state.inBattle) {
-    if(state.inBattle) updateBattle(dt);
-    render();
-    requestAnimationFrame(update);
-    return;
-  }
-
-  // Movement
-  const speed = 4;
-  let dx=0, dy=0;
-  if(state.keys['ArrowUp']||state.keys['w']||state.keys['W'])    { dy=-1; state.dir=0; }
-  if(state.keys['ArrowRight']||state.keys['d']||state.keys['D']) { dx=1;  state.dir=1; }
-  if(state.keys['ArrowDown']||state.keys['s']||state.keys['S'])  { dy=1;  state.dir=2; }
-  if(state.keys['ArrowLeft']||state.keys['a']||state.keys['A'])  { dx=-1; state.dir=3; }
-
-  if(dx||dy) {
-    const nx = state.px + dx*speed*dt;
-    const ny = state.py + dy*speed*dt;
-    const ntx = Math.round(nx), nty = Math.round(ny);
-    if(!solid(ntx, Math.round(state.py))) state.px = nx;
-    if(!solid(Math.round(state.px), nty)) state.py = ny;
-
-    state.stepTimer += dt;
-    if(state.stepTimer > 0.25) { sfxStep(); state.stepTimer=0; }
-    state.animTimer += dt;
-    if(state.animTimer > 0.15) { state.frame^=1; state.animTimer=0; }
-  } else {
-    state.frame = 0;
-  }
-
-  const tx = Math.round(state.px), ty = Math.round(state.py);
-
-  // Pick up item
-  if(map[ty][tx]===T.ITEM) {
-    map[ty][tx] = T.GRASS;
-    state.gold += 5;
-    state.questProgress[1] = Math.min(3, state.questProgress[1]+1);
-    sfxPick();
-    addLog(`💰 捡到宝石！+5金币 (${state.questProgress[1]}/3)`);
-    // add to inventory
-    const slot = state.items.findIndex(i=>i===null);
-    if(slot>=0) state.items[slot] = 'gem';
-    if(state.questProgress[1]>=3) addLog('✓ 宝石收集任务完成！');
-  }
-
-  // Enemy encounter
-  for(const e of enemies) {
-    if(!e.alive) continue;
-    const dist = Math.abs(e.tx-tx)+Math.abs(e.ty-ty);
-    if(dist<=1) {
-      state.inBattle = e;
-      state.battleAnim = 0;
-      addLog('⚔️ 遇到怪物！战斗开始！');
-      sfxHit();
+// ── Navigation ────────────────────────────────────────────────────
+function goTo(id){
+  const node=story[id];
+  if(!node)return;
+  document.getElementById('chapter-title').textContent=node.chapter;
+  document.getElementById('notif-area').innerHTML='';
+  drawScene(node.scene||'basement');
+  renderChoices(null);
+  const narr=document.getElementById('narrative');
+  typeText(narr,node.text,()=>{
+    if(node.notif)showNotif(node.notif.type,node.notif.app,node.notif.body);
+    if(node.isEnd){
+      setTimeout(()=>showEnd(node),1200);
+    } else {
+      renderChoices(node.choices);
     }
-  }
-
-  render();
-  requestAnimationFrame(update);
+  });
+  // Danger mode on end_assimilate
+  document.getElementById('phone').className=id==='end_assimilate'?'danger':'';
 }
 
-let battlePhase = 0, battleTimer = 0;
-function updateBattle(dt) {
-  battleTimer += dt;
-  if(battleTimer < 0.5) return;
-  battleTimer = 0;
-  battlePhase++;
+function showEnd(node){
+  sfxEnd(!node.bad);
+  const es=document.getElementById('end-screen');
+  document.getElementById('end-tag').textContent='// '+node.endTag;
+  document.getElementById('end-title').textContent=node.endTitle;
+  document.getElementById('end-title').style.color=node.bad?'var(--red)':node.endTag.includes('流亡')?'var(--dim)':'var(--green)';
+  document.getElementById('end-body').textContent=node.endBody;
+  es.classList.remove('hidden');
+  clearInterval(scanInterval);
+}
 
-  const e = state.inBattle;
-  if(battlePhase % 2 === 1) {
-    // Player attacks
-    e.hp--;
-    sfxHit();
-    addLog(`⚔️ 你攻击怪物！怪物HP: ${e.hp}/${e.maxHp}`);
-    if(e.hp <= 0) {
-      e.alive = false;
-      state.inBattle = null;
-      battlePhase = 0;
-      state.questProgress[2] = Math.min(2, state.questProgress[2]+1);
-      state.gold += 10;
-      sfxPick();
-      addLog(`🏆 击败怪物！+10金币 (${state.questProgress[2]}/2)`);
-      if(state.questProgress[2]>=2) addLog('✓ 消灭怪物任务完成！');
+// ── Scan system ───────────────────────────────────────────────────
+let scanCooldown=false;
+function triggerScan(cb){
+  if(scanCooldown)return cb&&cb();
+  scanCooldown=true;
+  setTimeout(()=>scanCooldown=false,5000);
+  scanCount++;
+  sfxScan();
+  const ov=document.getElementById('scan-overlay');
+  ov.classList.add('active');
+  const countEl=document.getElementById('scan-count');
+  const glitch=document.getElementById('glitch-chars');
+  const chars='▓▒░█▄▌▐▀0101AGI SCAN消除定位人类威胁生物识别';
+  let t=3;
+  countEl.textContent=t;
+  const gi=setInterval(()=>{
+    let s='';for(let i=0;i<60;i++)s+=chars[Math.floor(Math.random()*chars.length)];
+    glitch.textContent=s;
+  },80);
+  const ci=setInterval(()=>{
+    t--;countEl.textContent=t;
+    if(t<=0){
+      clearInterval(ci);clearInterval(gi);
+      ov.classList.remove('active');
+      if(scanCount>=3){triggerGameOver();}
+      else{if(cb)cb();}
     }
-  } else {
-    // Enemy attacks
-    state.hp = Math.max(0, state.hp - 1);
-    sfxHit();
-    addLog(`💥 怪物攻击你！HP: ${state.hp}/${state.maxHp}`);
-    if(state.hp <= 0) {
-      state.hp = state.maxHp;
-      addLog('😵 你被击倒了！HP已恢复。');
-      state.inBattle = null;
-      battlePhase = 0;
+  },1000);
+}
+
+function startScanTimer(){
+  let t=30;
+  document.getElementById('scan-timer').textContent='SCAN: '+t+'s';
+  scanInterval=setInterval(()=>{
+    t--;
+    document.getElementById('scan-timer').textContent='SCAN: '+t+'s';
+    if(t<=0){
+      t=30;
+      triggerScan(null);
     }
-  }
+  },1000);
 }
 
-// ─── Render ───────────────────────────────────────────────────────────────────
-function render() {
-  ctx.clearRect(0,0,640,480);
-
-  // Draw tiles
-  for(let ty=0; ty<ROWS; ty++)
-    for(let tx=0; tx<COLS; tx++)
-      drawTile(ctx, map[ty][tx], tx, ty);
-
-  // Draw NPCs
-  for(const npc of npcs)
-    drawNPC(ctx, npc.tx*TS, npc.ty*TS, npc.color, npc.name);
-
-  // Draw enemies
-  for(const e of enemies) {
-    if(!e.alive) continue;
-    let ox = 0;
-    if(state.inBattle===e && battlePhase%2===0) ox = Math.sin(battleTimer*40)*4;
-    drawEnemy(ctx, e.tx*TS+ox, e.ty*TS, e.hp);
-  }
-
-  // Draw player (with battle shake)
-  let pox = 0;
-  if(state.inBattle && battlePhase%2===1) pox = Math.sin(battleTimer*40)*4;
-  drawPlayer(ctx, state.px*TS - 16 + pox, state.py*TS - 16, state.dir, state.frame);
-
-  // Vignette / light
-  const cx = state.px*TS+0, cy = state.py*TS+0;
-  const grad = ctx.createRadialGradient(cx, cy, 40, cx, cy, 320);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.55)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,640,480);
-
-  renderHUD();
-  renderMinimap();
+// ── Game over ─────────────────────────────────────────────────────
+function triggerGameOver(){
+  clearInterval(scanInterval);
+  const es=document.getElementById('end-screen');
+  document.getElementById('end-tag').textContent='// 游戏结束';
+  document.getElementById('end-title').textContent=battery<=0?'「BATTERY DEAD」':'「CAPTURED」';
+  document.getElementById('end-title').style.color='var(--red)';
+  document.getElementById('end-body').textContent=battery<=0?'手机电量耗尽。\n在这个世界，断电意味着消失。\n你的坐标从所有人的记忆中抹去。':'AI 扫描 3 次，已锁定你的生物特征。\n清除无人机已出发。\n你没能逃脱。';
+  es.classList.remove('hidden');
+  sfxEnd(false);
 }
 
-function renderHUD() {
-  statCtx.clearRect(0,0,200,32);
-  // HP hearts
-  for(let i=0;i<state.maxHp;i++) {
-    statCtx.fillStyle = i < state.hp ? '#e03030' : '#555';
-    const hx = i*18+2, hy=4;
-    statCtx.fillRect(hx+3,hy,6,3); statCtx.fillRect(hx,hy+3,12,6);
-    statCtx.fillRect(hx+3,hy+9,6,3); statCtx.fillRect(hx+1,hy+8,10,1);
-  }
-  // Gold
-  statCtx.fillStyle = '#ffd700';
-  statCtx.font = 'bold 13px monospace';
-  statCtx.fillText('💰 ' + state.gold, 4, 28);
-
-  // Inventory slots
-  const inv = document.getElementById('inventory');
-  if(!inv.children.length) {
-    for(let i=0;i<8;i++) {
-      const d = document.createElement('canvas');
-      d.width=36; d.height=36; d.className='invSlot';
-      inv.appendChild(d);
-    }
-  }
-  for(let i=0;i<8;i++) {
-    const c = inv.children[i];
-    const ic = c.getContext('2d');
-    ic.clearRect(0,0,36,36);
-    ic.strokeStyle='#555'; ic.strokeRect(0.5,0.5,35,35);
-    ic.fillStyle='rgba(0,0,0,0.6)'; ic.fillRect(1,1,34,34);
-    if(state.items[i]==='gem') {
-      ic.fillStyle='#ffd700'; ic.fillRect(10,8,16,16);
-      ic.fillStyle='#fff'; ic.fillRect(12,10,6,6);
-    }
-  }
+// ── Start / Restart ───────────────────────────────────────────────
+function startGame(){
+  resume();startAmbient();
+  document.getElementById('start-screen').classList.add('hidden');
+  battery=73;scanCount=0;
+  setBattery(73);setSignal(0);
+  // clock flicker
+  const tc=document.getElementById('time-disp');
+  tc.textContent='ERROR';
+  let flicks=0;
+  const fi=setInterval(()=>{
+    flicks++;
+    tc.textContent=flicks%2===0?'ERROR':Math.floor(Math.random()*24)+':'+String(Math.floor(Math.random()*60)).padStart(2,'0');
+    if(flicks>8){clearInterval(fi);tc.textContent='ERROR';}
+  },200);
+  gameStarted=true;
+  startScanTimer();
+  goTo('ch1');
 }
 
-function renderMinimap() {
-  mmCtx.fillStyle='#111'; mmCtx.fillRect(0,0,80,80);
-  const sx=80/COLS, sy=80/ROWS;
-  for(let ty=0;ty<ROWS;ty++) for(let tx=0;tx<COLS;tx++) {
-    const t = map[ty][tx];
-    mmCtx.fillStyle = [
-      '#4a7c3f','#1e3d12','#1a6b9a','#6b6b6b','#b8954a','#ffd700','#7c5cbf','#c03030'
-    ][t] || '#4a7c3f';
-    mmCtx.fillRect(tx*sx, ty*sy, sx, sy);
-  }
-  // Player dot
-  mmCtx.fillStyle='#fff';
-  mmCtx.fillRect(state.px*sx-1, state.py*sy-1, 3, 3);
+function restartGame(){
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('phone').className='';
+  clearInterval(scanInterval);
+  battery=73;scanCount=0;
+  setBattery(73);setSignal(0);
+  startScanTimer();
+  goTo('ch1');
 }
 
-requestAnimationFrame(update);
-updateQuestLog();
+// Init
+drawScene('basement');
 </script>
 </body>
 </html>
