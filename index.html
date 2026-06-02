@@ -1,648 +1,537 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CEECORE: Last Human V2</title>
+<title>像素RPG</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0e1a; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Courier New', monospace; overflow: hidden; }
-canvas { display: block; }
-#lang-btn { position: fixed; top: 10px; right: 10px; background: #050a10; border: 1px solid #00d4ff; color: #00d4ff; padding: 6px 14px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 13px; z-index: 1000; }
-#lang-btn:hover { background: #00d4ff22; }
+body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; }
+#ui { position: relative; }
+#gameCanvas { display: block; image-rendering: pixelated; border: 2px solid #444; }
+#hud { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
+#statusBar { position: absolute; top: 8px; left: 8px; display: flex; gap: 12px; align-items: center; }
+.stat { display: flex; align-items: center; gap: 4px; color: #fff; font-size: 13px; text-shadow: 1px 1px 2px #000; }
+#minimap { position: absolute; top: 8px; right: 8px; border: 1px solid #666; }
+#inventory { position: absolute; top: 60px; right: 8px; display: flex; flex-direction: column; gap: 2px; }
+.invSlot { width: 36px; height: 36px; border: 1px solid #555; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
+#questLog { position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(0,0,0,0.7); border: 1px solid #555; padding: 6px 10px; color: #ccc; font-size: 12px; max-height: 60px; overflow: hidden; }
+#dialogBox { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 2px solid #aaa; padding: 10px 16px; color: #fff; font-size: 13px; width: 420px; display: none; line-height: 1.6; }
+#dialogBox .speaker { color: #ffd700; margin-bottom: 4px; font-weight: bold; }
+#dialogBox .hint { color: #888; font-size: 11px; margin-top: 6px; }
 </style>
 </head>
 <body>
-<button id="lang-btn" onclick="toggleLang()">中文/EN</button>
-<div id="game-container"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<div id="ui">
+  <canvas id="gameCanvas" width="640" height="480"></canvas>
+  <div id="hud">
+    <div id="statusBar">
+      <canvas id="statCanvas" width="200" height="32"></canvas>
+    </div>
+    <canvas id="minimap" width="80" height="80"></canvas>
+    <div id="inventory" id="inventory"></div>
+    <div id="questLog"><b>任务日志：</b> <span id="questText">寻找村庄向导 · 与村民对话了解情况</span></div>
+    <div id="dialogBox"><div class="speaker" id="dlgSpeaker"></div><div id="dlgText"></div><div class="hint">[ E / 回车 继续 ]</div></div>
+  </div>
+</div>
+
 <script>
+// ─── Audio ───────────────────────────────────────────────────────────────────
+const AC = new (window.AudioContext || window.webkitAudioContext)();
 
-var LANG='zh';
-var T={
-zh:{
-title1:'CEECORE: 最后的人类 V2',title2:'2031年，AI接管世界。你是已知的最后一个自由人类。',
-title3:'按 SPACE 或点击开始游戏',controls:'方向键/WASD 移动  |  E 交互  |  ESC 暂停',
-interact:'[E] 交互',day:'第',dayUnit:'天',hp:'HP',food:'食物',trust:'信任',threat:'威胁',
-confirm:'确认',skip:'跳过(HP-10)',puzzle_correct:'✓ 正确！奖励+20食物',puzzle_wrong:'✗ 错误！HP-15',puzzle_skip:'已跳过，HP-10',
-death_title:'死亡报告',death_hp:'生命耗尽',death_threat:'被AI捕获',death_food:'饥饿致死',
-survived:'存活天数',rating:'评级',restart:'重新开始',share:'复制分享',copied:'已复制!',
-win_title:'你活下来了！',win_msg:'在AI统治的世界中，你找到了生存之道。',
-pause_title:'— 暂停 —',pause_resume:'按 ESC 继续',
-ev1_title:'Day 1 - 觉醒',ev1_text:'你在废弃地下室醒来。收音机嗡嗡作响，NEXUS的声音充斥空气：\n"所有人类请配合身份核验..."',
-ev1_a:'搜索物资',ev1_b:'观察无人机规律',ev1_c:'联系其他幸存者',
-ev1_a_fx:'你迅速搜索，找到了一些罐头。\n食物+15，威胁+5',ev1_b_fx:'你记录了无人机的巡逻规律。\n威胁-5，信任+5',ev1_c_fx:'你用破旧电台联系到了其他人。\n信任+15，威胁+10',
-ev2_title:'Day 2 - 食物危机',ev2_text:'超市里还有物资，但NEXUS的摄像头仍在转动。\n你必须做出选择。',
-ev2_a:'趁盲区冲进去',ev2_b:'绕路找其他来源',ev2_c:'联系幸存者求助',
-ev2_a_fx:'你冲了进去，擦破了膝盖。\n食物+30，HP-5',ev2_b_fx:'你找到了一个废弃仓库。\n食物+10，HP-5',ev2_c_fx:'幸存者网络分享了物资。\n信任+20，食物+15，威胁+10',
-ev2_puzzle_title:'解谜：摄像头盲区计时',ev2_puzzle_desc:'摄像头每12秒扫过一次。每次扫描持续3秒。\n盲区持续多少秒？',ev2_puzzle_hint:'提示：扫描间隔 - 扫描持续时间',ev2_puzzle_answer:'9',
-ev3_title:'Day 3 - 红蓝药丸',ev3_text:'街道上有一个神秘包裹。里面是两瓶药：\n红色：未知效果  蓝色：NEXUS标识',
-ev3_a:'服下红色药丸',ev3_b:'服下蓝色药丸',ev3_c:'都不服用',
-ev3_a_fx:'你感到血液沸腾，某种能力觉醒。\n威胁+15，信任+10',ev3_b_fx:'药效平静，头脑清晰，AI信号减弱。\n威胁-20，HP+10',ev3_c_fx:'谨慎是生存之道。\n信任+5',
-npc_drone:'无人机',npc_drone_text:'警告：检测到人类生命体征。正在上报...',
-radio_name:'收音机',market_name:'超市入口',stairs_name:'楼梯',tunnel_name:'地下通道',package_name:'神秘包裹',
-scene1_name:'地下室',scene2_name:'废墟街道',scene_change:'传送中...'
-},
-en:{
-title1:'CEECORE: Last Human V2',title2:'Year 2031. AI has taken over the world. You are the last known free human.',
-title3:'Press SPACE or click to start',controls:'Arrow Keys/WASD to move  |  E to interact  |  ESC to pause',
-interact:'[E] Interact',day:'Day ',dayUnit:'',hp:'HP',food:'Food',trust:'Trust',threat:'Threat',
-confirm:'Confirm',skip:'Skip (HP-10)',puzzle_correct:'Correct! Food+20',puzzle_wrong:'Wrong! HP-15',puzzle_skip:'Skipped. HP-10',
-death_title:'DEATH REPORT',death_hp:'Vital signs lost',death_threat:'Captured by AI',death_food:'Starvation',
-survived:'Days Survived',rating:'Rating',restart:'Restart',share:'Copy & Share',copied:'Copied!',
-win_title:'You Survived!',win_msg:'In a world controlled by AI, you found a way to live.',
-pause_title:'PAUSED',pause_resume:'Press ESC to resume',
-ev1_title:'Day 1 - Awakening',ev1_text:'You wake in an abandoned basement. A radio crackles:\n"All humans please comply with identity verification..."',
-ev1_a:'Search for supplies',ev1_b:'Observe drone patterns',ev1_c:'Contact survivors',
-ev1_a_fx:'You find some canned goods.\nFood+15, Threat+5',ev1_b_fx:'You map the drone patrol routes.\nThreat-5, Trust+5',ev1_c_fx:'You reach others on an old radio.\nTrust+15, Threat+10',
-ev2_title:'Day 2 - Food Crisis',ev2_text:'The supermarket has supplies, but NEXUS cameras are still active.\nYou must decide.',
-ev2_a:'Rush in during blind spot',ev2_b:'Find alternate source',ev2_c:'Ask survivors for help',
-ev2_a_fx:'You dash in and scrape your knee.\nFood+30, HP-5',ev2_b_fx:'You locate an abandoned warehouse.\nFood+10, HP-5',ev2_c_fx:'The survivor network shares resources.\nTrust+20, Food+15, Threat+10',
-ev2_puzzle_title:'Puzzle: Camera Blind Spot',ev2_puzzle_desc:'Camera sweeps every 12 seconds. Each sweep lasts 3 seconds.\nHow many seconds is the blind spot?',ev2_puzzle_hint:'Hint: sweep interval - sweep duration',ev2_puzzle_answer:'9',
-ev3_title:'Day 3 - Red or Blue',ev3_text:'A mysterious package on the street. Two vials inside:\nRed: Unknown  Blue: NEXUS marking',
-ev3_a:'Take the red pill',ev3_b:'Take the blue pill',ev3_c:'Take neither',
-ev3_a_fx:'Your blood boils. Something awakens.\nThreat+15, Trust+10',ev3_b_fx:'Calm washes over you. AI signals weaken.\nThreat-20, HP+10',ev3_c_fx:'Caution is the way of survival.\nTrust+5',
-npc_drone:'Drone',npc_drone_text:'WARNING: Human life signs detected. Reporting...',
-radio_name:'Radio',market_name:'Supermarket',stairs_name:'Stairs',tunnel_name:'Underground Passage',package_name:'Mystery Package',
-scene1_name:'Basement',scene2_name:'Ruined Street',scene_change:'Teleporting...'
-}};
-function t(k){return(T[LANG]||T.zh)[k]||k;}
-function toggleLang(){LANG=LANG==='zh'?'en':'zh';if(window.currentScene&&window.currentScene.onLangChange)window.currentScene.onLangChange();}
+function beep(freq, dur, type='square', vol=0.15) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
+  o.start(); o.stop(AC.currentTime + dur);
+}
+function sfxStep() { beep(180, 0.05, 'square', 0.08); }
+function sfxPick()  { beep(440, 0.08); setTimeout(()=>beep(660,0.08),80); }
+function sfxHit()   { beep(100, 0.15, 'sawtooth', 0.2); }
+function sfxTalk()  { beep(520, 0.04, 'square', 0.1); }
 
-var GS={
-  hp:100,food:50,trust:30,threat:0,day:1,
-  events:{ev1:false,ev2:false,ev3:false},
-  currentScene:'Scene1',p1x:160,p1y:224,p2x:320,p2y:480,
-  save:function(){localStorage.setItem('ccv2',JSON.stringify(this));},
-  load:function(){try{var d=JSON.parse(localStorage.getItem('ccv2'));if(d){this.hp=d.hp;this.food=d.food;this.trust=d.trust;this.threat=d.threat;this.day=d.day;this.events=d.events;this.currentScene=d.currentScene;this.p1x=d.p1x;this.p1y=d.p1y;this.p2x=d.p2x;this.p2y=d.p2y;}}catch(e){}},
-  reset:function(){this.hp=100;this.food=50;this.trust=30;this.threat=0;this.day=1;this.events={ev1:false,ev2:false,ev3:false};this.currentScene='Scene1';this.p1x=160;this.p1y=224;this.p2x=320;this.p2y=480;localStorage.removeItem('ccv2');}
+// Simple BGM
+let bgmNodes = [];
+function startBGM() {
+  if (bgmNodes.length) return;
+  const melody = [262,294,330,349,392,349,330,294];
+  let t = AC.currentTime;
+  const loop = () => {
+    melody.forEach((f,i) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.connect(g); g.connect(AC.destination);
+      o.type = 'square'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.04, t + i*0.3);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i*0.3 + 0.28);
+      o.start(t + i*0.3); o.stop(t + i*0.3 + 0.3);
+      bgmNodes.push(o);
+    });
+    t += melody.length * 0.3;
+  };
+  loop();
+  setInterval(() => { bgmNodes = []; loop(); }, melody.length * 300);
+}
+document.addEventListener('keydown', () => { AC.resume(); startBGM(); }, { once: true });
+
+// ─── Map ──────────────────────────────────────────────────────────────────────
+const T = { GRASS:0, TREE:1, WATER:2, ROCK:3, PATH:4, ITEM:5, NPC:6, ENEMY:7 };
+const COLS=20, ROWS=15, TS=32;
+
+const rawMap = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,5,0,4,0,0,1,1,0,0,0,5,0,0,0,0,0,1],
+  [1,0,0,0,0,4,0,1,0,0,1,0,0,0,0,3,3,0,0,1],
+  [1,0,1,0,0,4,4,4,0,0,0,0,0,0,0,3,0,0,0,1],
+  [1,0,0,0,0,0,0,4,0,6,0,0,0,0,0,0,0,0,0,1],
+  [1,0,5,0,0,0,0,4,0,0,0,7,0,0,0,0,0,5,0,1],
+  [1,0,0,0,3,0,0,4,4,4,4,4,4,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,7,0,0,1],
+  [1,0,0,1,1,0,0,0,0,0,0,0,4,0,6,0,0,0,0,1],
+  [1,0,0,0,0,0,2,2,2,2,0,0,4,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,2,2,2,0,0,0,4,0,0,5,0,0,0,1],
+  [1,0,5,0,0,0,0,2,0,0,0,0,0,0,0,0,0,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+// Make a mutable copy
+const map = rawMap.map(r => [...r]);
+
+// ─── Pixel drawing helpers ────────────────────────────────────────────────────
+function drawTile(ctx, t, x, y) {
+  const px = x * TS, py = y * TS;
+  switch(t) {
+    case T.GRASS:
+      ctx.fillStyle = '#4a7c3f'; ctx.fillRect(px,py,TS,TS);
+      ctx.fillStyle = '#3d6b34';
+      for(let i=0;i<4;i++) ctx.fillRect(px+(i*9+3)%TS, py+(i*7+2)%TS, 2, 3);
+      break;
+    case T.TREE:
+      ctx.fillStyle = '#2d5a1b'; ctx.fillRect(px,py,TS,TS);
+      ctx.fillStyle = '#1e3d12';
+      ctx.fillRect(px+4,py+4,24,20);
+      ctx.fillStyle = '#3a7a2a';
+      ctx.fillRect(px+8,py+2,16,18);
+      ctx.fillStyle = '#5a3820';
+      ctx.fillRect(px+12,py+22,8,10);
+      break;
+    case T.WATER:
+      ctx.fillStyle = '#1a6b9a'; ctx.fillRect(px,py,TS,TS);
+      ctx.fillStyle = '#2485bb';
+      ctx.fillRect(px,py+8,TS,4);
+      ctx.fillRect(px,py+20,TS,4);
+      ctx.fillStyle = '#5ab8e0';
+      ctx.fillRect(px+4,py+10,8,2);
+      ctx.fillRect(px+18,py+22,10,2);
+      break;
+    case T.ROCK:
+      ctx.fillStyle = '#6b6b6b'; ctx.fillRect(px,py,TS,TS);
+      ctx.fillStyle = '#888';
+      ctx.fillRect(px+4,py+4,20,16);
+      ctx.fillStyle = '#555';
+      ctx.fillRect(px+4,py+20,20,8);
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(px+6,py+6,6,4);
+      break;
+    case T.PATH:
+      ctx.fillStyle = '#b8954a'; ctx.fillRect(px,py,TS,TS);
+      ctx.fillStyle = '#a07c38';
+      ctx.fillRect(px+2,py+6,4,2); ctx.fillRect(px+14,py+20,6,2);
+      ctx.fillRect(px+22,py+10,4,3);
+      break;
+    case T.ITEM:
+      drawTile(ctx, T.GRASS, x, y);
+      // Glowing gem
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(px+12,py+8,8,8);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(px+14,py+10,3,3);
+      break;
+    default:
+      ctx.fillStyle = '#4a7c3f'; ctx.fillRect(px,py,TS,TS);
+  }
+}
+
+function drawPlayer(ctx, px, py, dir, frame) {
+  // Body
+  ctx.fillStyle = '#3a7bd5';
+  ctx.fillRect(px+10, py+14, 12, 14);
+  // Head
+  ctx.fillStyle = '#f0c89a';
+  ctx.fillRect(px+10, py+4, 12, 12);
+  // Eyes
+  ctx.fillStyle = '#1a1a1a';
+  if(dir===2||dir===0) { // front/back
+    ctx.fillRect(px+13,py+8,2,2);
+    ctx.fillRect(px+17,py+8,2,2);
+  } else {
+    ctx.fillRect(dir===3?px+12:px+18, py+8, 2, 2);
+  }
+  // Hair
+  ctx.fillStyle = '#4a2c0a';
+  ctx.fillRect(px+10,py+4,12,4);
+  // Legs (animate)
+  ctx.fillStyle = '#1a3a7a';
+  if(frame===0) {
+    ctx.fillRect(px+10,py+28,5,6);
+    ctx.fillRect(px+17,py+28,5,6);
+  } else {
+    ctx.fillRect(px+10,py+26,5,8);
+    ctx.fillRect(px+17,py+30,5,4);
+  }
+  // Arms
+  ctx.fillStyle = '#2a6bc5';
+  ctx.fillRect(px+6,py+14,4,10);
+  ctx.fillRect(px+22,py+14,4,10);
+}
+
+function drawNPC(ctx, px, py, color, name) {
+  ctx.fillStyle = color;
+  ctx.fillRect(px+10,py+14,12,14);
+  ctx.fillStyle = '#f0c89a';
+  ctx.fillRect(px+10,py+4,12,12);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(px+13,py+8,2,2); ctx.fillRect(px+17,py+8,2,2);
+  // Name
+  ctx.fillStyle = '#fff';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(name, px+16, py+2);
+}
+
+function drawEnemy(ctx, px, py, hp) {
+  // Slime-like enemy
+  ctx.fillStyle = '#c03030';
+  ctx.fillRect(px+8,py+12,16,16);
+  ctx.fillRect(px+10,py+8,12,6);
+  ctx.fillStyle = '#ff6060';
+  ctx.fillRect(px+10,py+10,6,4);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(px+12,py+14,3,3); ctx.fillRect(px+17,py+14,3,3);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(px+13,py+15,2,2); ctx.fillRect(px+18,py+15,2,2);
+  // HP bar
+  ctx.fillStyle = '#c00'; ctx.fillRect(px+4,py+4,24,3);
+  ctx.fillStyle = '#0f0'; ctx.fillRect(px+4,py+4,Math.round(24*hp/3),3);
+}
+
+// ─── Game State ───────────────────────────────────────────────────────────────
+const state = {
+  px: 3, py: 3,        // player tile position (float)
+  dir: 2,              // 0=up 1=right 2=down 3=left
+  frame: 0,
+  hp: 10, maxHp: 10,
+  mp: 6, maxMp: 6,
+  gold: 0,
+  items: Array(8).fill(null),
+  stepTimer: 0,
+  animTimer: 0,
+  keys: {},
+  dialog: null,
+  dlgIdx: 0,
+  inDialog: false,
+  inBattle: null,      // enemy object or null
+  battleAnim: 0,
+  quests: ['与村民对话了解情况', '收集3个金色宝石 (0/3)', '消灭2个红色怪物 (0/2)'],
+  questProgress: [false, 0, 0],
+  log: ['游戏开始！用 WASD 移动，E 与NPC对话'],
+  itemsCollected: 0,
+  enemiesKilled: 0,
 };
-var TILE=32,C_BG=0x0a0e1a,C_WALL=0x1a2a3a,C_FLOOR=0x0d1520,C_CYAN=0x00d4ff,C_GREEN=0x00ff88,C_RED=0xff4455,C_GOLD=0xffaa00;
 
-function makeHUD(scene,locKey){
-  var W=scene.scale.width,hud=scene.add.container(0,0).setDepth(100).setScrollFactor(0);
-  var bar=scene.add.graphics();
-  bar.fillStyle(0x050a10,0.95);bar.fillRect(0,0,W,44);
-  bar.lineStyle(1,C_CYAN,0.6);bar.strokeRect(0,0,W,44);
-  hud.add(bar);
-  var dayT=scene.add.text(10,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#00d4ff'});hud.add(dayT);
-  var hpT=scene.add.text(110,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#ff6688'});hud.add(hpT);
-  var foodT=scene.add.text(270,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#ffcc44'});hud.add(foodT);
-  var trustT=scene.add.text(430,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#44ffcc'});hud.add(trustT);
-  var threatT=scene.add.text(590,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'});hud.add(threatT);
-  var locT=scene.add.text(W/2,14,'',{fontFamily:'Courier New',fontSize:'12px',color:'#446688'}).setOrigin(0.5,0);hud.add(locT);
-  function bar5(v){var n=Math.max(0,Math.min(5,Math.round(v/20)));return '\u2588'.repeat(n)+'\u2591'.repeat(5-n);}
-  hud.refresh=function(){
-    dayT.setText(t('day')+GS.day+t('dayUnit'));
-    hpT.setText(t('hp')+' '+bar5(GS.hp));
-    foodT.setText(t('food')+' '+bar5(GS.food));
-    trustT.setText(t('trust')+' '+bar5(GS.trust));
-    threatT.setText(t('threat')+' '+bar5(GS.threat));
-    locT.setText(t(locKey));
-  };
-  hud.refresh();
-  return hud;
-}
+const npcs = [
+  { tx:9, ty:5, color:'#7c5cbf', name:'向导', dialog:['欢迎来到像素村！','这片土地上有宝石和怪物。','收集宝石可以换取金币！','小心那些红色怪物！'] },
+  { tx:14, ty:9, color:'#bf7c2a', name:'商人', dialog:['我是流浪商人。','带来宝石我用金币换你。','一个宝石换5金币！'] },
+];
 
-function makeDialog(scene){
-  var W=scene.scale.width,H=scene.scale.height,DH=185;
-  var c=scene.add.container(0,H-DH).setDepth(200).setVisible(false).setScrollFactor(0);
-  var bg=scene.add.graphics();
-  bg.fillStyle(0x050a10,0.97);bg.fillRect(0,0,W,DH);
-  bg.lineStyle(2,C_CYAN,0.9);bg.strokeRect(1,1,W-2,DH-2);
-  c.add(bg);
-  var spk=scene.add.text(18,12,'',{fontFamily:'Courier New',fontSize:'13px',color:'#00ff88'});c.add(spk);
-  var body=scene.add.text(18,34,'',{fontFamily:'Courier New',fontSize:'12px',color:'#aaccdd',wordWrap:{width:W-36}});c.add(body);
-  var timerBg=scene.add.graphics();timerBg.fillStyle(0x112233,1);timerBg.fillRect(18,108,W-36,7);c.add(timerBg);
-  var timerBar=scene.add.graphics();c.add(timerBar);
-  var btns=[];
-  for(var i=0;i<3;i++){
-    var bx=18+i*((W-36)/3),bw=(W-36)/3-6;
-    var bbg=scene.add.graphics();
-    bbg.fillStyle(0x05151f,1);bbg.fillRect(bx,120,bw,36);
-    bbg.lineStyle(1,C_CYAN,0.7);bbg.strokeRect(bx,120,bw,36);
-    c.add(bbg);
-    var btxt=scene.add.text(bx+bw/2,138,'',{fontFamily:'Courier New',fontSize:'11px',color:'#00d4ff',wordWrap:{width:bw-10}}).setOrigin(0.5);c.add(btxt);
-    var zone=scene.add.zone(bx,120,bw,36).setOrigin(0).setInteractive();c.add(zone);
-    (function(z,bg2,bw2,bx2){
-      z.on('pointerover',function(){bg2.clear();bg2.fillStyle(C_CYAN,0.15);bg2.fillRect(bx2,120,bw2,36);bg2.lineStyle(1,C_CYAN,1);bg2.strokeRect(bx2,120,bw2,36);});
-      z.on('pointerout',function(){bg2.clear();bg2.fillStyle(0x05151f,1);bg2.fillRect(bx2,120,bw2,36);bg2.lineStyle(1,C_CYAN,0.7);bg2.strokeRect(bx2,120,bw2,36);});
-    })(zone,bbg,bw,bx);
-    btns.push({zone:zone,txt:btxt,bg:bbg,bx:bx,bw:bw});
-  }
-  var timerV=0,timerOn=false,timerCb=null;
-  c.updateTimer=function(dt){
-    if(!timerOn)return;
-    timerV-=dt/10000;
-    if(timerV<=0){timerV=0;timerOn=false;timerBar.clear();if(timerCb)timerCb();}
-    else{timerBar.clear();timerBar.fillStyle(C_CYAN,0.8);timerBar.fillRect(18,108,(W-36)*timerV,7);}
-  };
-  c.show=function(speaker,text,opts,onTimer){
-    c.setVisible(true);spk.setText(speaker);body.setText(text);
-    btns.forEach(function(b){b.zone.setVisible(false);b.txt.setText('');});
-    if(opts&&opts.length){
-      opts.forEach(function(o,i){
-        if(i>=3)return;
-        btns[i].zone.setVisible(true);btns[i].txt.setText(o.label);
-        btns[i].zone.removeAllListeners('pointerdown');
-        btns[i].zone.on('pointerdown',function(){timerOn=false;c.hide();if(o.cb)o.cb();});
-      });
-    }
-    if(onTimer){timerOn=true;timerV=1;timerCb=onTimer;timerBar.clear();timerBar.fillStyle(C_CYAN,0.8);timerBar.fillRect(18,108,W-36,7);}
-    else{timerOn=false;timerBar.clear();}
-  };
-  c.hide=function(){c.setVisible(false);timerOn=false;};
-  return c;
-}
+const enemies = [
+  { tx:11, ty:6, hp:3, maxHp:3, id:0, alive:true },
+  { tx:16, ty:8, hp:3, maxHp:3, id:1, alive:true },
+];
 
-function makePuzzle(scene){
-  var W=scene.scale.width,H=scene.scale.height;
-  var c=scene.add.container(W/2-300,H/2-200).setDepth(300).setVisible(false).setScrollFactor(0);
-  var bg=scene.add.graphics();
-  bg.fillStyle(0x050a10,0.98);bg.fillRect(0,0,600,400);
-  bg.lineStyle(3,C_GOLD,1);bg.strokeRect(1,1,598,398);
-  c.add(bg);
-  var titleT=scene.add.text(300,22,'',{fontFamily:'Courier New',fontSize:'15px',color:'#ffcc00',align:'center'}).setOrigin(0.5,0);c.add(titleT);
-  var descT=scene.add.text(300,65,'',{fontFamily:'Courier New',fontSize:'12px',color:'#aaccdd',align:'center',wordWrap:{width:560}}).setOrigin(0.5,0);c.add(descT);
-  var hintT=scene.add.text(300,155,'',{fontFamily:'Courier New',fontSize:'11px',color:'#446688',align:'center'}).setOrigin(0.5,0);c.add(hintT);
-  var ibg=scene.add.graphics();ibg.fillStyle(0x05151f,1);ibg.fillRect(150,210,300,40);ibg.lineStyle(2,C_GOLD,0.8);ibg.strokeRect(150,210,300,40);c.add(ibg);
-  var inputT=scene.add.text(300,230,'_',{fontFamily:'Courier New',fontSize:'18px',color:'#ffcc00'}).setOrigin(0.5);c.add(inputT);
-  var fbT=scene.add.text(300,265,'',{fontFamily:'Courier New',fontSize:'12px',color:'#00ff88',align:'center'}).setOrigin(0.5,0);c.add(fbT);
-  function mkBtn(x,w,col,labelKey){
-    var bbg=scene.add.graphics();bbg.fillStyle(0x050a10,1);bbg.fillRect(x,330,w,38);bbg.lineStyle(2,col,0.8);bbg.strokeRect(x,330,w,38);c.add(bbg);
-    var btxt=scene.add.text(x+w/2,349,t(labelKey),{fontFamily:'Courier New',fontSize:'12px',color:'#'+col.toString(16).padStart(6,'0')}).setOrigin(0.5);c.add(btxt);
-    var z=scene.add.zone(x,330,w,38).setOrigin(0).setInteractive();c.add(z);
-    return{z:z,txt:btxt,labelKey:labelKey};
-  }
-  var confirmBtn=mkBtn(80,180,0x00ff88,'confirm');
-  var skipBtn=mkBtn(340,180,0xff4455,'skip');
-  var inputVal='',correctAns='',onOk=null,onFail=null,solved=false;
-  function upd(){inputT.setText(inputVal+'_');}
-  function keyH(e){
-    if(!c.visible)return;
-    if(e.key==='Backspace')inputVal=inputVal.slice(0,-1);
-    else if(e.key==='Enter'){check();return;}
-    else if(e.key.length===1&&inputVal.length<8)inputVal+=e.key;
-    upd();
-  }
-  function check(){
-    if(solved)return;
-    if(inputVal.trim()===correctAns){
-      solved=true;GS.food=Math.min(100,GS.food+20);
-      fbT.setText(t('puzzle_correct')).setColor('#00ff88');
-      scene.input.keyboard.off('keydown',keyH);
-      scene.time.delayedCall(1400,function(){c.setVisible(false);if(onOk)onOk();});
-    }else{
-      fbT.setText(t('puzzle_wrong')).setColor('#ff4455');
-      GS.hp=Math.max(0,GS.hp-15);inputVal='';upd();
-    }
-  }
-  c.show=function(title,desc,hint,ans,ok,fail){
-    c.setVisible(true);titleT.setText(title);descT.setText(desc);hintT.setText(hint);
-    fbT.setText('');inputVal='';correctAns=ans;onOk=ok;onFail=fail;solved=false;upd();
-    confirmBtn.txt.setText(t('confirm'));skipBtn.txt.setText(t('skip'));
-    scene.input.keyboard.on('keydown',keyH);
-    confirmBtn.z.removeAllListeners('pointerdown');confirmBtn.z.on('pointerdown',check);
-    skipBtn.z.removeAllListeners('pointerdown');skipBtn.z.on('pointerdown',function(){
-      scene.input.keyboard.off('keydown',keyH);
-      GS.hp=Math.max(0,GS.hp-10);fbT.setText(t('puzzle_skip')).setColor('#ff4455');
-      scene.time.delayedCall(1200,function(){c.setVisible(false);if(onFail)onFail();});
-    });
-  };
-  return c;
-}
+// ─── Canvas setup ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 
-function makeEndOverlay(scene){
-  var W=scene.scale.width,H=scene.scale.height;
-  var c=scene.add.container(0,0).setDepth(500).setVisible(false).setScrollFactor(0);
-  var dim=scene.add.graphics();dim.fillStyle(0,0.82);dim.fillRect(0,0,W,H);c.add(dim);
-  var panel=scene.add.graphics();c.add(panel);
-  var titleT=scene.add.text(W/2,H/2-130,'',{fontFamily:'Courier New',fontSize:'26px',color:'#ff4455',stroke:'#440011',strokeThickness:3}).setOrigin(0.5);c.add(titleT);
-  var infoT=scene.add.text(W/2,H/2-60,'',{fontFamily:'Courier New',fontSize:'13px',color:'#aaccdd',align:'center',lineSpacing:8}).setOrigin(0.5);c.add(infoT);
-  var ratingT=scene.add.text(W/2,H/2+30,'',{fontFamily:'Courier New',fontSize:'20px',color:'#ffcc00'}).setOrigin(0.5);c.add(ratingT);
-  function mkBtn(x,col,labelKey){
-    var bg=scene.add.graphics();bg.fillStyle(0x050a10,1);bg.fillRect(x,H/2+80,170,36);bg.lineStyle(2,col,0.9);bg.strokeRect(x,H/2+80,170,36);c.add(bg);
-    var txt=scene.add.text(x+85,H/2+98,'',{fontFamily:'Courier New',fontSize:'13px',color:'#'+col.toString(16).padStart(6,'0')}).setOrigin(0.5);c.add(txt);
-    var z=scene.add.zone(x,H/2+80,170,36).setOrigin(0).setInteractive();c.add(z);
-    return{z:z,txt:txt,labelKey:labelKey};
-  }
-  var restartBtn=mkBtn(W/2-200,0x00ff88,'restart');
-  var shareBtn=mkBtn(W/2+30,C_CYAN,'share');
-  function setup(isWin,cause){
-    panel.clear();
-    var col=isWin?0x00ff88:0xff4455;
-    panel.fillStyle(0x050a10,0.98);panel.fillRect(W/2-270,H/2-160,540,290);
-    panel.lineStyle(3,col,1);panel.strokeRect(W/2-270,H/2-160,540,290);
-    if(isWin){titleT.setText(t('win_title')).setColor('#00ff88');infoT.setText(t('win_msg')+'\n\n'+t('survived')+': '+GS.day);ratingT.setText(t('rating')+': A');}
-    else{
-      titleT.setText(t('death_title')).setColor('#ff4455');
-      var cs=cause==='hp'?t('death_hp'):cause==='threat'?t('death_threat'):t('death_food');
-      var r=GS.day<=1?'F':GS.day===2?'D':GS.day===3?'C':'B';
-      infoT.setText(t('survived')+': '+GS.day+'\n'+cs);ratingT.setText(t('rating')+': '+r);
-    }
-    restartBtn.txt.setText(t('restart'));shareBtn.txt.setText(t('share'));
-    restartBtn.z.removeAllListeners('pointerdown');
-    restartBtn.z.on('pointerdown',function(){c.setVisible(false);GS.reset();scene.scene.start('Scene1');});
-    shareBtn.z.removeAllListeners('pointerdown');
-    shareBtn.z.on('pointerdown',function(){
-      var r=GS.day<=1?'F':GS.day===2?'D':GS.day===3?'C':isWin?'A':'B';
-      navigator.clipboard.writeText('CEECORE: Last Human V2 | '+t('survived')+': '+GS.day+' | '+t('rating')+': '+r).catch(function(){});
-      shareBtn.txt.setText(t('copied'));scene.time.delayedCall(2000,function(){shareBtn.txt.setText(t('share'));});
-    });
-    c.setVisible(true);
-  }
-  c.showDeath=function(cause){setup(false,cause);};
-  c.showWin=function(){setup(true,'');};
-  return c;
-}
-function makePauseOverlay(scene){
-  var W=scene.scale.width,H=scene.scale.height;
-  var c=scene.add.container(0,0).setDepth(400).setVisible(false).setScrollFactor(0);
-  var dim=scene.add.graphics();dim.fillStyle(0,0.6);dim.fillRect(0,0,W,H);c.add(dim);
-  var txt=scene.add.text(W/2,H/2,'',{fontFamily:'Courier New',fontSize:'22px',color:'#00d4ff',align:'center'}).setOrigin(0.5);c.add(txt);
-  c.refresh=function(){txt.setText(t('pause_title')+'\n\n'+t('pause_resume'));};
-  c.refresh();
-  return c;
-}
+const mmCanvas = document.getElementById('minimap');
+const mmCtx = mmCanvas.getContext('2d');
 
-class TitleScene extends Phaser.Scene{
-  constructor(){super({key:'TitleScene'});}
-  create(){
-    window.currentScene=this;
-    var W=this.scale.width,H=this.scale.height;
-    var bg=this.add.graphics();
-    bg.fillStyle(C_BG,1);bg.fillRect(0,0,W,H);
-    bg.lineStyle(1,0x112233,0.3);
-    for(var x=0;x<W;x+=32){bg.beginPath();bg.moveTo(x,0);bg.lineTo(x,H);bg.strokePath();}
-    for(var y=0;y<H;y+=32){bg.beginPath();bg.moveTo(0,y);bg.lineTo(W,y);bg.strokePath();}
-    this.t1=this.add.text(W/2,H/2-140,t('title1'),{fontFamily:'Courier New',fontSize:'30px',color:'#00d4ff',stroke:'#004466',strokeThickness:4}).setOrigin(0.5);
-    this.add.text(W/2,H/2-90,'═══════════════════════════════════════',{fontFamily:'Courier New',fontSize:'13px',color:'#004466'}).setOrigin(0.5);
-    this.t2=this.add.text(W/2,H/2-55,t('title2'),{fontFamily:'Courier New',fontSize:'13px',color:'#7799aa',wordWrap:{width:700},align:'center'}).setOrigin(0.5);
-    this.add.text(W/2,H/2+5,'> NEXUS SYSTEM ONLINE',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'}).setOrigin(0.5);
-    this.add.text(W/2,H/2+25,'> HUMAN RESISTANCE: 1 UNIT DETECTED',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'}).setOrigin(0.5);
-    this.add.text(W/2,H/2+45,'> INITIALIZING HUNT PROTOCOL...',{fontFamily:'Courier New',fontSize:'12px',color:'#ff4455'}).setOrigin(0.5);
-    this.t3=this.add.text(W/2,H/2+100,t('title3'),{fontFamily:'Courier New',fontSize:'17px',color:'#00ff88'}).setOrigin(0.5);
-    this.tc=this.add.text(W/2,H/2+135,t('controls'),{fontFamily:'Courier New',fontSize:'11px',color:'#446677'}).setOrigin(0.5);
-    this.tweens.add({targets:this.t3,alpha:0,duration:700,yoyo:true,repeat:-1});
-    this.scan=this.add.graphics();
-    this.input.keyboard.once('keydown-SPACE',()=>this.go());
-    this.input.on('pointerdown',()=>this.go());
-  }
-  update(time){this.scan.clear();this.scan.fillStyle(C_CYAN,0.025);this.scan.fillRect(0,(time*0.08)%640,960,2);}
-  onLangChange(){this.t1.setText(t('title1'));this.t2.setText(t('title2'));this.t3.setText(t('title3'));this.tc.setText(t('controls'));}
-  go(){GS.load();this.scene.start(GS.currentScene);}
-}
+const statCanvas = document.getElementById('statCanvas');
+const statCtx = statCanvas.getContext('2d');
 
-class Scene1 extends Phaser.Scene{
-  constructor(){super({key:'Scene1'});}
-  create(){
-    window.currentScene=this;
-    GS.currentScene='Scene1';
-    this.busy=false;this.paused=false;
-    var COLS=20,ROWS=15,MW=COLS*TILE,MH=ROWS*TILE;
-    this.cameras.main.setBounds(0,0,MW,MH);
-    // Draw map
-    var g=this.add.graphics();
-    g.fillStyle(C_FLOOR,1);g.fillRect(0,0,MW,MH);
-    // Grid
-    g.lineStyle(1,0x0f1e2e,0.4);
-    for(var c=0;c<=COLS;c++){g.beginPath();g.moveTo(c*TILE,0);g.lineTo(c*TILE,MH);g.strokePath();}
-    for(var r=0;r<=ROWS;r++){g.beginPath();g.moveTo(0,r*TILE);g.lineTo(MW,r*TILE);g.strokePath();}
-    // Walls
-    this.walls=[];
-    var wallTiles=[];
-    for(var c=0;c<COLS;c++){wallTiles.push([c,0]);wallTiles.push([c,ROWS-1]);}
-    for(var r=1;r<ROWS-1;r++){wallTiles.push([0,r]);wallTiles.push([COLS-1,r]);}
-    // Inner obstacles
-    [[3,3],[3,4],[4,3],[7,8],[8,8],[7,9],[12,4],[12,5],[13,4],[16,6],[16,7],[2,11],[2,12],[3,12]].forEach(function(p){wallTiles.push(p);});
-    g.fillStyle(C_WALL,1);
-    wallTiles.forEach(([c,r])=>{
-      g.fillRect(c*TILE,r*TILE,TILE,TILE);
-      g.lineStyle(1,0x2a4a5a,0.5);g.strokeRect(c*TILE+2,r*TILE+2,TILE-4,TILE-4);
-      this.walls.push({x:c*TILE,y:r*TILE,w:TILE,h:TILE});
-    });
-    // Radio
-    g.fillStyle(C_CYAN,0.15);g.fillRect(9*TILE,3*TILE,TILE*2,TILE);
-    g.lineStyle(2,C_CYAN,0.9);g.strokeRect(9*TILE+1,3*TILE+1,TILE*2-2,TILE-2);
-    g.fillStyle(C_CYAN,0.6);g.fillRect(9*TILE+6,3*TILE+8,20,12);g.fillRect(9*TILE+10,3*TILE+4,6,8);
-    // Stairs
-    g.fillStyle(C_GOLD,0.15);g.fillRect(15*TILE,13*TILE,TILE,TILE);
-    g.lineStyle(2,C_GOLD,0.9);g.strokeRect(15*TILE+1,13*TILE+1,TILE-2,TILE-2);
-    g.lineStyle(1,C_GOLD,0.8);
-    for(var i=0;i<4;i++){g.beginPath();g.moveTo(15*TILE+4+i*5,13*TILE+8+i*5);g.lineTo(15*TILE+TILE-4-i*5,13*TILE+8+i*5);g.strokePath();}
-    // Atmosphere cracks
-    g.lineStyle(1,0x1a3a4a,0.4);
-    g.beginPath();g.moveTo(100,180);g.lineTo(130,200);g.lineTo(120,220);g.strokePath();
-    g.beginPath();g.moveTo(400,300);g.lineTo(420,280);g.strokePath();
-    // Player
-    this.px=GS.p1x;this.py=GS.p1y;
-    this.pg=this.add.graphics().setDepth(10);
-    this.drawPlayer();
-    this.cameras.main.startFollow(this.pg,true,0.1,0.1);
-    // Prompt
-    this.prompt=this.add.text(0,0,t('interact'),{fontFamily:'Courier New',fontSize:'11px',color:'#00d4ff',backgroundColor:'#05080f',padding:{x:4,y:2}}).setVisible(false).setDepth(50);
-    // Interactables
-    this.ias=[
-      {x:9*TILE,y:3*TILE,w:TILE*2,h:TILE,key:'radio',done:false,action:()=>this.ev1()},
-      {x:15*TILE,y:13*TILE,w:TILE,h:TILE,key:'stairs',done:false,action:()=>this.toScene2()}
-    ];
-    // Systems
-    this.hud=makeHUD(this,'scene1_name');
-    this.dlg=makeDialog(this);
-    this.pzl=makePuzzle(this);
-    this.end=makeEndOverlay(this);
-    this.pauseOvl=makePauseOverlay(this);
-    this.scan=this.add.graphics().setDepth(99).setScrollFactor(0);
-    // Input
-    this.cursors=this.input.keyboard.createCursorKeys();
-    this.wasd=this.input.keyboard.addKeys({up:'W',down:'S',left:'A',right:'D'});
-    this.eKey=this.input.keyboard.addKey('E');
-    this.escKey=this.input.keyboard.addKey('ESC');
-    this.foodT=0;
-    this.cameras.main.fadeIn(400);
+// ─── Input ────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  state.keys[e.key] = true;
+  if((e.key==='e'||e.key==='E'||e.key==='Enter') && state.inDialog) {
+    advanceDialog();
+    e.preventDefault();
   }
-  drawPlayer(){
-    this.pg.clear();this.pg.x=this.px;this.pg.y=this.py;
-    this.pg.fillStyle(C_GREEN,0.15);this.pg.fillEllipse(8,18,18,8);
-    this.pg.fillStyle(C_GREEN,1);this.pg.fillRect(2,2,12,14);
-    this.pg.fillStyle(0xaaffcc,0.6);this.pg.fillRect(3,3,4,4);
-    this.pg.fillStyle(0x003311,1);this.pg.fillRect(4,5,2,2);this.pg.fillRect(9,5,2,2);
+  if((e.key==='e'||e.key==='E') && !state.inDialog) {
+    tryInteract();
+    e.preventDefault();
   }
-  hit(nx,ny){
-    for(var w of this.walls){if(nx<w.x+w.w&&nx+14>w.x&&ny<w.y+w.h&&ny+14>w.y)return true;}
-    return false;
-  }
-  nearIA(){
-    var px=this.px+8,py=this.py+8;
-    for(var ia of this.ias){var cx=ia.x+ia.w/2,cy=ia.y+ia.h/2;if(Math.hypot(px-cx,py-cy)<55)return ia;}
-    return null;
-  }
-  checkEnd(){
-    if(GS.hp<=0){this.end.showDeath('hp');this.busy=true;return true;}
-    if(GS.threat>=100){this.end.showDeath('threat');this.busy=true;return true;}
-    if(GS.food<=0){this.end.showDeath('food');this.busy=true;return true;}
-    return false;
-  }
-  ev1(){
-    if(GS.events.ev1){this.dlg.show('NEXUS','[已触发]',[]);this.busy=true;this.time.delayedCall(1500,()=>{this.dlg.hide();this.busy=false;});return;}
-    this.busy=true;
-    var done=(fxKey)=>{
-      this.dlg.show('',t(fxKey),[]);
-      this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;GS.events.ev1=true;GS.day=Math.max(GS.day,2);GS.save();this.hud.refresh();});
-    };
-    this.dlg.show('['+t('ev1_title')+']',t('ev1_text'),[
-      {label:'A. '+t('ev1_a'),cb:()=>{GS.food=Math.min(100,GS.food+15);GS.threat=Math.min(100,GS.threat+5);done('ev1_a_fx');}},
-      {label:'B. '+t('ev1_b'),cb:()=>{GS.threat=Math.max(0,GS.threat-5);GS.trust=Math.min(100,GS.trust+5);done('ev1_b_fx');}},
-      {label:'C. '+t('ev1_c'),cb:()=>{GS.trust=Math.min(100,GS.trust+15);GS.threat=Math.min(100,GS.threat+10);done('ev1_c_fx');}}
-    ],()=>{GS.threat=Math.max(0,GS.threat-5);GS.trust=Math.min(100,GS.trust+5);done('ev1_b_fx');});
-  }
-  toScene2(){
-    GS.p1x=this.px;GS.p1y=this.py;GS.save();
-    this.cameras.main.fade(400,0,0,0);
-    this.time.delayedCall(400,()=>this.scene.start('Scene2'));
-  }
-  onLangChange(){this.hud.refresh();this.prompt.setText(t('interact'));this.pauseOvl.refresh();}
-  update(time,delta){
-    this.scan.clear();this.scan.fillStyle(C_CYAN,0.02);this.scan.fillRect(0,(time*0.07)%640,960,2);
-    if(this.paused)return;
-    if(Phaser.Input.Keyboard.JustDown(this.escKey)){
-      this.paused=true;this.pauseOvl.setVisible(true);
-      this.input.keyboard.once('keydown-ESC',()=>{this.paused=false;this.pauseOvl.setVisible(false);});
+});
+document.addEventListener('keyup', e => { state.keys[e.key] = false; });
+
+function tryInteract() {
+  const faceTx = Math.round(state.px) + [0,1,0,-1][state.dir];
+  const faceTy = Math.round(state.py) + [-1,0,1,0][state.dir];
+  for(const npc of npcs) {
+    const dist = Math.abs(npc.tx - Math.round(state.px)) + Math.abs(npc.ty - Math.round(state.py));
+    if(dist <= 1.5) {
+      startDialog(npc.name, npc.dialog);
+      if(npc.name==='向导' && !state.questProgress[0]) {
+        state.questProgress[0] = true;
+        addLog('✓ 完成：与向导对话');
+      }
       return;
     }
-    if(this.busy){this.dlg.updateTimer(delta);return;}
-    if(this.checkEnd())return;
-    this.foodT+=delta;
-    if(this.foodT>8000){this.foodT=0;GS.food=Math.max(0,GS.food-2);this.hud.refresh();}
-    var sp=2,dx=0,dy=0;
-    if(this.cursors.left.isDown||this.wasd.left.isDown)dx=-sp;
-    else if(this.cursors.right.isDown||this.wasd.right.isDown)dx=sp;
-    if(this.cursors.up.isDown||this.wasd.up.isDown)dy=-sp;
-    else if(this.cursors.down.isDown||this.wasd.down.isDown)dy=sp;
-    if(dx&&!this.hit(this.px+dx,this.py))this.px+=dx;
-    if(dy&&!this.hit(this.px,this.py+dy))this.py+=dy;
-    this.drawPlayer();
-    var ia=this.nearIA();
-    if(ia){
-      this.prompt.setPosition(this.px-this.cameras.main.scrollX+2,this.py-this.cameras.main.scrollY-18).setVisible(true);
-      if(Phaser.Input.Keyboard.JustDown(this.eKey))ia.action();
-    }else{this.prompt.setVisible(false);}
   }
 }
 
-class Scene2 extends Phaser.Scene{
-  constructor(){super({key:'Scene2'});}
-  create(){
-    window.currentScene=this;
-    GS.currentScene='Scene2';
-    this.busy=false;this.paused=false;
-    var COLS=40,ROWS=30,MW=COLS*TILE,MH=ROWS*TILE;
-    this.cameras.main.setBounds(0,0,MW,MH);
-    var g=this.add.graphics();
-    g.fillStyle(C_FLOOR,1);g.fillRect(0,0,MW,MH);
-    g.lineStyle(1,0x0f1e2e,0.3);
-    for(var c=0;c<=COLS;c++){g.beginPath();g.moveTo(c*TILE,0);g.lineTo(c*TILE,MH);g.strokePath();}
-    for(var r=0;r<=ROWS;r++){g.beginPath();g.moveTo(0,r*TILE);g.lineTo(MW,r*TILE);g.strokePath();}
-    this.walls=[];
-    var wallTiles=[];
-    for(var c=0;c<COLS;c++){wallTiles.push([c,0]);wallTiles.push([c,ROWS-1]);}
-    for(var r=1;r<ROWS-1;r++){wallTiles.push([0,r]);wallTiles.push([COLS-1,r]);}
-    // Buildings
-    var buildings=[
-      [2,2,5,6],[8,2,6,5],[16,2,7,4],[25,2,5,7],[32,2,6,5],
-      [2,12,4,8],[8,10,5,6],[15,12,6,5],[22,10,7,8],[30,12,5,6],
-      [2,22,6,5],[10,20,5,7],[18,22,8,4],[28,20,6,7],[35,22,4,5]
-    ];
-    buildings.forEach(([bc,br,bw,bh])=>{
-      for(var dc=0;dc<bw;dc++)for(var dr=0;dr<bh;dr++)wallTiles.push([bc+dc,br+dr]);
-    });
-    g.fillStyle(C_WALL,1);
-    wallTiles.forEach(([c,r])=>{
-      g.fillRect(c*TILE,r*TILE,TILE,TILE);
-      g.lineStyle(1,0x2a4a5a,0.4);g.strokeRect(c*TILE+2,r*TILE+2,TILE-4,TILE-4);
-      this.walls.push({x:c*TILE,y:r*TILE,w:TILE,h:TILE});
-    });
-    // Building windows
-    g.fillStyle(C_CYAN,0.12);
-    buildings.forEach(([bc,br,bw,bh])=>{
-      for(var dc=1;dc<bw-1;dc+=2)for(var dr=1;dr<bh-1;dr+=2)
-        g.fillRect((bc+dc)*TILE+6,(br+dr)*TILE+6,TILE-12,TILE-12);
-    });
-    // Supermarket
-    g.fillStyle(C_CYAN,0.15);g.fillRect(20*TILE,15*TILE,TILE*3,TILE*2);
-    g.lineStyle(2,C_CYAN,0.9);g.strokeRect(20*TILE+1,15*TILE+1,TILE*3-2,TILE*2-2);
-    g.fillStyle(C_CYAN,0.5);g.fillRect(20*TILE+8,15*TILE+6,TILE*3-16,TILE-10);
-    // Package
-    g.fillStyle(0xff8800,0.2);g.fillRect(12*TILE,17*TILE,TILE,TILE);
-    g.lineStyle(2,0xff8800,0.9);g.strokeRect(12*TILE+1,17*TILE+1,TILE-2,TILE-2);
-    g.lineStyle(1,0xff8800,0.7);
-    g.beginPath();g.moveTo(12*TILE+4,17*TILE+16);g.lineTo(12*TILE+TILE-4,17*TILE+16);g.strokePath();
-    g.beginPath();g.moveTo(12*TILE+16,17*TILE+4);g.lineTo(12*TILE+16,17*TILE+TILE-4);g.strokePath();
-    // Tunnel
-    g.fillStyle(C_GOLD,0.15);g.fillRect(35*TILE,25*TILE,TILE*2,TILE);
-    g.lineStyle(2,C_GOLD,0.9);g.strokeRect(35*TILE+1,25*TILE+1,TILE*2-2,TILE-2);
-    g.lineStyle(1,C_GOLD,0.8);
-    for(var i=0;i<4;i++){g.beginPath();g.moveTo(35*TILE+4+i*5,25*TILE+8+i*5);g.lineTo(35*TILE+TILE*2-4-i*5,25*TILE+8+i*5);g.strokePath();}
-    // Road markings
-    g.lineStyle(1,0x1a3a2a,0.3);
-    for(var x=0;x<MW;x+=TILE*4){g.beginPath();g.moveTo(x,0);g.lineTo(x,MH);g.strokePath();}
-    // Player
-    this.px=GS.p2x;this.py=GS.p2y;
-    this.pg=this.add.graphics().setDepth(10);
-    this.drawPlayer();
-    this.cameras.main.startFollow(this.pg,true,0.1,0.1);
-    // Drone NPC
-    this.droneX=18*TILE;this.droneY=8*TILE;
-    this.droneDir=1;this.droneT=0;
-    this.droneG=this.add.graphics().setDepth(9);
-    this.drawDrone();
-    // Prompt
-    this.prompt=this.add.text(0,0,t('interact'),{fontFamily:'Courier New',fontSize:'11px',color:'#00d4ff',backgroundColor:'#05080f',padding:{x:4,y:2}}).setVisible(false).setDepth(50);
-    // Interactables
-    this.ias=[
-      {x:20*TILE,y:15*TILE,w:TILE*3,h:TILE*2,key:'market',action:()=>this.ev2()},
-      {x:12*TILE,y:17*TILE,w:TILE,h:TILE,key:'package',action:()=>this.ev3()},
-      {x:35*TILE,y:25*TILE,w:TILE*2,h:TILE,key:'tunnel',action:()=>this.toScene1()}
-    ];
-    this.hud=makeHUD(this,'scene2_name');
-    this.dlg=makeDialog(this);
-    this.pzl=makePuzzle(this);
-    this.end=makeEndOverlay(this);
-    this.pauseOvl=makePauseOverlay(this);
-    this.scan=this.add.graphics().setDepth(99).setScrollFactor(0);
-    this.cursors=this.input.keyboard.createCursorKeys();
-    this.wasd=this.input.keyboard.addKeys({up:'W',down:'S',left:'A',right:'D'});
-    this.eKey=this.input.keyboard.addKey('E');
-    this.escKey=this.input.keyboard.addKey('ESC');
-    this.foodT=0;
-    this.cameras.main.fadeIn(400);
-  }
-  drawPlayer(){
-    this.pg.clear();this.pg.x=this.px;this.pg.y=this.py;
-    this.pg.fillStyle(C_GREEN,0.15);this.pg.fillEllipse(8,18,18,8);
-    this.pg.fillStyle(C_GREEN,1);this.pg.fillRect(2,2,12,14);
-    this.pg.fillStyle(0xaaffcc,0.6);this.pg.fillRect(3,3,4,4);
-    this.pg.fillStyle(0x003311,1);this.pg.fillRect(4,5,2,2);this.pg.fillRect(9,5,2,2);
-  }
-  drawDrone(){
-    this.droneG.clear();this.droneG.x=this.droneX;this.droneG.y=this.droneY;
-    this.droneG.fillStyle(C_RED,0.2);this.droneG.fillEllipse(8,8,24,12);
-    this.droneG.fillStyle(C_RED,1);this.droneG.fillRect(2,4,12,8);
-    this.droneG.fillStyle(0xff8888,0.8);this.droneG.fillRect(3,5,4,3);
-    this.droneG.lineStyle(1,C_RED,0.6);
-    this.droneG.beginPath();this.droneG.moveTo(-4,6);this.droneG.lineTo(2,6);this.droneG.strokePath();
-    this.droneG.beginPath();this.droneG.moveTo(14,6);this.droneG.lineTo(20,6);this.droneG.strokePath();
-  }
-  hit(nx,ny){
-    for(var w of this.walls){if(nx<w.x+w.w&&nx+14>w.x&&ny<w.y+w.h&&ny+14>w.y)return true;}
-    return false;
-  }
-  nearIA(){
-    var px=this.px+8,py=this.py+8;
-    for(var ia of this.ias){var cx=ia.x+ia.w/2,cy=ia.y+ia.h/2;if(Math.hypot(px-cx,py-cy)<60)return ia;}
-    return null;
-  }
-  checkEnd(){
-    if(GS.hp<=0){this.end.showDeath('hp');this.busy=true;return true;}
-    if(GS.threat>=100){this.end.showDeath('threat');this.busy=true;return true;}
-    if(GS.food<=0){this.end.showDeath('food');this.busy=true;return true;}
-    if(GS.day>=4&&GS.events.ev1&&GS.events.ev2&&GS.events.ev3){this.end.showWin();this.busy=true;return true;}
-    return false;
-  }
-  ev2(){
-    if(GS.events.ev2){this.dlg.show('NEXUS','[已触发]',[]);this.busy=true;this.time.delayedCall(1500,()=>{this.dlg.hide();this.busy=false;});return;}
-    this.busy=true;
-    var done=(fxKey,doPuzzle)=>{
-      if(doPuzzle){
-        this.dlg.hide();
-        this.pzl.show(t('ev2_puzzle_title'),t('ev2_puzzle_desc'),t('ev2_puzzle_hint'),t('ev2_puzzle_answer'),
-          ()=>{GS.events.ev2=true;GS.day=Math.max(GS.day,3);GS.save();this.hud.refresh();this.busy=false;},
-          ()=>{GS.events.ev2=true;GS.day=Math.max(GS.day,3);GS.save();this.hud.refresh();this.busy=false;}
-        );
-      }else{
-        this.dlg.show('',t(fxKey),[]);
-        this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;GS.events.ev2=true;GS.day=Math.max(GS.day,3);GS.save();this.hud.refresh();});
-      }
-    };
-    this.dlg.show('['+t('ev2_title')+']',t('ev2_text'),[
-      {label:'A. '+t('ev2_a'),cb:()=>{GS.food=Math.min(100,GS.food+30);GS.hp=Math.max(0,GS.hp-5);done('ev2_a_fx',true);}},
-      {label:'B. '+t('ev2_b'),cb:()=>{GS.food=Math.min(100,GS.food+10);GS.hp=Math.max(0,GS.hp-5);done('ev2_b_fx',false);}},
-      {label:'C. '+t('ev2_c'),cb:()=>{GS.trust=Math.min(100,GS.trust+20);GS.food=Math.min(100,GS.food+15);GS.threat=Math.min(100,GS.threat+10);done('ev2_c_fx',false);}}
-    ],()=>{GS.food=Math.min(100,GS.food+10);GS.hp=Math.max(0,GS.hp-5);done('ev2_b_fx',false);});
-  }
-  ev3(){
-    if(GS.events.ev3){this.dlg.show('???','[已触发]',[]);this.busy=true;this.time.delayedCall(1500,()=>{this.dlg.hide();this.busy=false;});return;}
-    this.busy=true;
-    var done=(fxKey)=>{
-      this.dlg.show('',t(fxKey),[]);
-      this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;GS.events.ev3=true;GS.day=Math.max(GS.day,4);GS.save();this.hud.refresh();});
-    };
-    this.dlg.show('['+t('ev3_title')+']',t('ev3_text'),[
-      {label:'A. '+t('ev3_a'),cb:()=>{GS.threat=Math.min(100,GS.threat+15);GS.trust=Math.min(100,GS.trust+10);done('ev3_a_fx');}},
-      {label:'B. '+t('ev3_b'),cb:()=>{GS.threat=Math.max(0,GS.threat-20);GS.hp=Math.min(100,GS.hp+10);done('ev3_b_fx');}},
-      {label:'C. '+t('ev3_c'),cb:()=>{GS.trust=Math.min(100,GS.trust+5);done('ev3_c_fx');}}
-    ],()=>{GS.trust=Math.min(100,GS.trust+5);done('ev3_c_fx');});
-  }
-  toScene1(){
-    GS.p2x=this.px;GS.p2y=this.py;GS.save();
-    this.cameras.main.fade(400,0,0,0);
-    this.time.delayedCall(400,()=>this.scene.start('Scene1'));
-  }
-  onLangChange(){this.hud.refresh();this.prompt.setText(t('interact'));this.pauseOvl.refresh();}
-  update(time,delta){
-    this.scan.clear();this.scan.fillStyle(C_CYAN,0.02);this.scan.fillRect(0,(time*0.07)%640,960,2);
-    if(this.paused)return;
-    if(Phaser.Input.Keyboard.JustDown(this.escKey)){
-      this.paused=true;this.pauseOvl.setVisible(true);
-      this.input.keyboard.once('keydown-ESC',()=>{this.paused=false;this.pauseOvl.setVisible(false);});
-      return;
-    }
-    if(this.busy){this.dlg.updateTimer(delta);return;}
-    if(this.checkEnd())return;
-    // Drone patrol
-    this.droneT+=delta;
-    if(this.droneT>16){this.droneT=0;
-      this.droneX+=this.droneDir*2;
-      if(this.droneX>22*TILE||this.droneX<14*TILE)this.droneDir*=-1;
-      this.drawDrone();
-      // Drone contact
-      if(Math.hypot(this.px-this.droneX,this.py-this.droneY)<40){
-        GS.threat=Math.min(100,GS.threat+0.5);this.hud.refresh();
-        if(!this.droneMsgShown){
-          this.droneMsgShown=true;
-          this.dlg.show(t('npc_drone'),t('npc_drone_text'),[]);
-          this.busy=true;this.time.delayedCall(2000,()=>{this.dlg.hide();this.busy=false;this.droneMsgShown=false;});
-        }
-      }
-    }
-    this.foodT+=delta;
-    if(this.foodT>8000){this.foodT=0;GS.food=Math.max(0,GS.food-2);this.hud.refresh();}
-    var sp=2,dx=0,dy=0;
-    if(this.cursors.left.isDown||this.wasd.left.isDown)dx=-sp;
-    else if(this.cursors.right.isDown||this.wasd.right.isDown)dx=sp;
-    if(this.cursors.up.isDown||this.wasd.up.isDown)dy=-sp;
-    else if(this.cursors.down.isDown||this.wasd.down.isDown)dy=sp;
-    if(dx&&!this.hit(this.px+dx,this.py))this.px+=dx;
-    if(dy&&!this.hit(this.px,this.py+dy))this.py+=dy;
-    this.drawPlayer();
-    var ia=this.nearIA();
-    if(ia){
-      this.prompt.setPosition(this.px-this.cameras.main.scrollX+2,this.py-this.cameras.main.scrollY-18).setVisible(true);
-      if(Phaser.Input.Keyboard.JustDown(this.eKey))ia.action();
-    }else{this.prompt.setVisible(false);}
+function startDialog(speaker, lines) {
+  state.dialog = { speaker, lines };
+  state.dlgIdx = 0;
+  state.inDialog = true;
+  document.getElementById('dialogBox').style.display = 'block';
+  document.getElementById('dlgSpeaker').textContent = speaker;
+  document.getElementById('dlgText').textContent = lines[0];
+  sfxTalk();
+}
+
+function advanceDialog() {
+  if(!state.dialog) return;
+  state.dlgIdx++;
+  if(state.dlgIdx >= state.dialog.lines.length) {
+    state.inDialog = false;
+    state.dialog = null;
+    document.getElementById('dialogBox').style.display = 'none';
+  } else {
+    document.getElementById('dlgText').textContent = state.dialog.lines[state.dlgIdx];
+    sfxTalk();
   }
 }
 
-var config={
-  type:Phaser.AUTO,
-  width:960,height:640,
-  backgroundColor:'#0a0e1a',
-  parent:'game-container',
-  scene:[TitleScene,Scene1,Scene2]
-};
-var game=new Phaser.Game(config);
+function addLog(msg) {
+  state.log.unshift(msg);
+  if(state.log.length > 4) state.log.pop();
+  updateQuestLog();
+}
 
+function updateQuestLog() {
+  const q = state.quests.slice();
+  if(state.questProgress[1] >= 3) q[1] = '✓ 收集宝石完成';
+  else q[1] = `收集宝石 (${state.questProgress[1]}/3)`;
+  if(state.questProgress[2] >= 2) q[2] = '✓ 消灭怪物完成';
+  else q[2] = `消灭怪物 (${state.questProgress[2]}/2)`;
+  document.getElementById('questText').textContent = state.log[0];
+}
 
+// ─── Collision ────────────────────────────────────────────────────────────────
+function solid(tx, ty) {
+  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return true;
+  const t = map[ty][tx];
+  return t===T.TREE||t===T.WATER||t===T.ROCK||t===T.NPC;
+}
+
+// ─── Update ───────────────────────────────────────────────────────────────────
+let lastTime = 0;
+function update(now) {
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+
+  if(state.inDialog || state.inBattle) {
+    if(state.inBattle) updateBattle(dt);
+    render();
+    requestAnimationFrame(update);
+    return;
+  }
+
+  // Movement
+  const speed = 4;
+  let dx=0, dy=0;
+  if(state.keys['ArrowUp']||state.keys['w']||state.keys['W'])    { dy=-1; state.dir=0; }
+  if(state.keys['ArrowRight']||state.keys['d']||state.keys['D']) { dx=1;  state.dir=1; }
+  if(state.keys['ArrowDown']||state.keys['s']||state.keys['S'])  { dy=1;  state.dir=2; }
+  if(state.keys['ArrowLeft']||state.keys['a']||state.keys['A'])  { dx=-1; state.dir=3; }
+
+  if(dx||dy) {
+    const nx = state.px + dx*speed*dt;
+    const ny = state.py + dy*speed*dt;
+    const ntx = Math.round(nx), nty = Math.round(ny);
+    if(!solid(ntx, Math.round(state.py))) state.px = nx;
+    if(!solid(Math.round(state.px), nty)) state.py = ny;
+
+    state.stepTimer += dt;
+    if(state.stepTimer > 0.25) { sfxStep(); state.stepTimer=0; }
+    state.animTimer += dt;
+    if(state.animTimer > 0.15) { state.frame^=1; state.animTimer=0; }
+  } else {
+    state.frame = 0;
+  }
+
+  const tx = Math.round(state.px), ty = Math.round(state.py);
+
+  // Pick up item
+  if(map[ty][tx]===T.ITEM) {
+    map[ty][tx] = T.GRASS;
+    state.gold += 5;
+    state.questProgress[1] = Math.min(3, state.questProgress[1]+1);
+    sfxPick();
+    addLog(`💰 捡到宝石！+5金币 (${state.questProgress[1]}/3)`);
+    // add to inventory
+    const slot = state.items.findIndex(i=>i===null);
+    if(slot>=0) state.items[slot] = 'gem';
+    if(state.questProgress[1]>=3) addLog('✓ 宝石收集任务完成！');
+  }
+
+  // Enemy encounter
+  for(const e of enemies) {
+    if(!e.alive) continue;
+    const dist = Math.abs(e.tx-tx)+Math.abs(e.ty-ty);
+    if(dist<=1) {
+      state.inBattle = e;
+      state.battleAnim = 0;
+      addLog('⚔️ 遇到怪物！战斗开始！');
+      sfxHit();
+    }
+  }
+
+  render();
+  requestAnimationFrame(update);
+}
+
+let battlePhase = 0, battleTimer = 0;
+function updateBattle(dt) {
+  battleTimer += dt;
+  if(battleTimer < 0.5) return;
+  battleTimer = 0;
+  battlePhase++;
+
+  const e = state.inBattle;
+  if(battlePhase % 2 === 1) {
+    // Player attacks
+    e.hp--;
+    sfxHit();
+    addLog(`⚔️ 你攻击怪物！怪物HP: ${e.hp}/${e.maxHp}`);
+    if(e.hp <= 0) {
+      e.alive = false;
+      state.inBattle = null;
+      battlePhase = 0;
+      state.questProgress[2] = Math.min(2, state.questProgress[2]+1);
+      state.gold += 10;
+      sfxPick();
+      addLog(`🏆 击败怪物！+10金币 (${state.questProgress[2]}/2)`);
+      if(state.questProgress[2]>=2) addLog('✓ 消灭怪物任务完成！');
+    }
+  } else {
+    // Enemy attacks
+    state.hp = Math.max(0, state.hp - 1);
+    sfxHit();
+    addLog(`💥 怪物攻击你！HP: ${state.hp}/${state.maxHp}`);
+    if(state.hp <= 0) {
+      state.hp = state.maxHp;
+      addLog('😵 你被击倒了！HP已恢复。');
+      state.inBattle = null;
+      battlePhase = 0;
+    }
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0,0,640,480);
+
+  // Draw tiles
+  for(let ty=0; ty<ROWS; ty++)
+    for(let tx=0; tx<COLS; tx++)
+      drawTile(ctx, map[ty][tx], tx, ty);
+
+  // Draw NPCs
+  for(const npc of npcs)
+    drawNPC(ctx, npc.tx*TS, npc.ty*TS, npc.color, npc.name);
+
+  // Draw enemies
+  for(const e of enemies) {
+    if(!e.alive) continue;
+    let ox = 0;
+    if(state.inBattle===e && battlePhase%2===0) ox = Math.sin(battleTimer*40)*4;
+    drawEnemy(ctx, e.tx*TS+ox, e.ty*TS, e.hp);
+  }
+
+  // Draw player (with battle shake)
+  let pox = 0;
+  if(state.inBattle && battlePhase%2===1) pox = Math.sin(battleTimer*40)*4;
+  drawPlayer(ctx, state.px*TS - 16 + pox, state.py*TS - 16, state.dir, state.frame);
+
+  // Vignette / light
+  const cx = state.px*TS+0, cy = state.py*TS+0;
+  const grad = ctx.createRadialGradient(cx, cy, 40, cx, cy, 320);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,640,480);
+
+  renderHUD();
+  renderMinimap();
+}
+
+function renderHUD() {
+  statCtx.clearRect(0,0,200,32);
+  // HP hearts
+  for(let i=0;i<state.maxHp;i++) {
+    statCtx.fillStyle = i < state.hp ? '#e03030' : '#555';
+    const hx = i*18+2, hy=4;
+    statCtx.fillRect(hx+3,hy,6,3); statCtx.fillRect(hx,hy+3,12,6);
+    statCtx.fillRect(hx+3,hy+9,6,3); statCtx.fillRect(hx+1,hy+8,10,1);
+  }
+  // Gold
+  statCtx.fillStyle = '#ffd700';
+  statCtx.font = 'bold 13px monospace';
+  statCtx.fillText('💰 ' + state.gold, 4, 28);
+
+  // Inventory slots
+  const inv = document.getElementById('inventory');
+  if(!inv.children.length) {
+    for(let i=0;i<8;i++) {
+      const d = document.createElement('canvas');
+      d.width=36; d.height=36; d.className='invSlot';
+      inv.appendChild(d);
+    }
+  }
+  for(let i=0;i<8;i++) {
+    const c = inv.children[i];
+    const ic = c.getContext('2d');
+    ic.clearRect(0,0,36,36);
+    ic.strokeStyle='#555'; ic.strokeRect(0.5,0.5,35,35);
+    ic.fillStyle='rgba(0,0,0,0.6)'; ic.fillRect(1,1,34,34);
+    if(state.items[i]==='gem') {
+      ic.fillStyle='#ffd700'; ic.fillRect(10,8,16,16);
+      ic.fillStyle='#fff'; ic.fillRect(12,10,6,6);
+    }
+  }
+}
+
+function renderMinimap() {
+  mmCtx.fillStyle='#111'; mmCtx.fillRect(0,0,80,80);
+  const sx=80/COLS, sy=80/ROWS;
+  for(let ty=0;ty<ROWS;ty++) for(let tx=0;tx<COLS;tx++) {
+    const t = map[ty][tx];
+    mmCtx.fillStyle = [
+      '#4a7c3f','#1e3d12','#1a6b9a','#6b6b6b','#b8954a','#ffd700','#7c5cbf','#c03030'
+    ][t] || '#4a7c3f';
+    mmCtx.fillRect(tx*sx, ty*sy, sx, sy);
+  }
+  // Player dot
+  mmCtx.fillStyle='#fff';
+  mmCtx.fillRect(state.px*sx-1, state.py*sy-1, 3, 3);
+}
+
+requestAnimationFrame(update);
+updateQuestLog();
 </script>
 </body>
 </html>
