@@ -151,7 +151,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
     <div class="screen-title">断网<br>OFFLINE</div>
     <div class="screen-sub">人工智能已判定人类为<br><span style="color:var(--red)">威胁等级：消除</span><br>城市清除进度 <span style="color:var(--yellow)">47%</span><br><br>你手里有一部濒死的手机<br>和一个不知道能活多久的意志</div>
     <button class="big-btn" onclick="startGame()">开始求生</button>
-    <div style="font-size:10px;color:var(--dim);">20章剧情 · 物资管理 · 多结局</div>
+    <div style="font-size:10px;color:var(--dim);line-height:1.9;text-align:center;">20章剧情 · 物资管理 · 多结局<br><span style='color:var(--yellow)'>⚠ AI扫描倒计时归零时会触发扫描<br>扫描时点击「使用信号屏蔽器」可阻断<br>被扫描3次即触发被捕结局</span></div>
   </div>
 
   <div id="end-screen" class="hidden">
@@ -160,6 +160,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
     <div id="end-poem"></div>
     <div id="end-stats"></div>
     <button class="big-btn" onclick="restartGame()" style="margin-top:6px">重新开始</button>
+    <button onclick="backToTitle()" style="background:transparent;border:1px solid var(--dim);color:var(--dim);font-family:inherit;font-size:12px;padding:8px 20px;border-radius:6px;cursor:pointer;margin-top:4px;">回到首页</button>
   </div>
 </div>
 <script>
@@ -278,7 +279,7 @@ function setBatt(v){
   pct.textContent=bv.textContent=S.batt+"%";
   fill.style.width=S.batt+"%";
   fill.style.background=S.batt>30?"var(--green)":S.batt>15?"var(--yellow)":"var(--red)";
-  if(S.batt<=0)death("手机电量耗尽。\n黑暗吞没了屏幕，也吞没了你的存在。");
+  if(S.batt<=0)death("手机电量耗尽。\n黑暗吞没了屏幕，也吞没了你的存在。","battery");
 }
 
 // ── Log ────────────────────────────────────────────────────────────────────
@@ -323,7 +324,7 @@ function triggerScan(cb){
     if(t<=0){
       clearInterval(ci);clearInterval(gi);
       ov.classList.remove("on");scanActive=false;
-      if(S.scans>=3)death("AI扫描系统三次锁定你的生物特征。\n清除无人机已出发。\n\n你没能跑掉。");
+      if(S.scans>=3)death("AI扫描系统三次锁定你的生物特征。\n清除无人机已出发。\n\n你没能跑掉。","scan");
       else if(scanCB){scanCB();scanCB=null;}
     }
   },1000);
@@ -345,12 +346,18 @@ function startScanTimer(){
 }
 
 // ── Death ──────────────────────────────────────────────────────────────────
-function death(msg){
+const DEATH_POEMS={
+  scan:"三次，只需要三次\n它就能找到你\n\n但在那之前\n你做了那么多事\n每一件都算数\n\n被找到不是失败\n忘记自己曾经选择过\n才是",
+  water:"水是最简单的事情\n也是最容易被遗忘的事情\n\n在所有的战略和计划之前\n先喝水\n先活着\n\n活着才能谈别的",
+  battery:"最后一格电\n不是结束\n是提醒\n\n你走了多远\n你带着什么走的\n你让谁看见了\n\n这些都已经发生了\n没有人能删掉它们"
+};
+function death(msg,type){
   clearInterval(S.scanInt);sfxEnd(false);
   const es=document.getElementById("end-screen");es.classList.remove("hidden");
-  document.getElementById("end-tag").textContent="// 游戏结束";
+  const tagMap={scan:"死亡结局 · 被捕获",water:"死亡结局 · 脱水",battery:"死亡结局 · 断电"};
+  document.getElementById("end-tag").textContent="// "+(tagMap[type]||"游戏结束");
   const et=document.getElementById("end-title");et.textContent="DEAD";et.style.color="var(--red)";
-  document.getElementById("end-poem").textContent="";
+  document.getElementById("end-poem").textContent=DEATH_POEMS[type]||"";
   document.getElementById("end-stats").textContent=msg+"\n\n生存："+S.day+"天 | 扫描："+S.scans+"次";
 }
 
@@ -370,7 +377,7 @@ function goTo(id){
     if(node.use.meds)S.meds=Math.max(0,S.meds-node.use.meds);
   }
   updRes();
-  if(S.water<=0)return death("三天无水。\n你的身体不再服从意志。\n在废墟的角落，你缓缓倒下。");
+  if(S.water<=0)return death("三天无水。\n你的身体不再服从意志。\n在废墟的角落，你缓缓倒下。","water");
   document.getElementById("choices-wrap").innerHTML="";
   // Scroll to top
   document.getElementById("scroll-area").scrollTop=0;
@@ -431,7 +438,7 @@ function renderChoices(opts){
       if(!canAfford){sfxWarn();addLog("⚠ 物资不足");return;}
       AC.resume();startAmbient();sfxSel();
       if(o.cost){if(o.cost.water)S.water=Math.max(0,S.water-o.cost.water);if(o.cost.food)S.food=Math.max(0,S.food-o.cost.food);if(o.cost.meds)S.meds=Math.max(0,S.meds-o.cost.meds);if(o.cost.shield)S.shield=Math.max(0,S.shield-o.cost.shield);}
-      S.batt-=5;setBatt(S.batt);
+      S.batt-=2;setBatt(S.batt);
       if(o.flag)S.flags[o.flag]=true;
       if(o.log)addLog(o.log);
       if(o.scan)triggerScan(()=>goTo(o.next));else goTo(o.next);
@@ -444,7 +451,7 @@ function renderChoices(opts){
 function startGame(){
   AC.resume();startAmbient();
   document.getElementById("start-screen").classList.add("hidden");
-  S={batt:73,day:1,scans:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false};
+  S={batt:200,day:1,scans:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false};
   setSignal(0);updRes();
   let fl=0;
   const td=document.getElementById("time-disp");
@@ -456,6 +463,16 @@ function restartGame(){
   document.getElementById("end-screen").classList.add("hidden");
   document.getElementById("phone").className="";
   startGame();
+}
+function backToTitle(){
+  clearInterval(S.scanInt);
+  document.getElementById("end-screen").classList.add("hidden");
+  document.getElementById("start-screen").classList.remove("hidden");
+  document.getElementById("phone").className="";
+  document.getElementById("narrative").innerHTML="";
+  document.getElementById("choices-wrap").innerHTML="";
+  document.getElementById("log-wrap").innerHTML="";
+  document.getElementById("notif-wrap").innerHTML="";
 }
 function setSignal(n){for(let i=1;i<=3;i++)document.getElementById("s"+i).className="sig-dot"+(i<=n?" on":"");}
 
