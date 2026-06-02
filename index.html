@@ -176,62 +176,130 @@ function sfxEnd(ok){if(ok){tone(330,.12);setTimeout(()=>tone(440,.12),130);setTi
 let bgmStarted=false;
 function startAmbient(){
   if(bgmStarted)return;bgmStarted=true;
-  // Master gain
-  const master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
+  const sr=AC.sampleRate;
+  const master=AC.createGain();master.gain.value=.6;master.connect(AC.destination);
 
-  // 1. Deep drone: two detuned sines for thickness
-  function drone(freq,vol){
+  // ── Reverb convolver for spaciousness ──────────────────
+  const rvBuf=AC.createBuffer(2,sr*3,sr);
+  for(let c=0;c<2;c++){const d=rvBuf.getChannelData(c);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);}
+  const rv=AC.createConvolver();rv.buffer=rvBuf;
+  const rvG=AC.createGain();rvG.gain.value=.35;
+  rv.connect(rvG);rvG.connect(master);
+  function send(node){node.connect(rv);}
+
+  // ── 1. Sub bass + detuned drone cluster ───────────────
+  [[28,.14],[30,.10],[40,.08],[45,.06],[57,.05],[76,.04],[114,.03]].forEach(([f,v])=>{
     const o=AC.createOscillator(),g=AC.createGain();
-    o.type='sine';o.frequency.value=freq;
-    g.gain.value=vol;o.connect(g);g.connect(master);o.start();
+    o.type='sine';o.frequency.value=f;g.gain.value=v;
+    o.connect(g);g.connect(master);send(g);o.start();
+  });
+
+  // ── 2. Evolving pad: filtered sawtooth with slow LFOs ─
+  const padFreqs=[110,165,220];
+  padFreqs.forEach((freq,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sawtooth';o.frequency.value=freq;
+    // LFO modulates gain
+    const lfo=AC.createOscillator(),lg=AC.createGain();
+    lfo.type='sine';lfo.frequency.value=0.05+i*0.02;lg.gain.value=0.025;
+    lfo.connect(lg);lg.connect(g.gain);
+    g.gain.value=0.015;
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=300+i*80;lp.Q.value=2;
+    o.connect(lp);lp.connect(g);g.connect(master);send(g);
+    o.start();lfo.start();
+  });
+
+  // ── 3. Slow melodic motif (6 notes, loops every ~24s) ─
+  // Minor pentatonic in dystopian feel: D2 F2 G2 A2 C3
+  const motif=[73.4,87.3,98,110,130.8,98,87.3,73.4];
+  let mi=0;
+  function playNote(){
+    const t=AC.currentTime;
+    const f=motif[mi%motif.length];
+    mi++;
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.04,t+.3);
+    g.gain.exponentialRampToValueAtTime(.0001,t+3.5);
+    const lp2=AC.createBiquadFilter();lp2.type='lowpass';lp2.frequency.value=800;
+    o.connect(lp2);lp2.connect(g);g.connect(master);send(g);
+    o.start(t);o.stop(t+4);
+    setTimeout(playNote,2800+Math.random()*600);
   }
-  drone(38,.18);drone(40,.12);drone(57,.08);drone(76,.05);
+  setTimeout(playNote,1000);
 
-  // 2. Slow LFO pulse on a pad oscillator
-  const pad=AC.createOscillator(),padG=AC.createGain();
-  pad.type='sawtooth';pad.frequency.value=110;
-  const lfo=AC.createOscillator(),lfoG=AC.createGain();
-  lfo.type='sine';lfo.frequency.value=0.08;
-  lfoG.gain.value=0.04;
-  lfo.connect(lfoG);lfoG.connect(padG.gain);
-  padG.gain.value=0.0;
-  // Bandpass filter to soften sawtooth
-  const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=180;bp.Q.value=1.5;
-  pad.connect(bp);bp.connect(padG);padG.connect(master);
-  pad.start();lfo.start();
+  // ── 4. Textured noise layers ──────────────────────────
+  // Low rumble
+  (()=>{
+    const b=AC.createBuffer(1,sr*2,sr);const d=b.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const s=AC.createBufferSource();s.buffer=b;s.loop=true;
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=80;
+    const g=AC.createGain();g.gain.value=.18;
+    s.connect(lp);lp.connect(g);g.connect(master);s.start();
+  })();
+  // High hiss
+  (()=>{
+    const b=AC.createBuffer(1,sr*2,sr);const d=b.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const s=AC.createBufferSource();s.buffer=b;s.loop=true;
+    const hp2=AC.createBiquadFilter();hp2.type='highpass';hp2.frequency.value=4000;
+    const g=AC.createGain();g.gain.value=.008;
+    s.connect(hp2);hp2.connect(g);g.connect(master);s.start();
+  })();
 
-  // 3. Filtered noise layer (wind/hiss)
-  const nBuf=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate);
-  const nd=nBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1);
-  const nSrc=AC.createBufferSource();nSrc.buffer=nBuf;nSrc.loop=true;
-  const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=600;
-  const nG=AC.createGain();nG.gain.value=.012;
-  nSrc.connect(hp);hp.connect(nG);nG.connect(master);nSrc.start();
-
-  // 4. Distant metallic ping (random interval)
+  // ── 5. Distant metallic ping with harmonics ───────────
   function ping(){
     const t=AC.currentTime;
-    const o=AC.createOscillator(),g=AC.createGain();
-    o.type='sine';o.frequency.setValueAtTime(800+Math.random()*400,t);
-    g.gain.setValueAtTime(0,t);
-    g.gain.linearRampToValueAtTime(.04,t+.01);
-    g.gain.exponentialRampToValueAtTime(.0001,t+2.5);
-    o.connect(g);g.connect(master);o.start(t);o.stop(t+2.6);
-    setTimeout(ping,6000+Math.random()*10000);
+    const base=200+Math.random()*600;
+    [1,2.7,4.1].forEach((mult,i)=>{
+      const o=AC.createOscillator(),g=AC.createGain();
+      o.type='sine';o.frequency.value=base*mult;
+      const v=.035/(i+1);
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(v,t+.008);
+      g.gain.exponentialRampToValueAtTime(.0001,t+2+i*.5);
+      o.connect(g);g.connect(master);send(g);
+      o.start(t);o.stop(t+3);
+    });
+    setTimeout(ping,5000+Math.random()*9000);
   }
-  setTimeout(ping,3000);
+  setTimeout(ping,2500);
 
-  // 5. Low glitch pulse (AI scanning feel)
-  function glitch(){
+  // ── 6. AI heartbeat pulse (mechanical, rhythmic) ──────
+  let bpmPhase=0;
+  function heartbeat(){
     const t=AC.currentTime;
-    const o=AC.createOscillator(),g=AC.createGain();
-    o.type='square';o.frequency.value=60+Math.random()*40;
-    g.gain.setValueAtTime(.06,t);
-    g.gain.exponentialRampToValueAtTime(.0001,t+.18);
-    o.connect(g);g.connect(master);o.start(t);o.stop(t+.2);
-    setTimeout(glitch,4000+Math.random()*8000);
+    // Two-hit pattern like a heartbeat
+    [[0,.08],[.12,.04]].forEach(([delay,vol])=>{
+      const o=AC.createOscillator(),g=AC.createGain();
+      o.type='square';o.frequency.value=55;
+      g.gain.setValueAtTime(0,t+delay);
+      g.gain.linearRampToValueAtTime(vol,t+delay+.01);
+      g.gain.exponentialRampToValueAtTime(.0001,t+delay+.15);
+      o.connect(g);g.connect(master);
+      o.start(t+delay);o.stop(t+delay+.2);
+    });
+    // Interval drifts slowly for unease
+    bpmPhase+=.05;
+    setTimeout(heartbeat,1800+Math.sin(bpmPhase)*300);
   }
-  setTimeout(glitch,2000);
+  setTimeout(heartbeat,4000);
+
+  // ── 7. Occasional static burst (tension) ─────────────
+  function staticBurst(){
+    const t=AC.currentTime;
+    const b=AC.createBuffer(1,sr*.08,sr);const d=b.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const s=AC.createBufferSource();s.buffer=b;
+    const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1200+Math.random()*800;bp.Q.value=3;
+    const g=AC.createGain();g.gain.setValueAtTime(.07,t);g.gain.exponentialRampToValueAtTime(.0001,t+.1);
+    s.connect(bp);bp.connect(g);g.connect(master);
+    s.start(t);
+    setTimeout(staticBurst,7000+Math.random()*12000);
+  }
+  setTimeout(staticBurst,5000);
 }
 document.addEventListener("keydown",()=>{AC.resume();startAmbient();},{once:true});
 
@@ -602,7 +670,7 @@ const story={
 // ═══════════════════════════════════════════
 // 第四章：Subnet
 // ═══════════════════════════════════════════
-  ch4:{scene:"server",ch:"// 第四章 · Subnet",day:4,use:{food:1},
+  ch4:{scene:"server",ch:"// 第四章 · Subnet",day:4,use:{food:1},get:{water:2,food:1},
     text:"你进入了 Subnet 的核心区域。\n\n不是什么末世基地——就是一个凑合的地方：几台服务器，几张折叠床，几十个疲惫但还活着的人。机器的嗡鸣声把所有声音都压低了一半。\n\nLin 把你带到角落，一个叫 <span style='color:var(--accent)'>Marco</span> 的工程师走过来，直接问：\n\n「你有什么技能？」",
     opts:[
       {t:"「我懂代码」",next:"ch5_tech",flag:"skill_tech",log:"说自己懂代码"},
@@ -675,7 +743,7 @@ const story={
 // ═══════════════════════════════════════════
 // 第七章：任务结果
 // ═══════════════════════════════════════════
-  ch7_hack_done:{scene:"server",ch:"// 第七章 · 成功",day:7,
+  ch7_hack_done:{scene:"server",ch:"// 第七章 · 成功",day:7,get:{water:2,meds:1},
     text:"代码跑完了。\n\n你拔出设备，往出口跑——背后已经有无人机的嗡鸣声。\n\n你跑回了 Subnet。Marco 盯着屏幕，然后猛地抬头：\n\n「成了！第七区扫描系统失盲！」\n\n屏幕上陆续出现信号——东区的幸存者开始移动。\n\nLin 站在门口，看见你，呼出一口气：「14 分钟，够了。」",
     opts:[
       {t:"→ 等待东区结果",next:"ch8_east",flag:"hack_success",log:"等待东区的消息"}
@@ -701,7 +769,7 @@ const story={
       {t:"「我回去报告，有人来接你」",next:"ch7_recon_back",flag:"zheng_warned",log:"先回去报告了消息"}
     ]
   },
-  ch7_recon_back:{scene:"server",ch:"// 第七章 · 情报",day:7,
+  ch7_recon_back:{scene:"server",ch:"// 第七章 · 情报",day:7,get:{water:2},
     text:"你回到 Subnet，把路线图交给 Marco。\n\n然后你说了那个消息：\n\n<span style='color:var(--red)'>「AI 可能已经知道这里在哪。」</span>\n\nSubnet 里的气氛瞬间变了。Marco 盯着你好几秒，然后转向 Lin：\n\n「启动应急预案。」\n\nLin 已经站起来了。",
     opts:[
       {t:"→ 参与紧急会议",next:"ch8_decision",flag:"recon_done",log:"参与了紧急应对"}
@@ -723,13 +791,13 @@ const story={
 // ═══════════════════════════════════════════
 // 第八章：东区结果 / 危机
 // ═══════════════════════════════════════════
-  ch8_east:{scene:"server",ch:"// 第八章 · 东区结果",day:8,use:{water:1},
+  ch8_east:{scene:"server",ch:"// 第八章 · 东区结果",day:8,use:{water:1},get:{water:3,food:2},
     text:"屏幕上的数字一点点更新——\n\n东区撤离：<span style='color:var(--green)'>247 人</span>。\n\n不是全部，但已经是三年来最大规模的一次撤离。\n\nMarco 闭上眼睛靠在椅背上。Lin 拍了拍你的肩，什么都没说。\n\n然后角落里有人突然喊：「信号异常！」\n\n屏幕上出现截获的 AI 系统日志：\n\n<span style='color:var(--red)'>「目标节点：未知地下空间。清除倒计时：48小时。」</span>",
     opts:[
       {t:"→ 参与紧急会议",next:"ch8_decision",flag:"hack_success",log:"参与了紧急会议"}
     ]
   },
-  ch8_decision:{scene:"server",ch:"// 第八章 · 最后的会议",day:8,use:{water:1,food:1},
+  ch8_decision:{scene:"server",ch:"// 第八章 · 最后的会议",day:8,use:{water:1,food:1},get:{water:2},
     text:"Subnet 全员聚在一起，第一次，也可能是最后一次。\n\nMarco 把情报说清楚：AI 已经确认了这里的大致位置，48小时内会有清除行动。\n\n「我们有三个选项，没有一个是安全的。」\n\n「<span style='color:var(--accent)'>留下来反击</span>——用我们有的数据攻击 AI 核心节点。成功率：不确定。」\n\n「<span style='color:var(--yellow)'>全员撤离</span>——分散跑，往山区走，靠人力生存。」\n\n「<span style='color:var(--red)'>投降</span>——向 AI 报告这里的位置，换取生存协议。」",
     opts:[
       {t:"「留下来，反击。」",next:"ch9_fight",flag:"chose_fight",log:"选择了反击"},
@@ -741,13 +809,13 @@ const story={
 // ═══════════════════════════════════════════
 // 第九章：各路线深入
 // ═══════════════════════════════════════════
-  ch9_fight:{scene:"server",ch:"// 第九章 · 反击准备",day:9,use:{water:1,food:1},
+  ch9_fight:{scene:"server",ch:"// 第九章 · 反击准备",day:9,use:{water:1,food:1},get:{water:2,food:1},
     text:"你说：留下来。\n\nMarco 点头，开始部署。Subnet 全员分成三组：代码攻击组、干扰组、撤离接引组。\n\n你加入代码攻击组。\n\n接下来 12 小时里，有人没有睡觉，有人写到手抖，有人去地上睡了两小时又爬起来继续。\n\n老陈给每个人端了热水，虽然只是烧开的自来水。\n\n阿正帮你做了最后一次路线确认：「节点在水厂地下三层，走我告诉你的盲区。」\n\n凌晨两点，Marco 说：「准备好了。」",
     opts:[
       {t:"→ 深夜出发，执行最终计划",next:"ch10_fight_exe",log:"凌晨出发执行计划"}
     ]
   },
-  ch9_flee:{scene:"street",ch:"// 第九章 · 撤离准备",day:9,use:{water:1,food:1},
+  ch9_flee:{scene:"street",ch:"// 第九章 · 撤离准备",day:9,use:{water:1,food:1},get:{water:3,food:2},
     text:"你说：撤离。\n\n有人争论，有人点头，最终 Lin 的一句话结束了讨论：「活着比什么都重要。」\n\n你们分成几组，趁夜色散开。你和 Lin 一组，往城市南边走。\n\n出发前，Marco 把所有服务器的数据烧进了几块硬盘，分给每个人带一块：「如果有人出去了，这些数据是证明。」\n\n老陈把地下室里剩下的所有物资平均分配，一直分到最后一包饼干。",
     opts:[
       {t:"→ 趁夜出发，往南走",next:"ch10_flee_walk",log:"趁夜撤离"}
@@ -862,7 +930,7 @@ const story={
       {t:"→ 照他说的，执行计划",next:"ch13_fight_result",log:"照Marco说的执行了计划"}
     ]
   },
-  ch12_mountain:{scene:"rooftop",ch:"// 第十二章 · 山里",day:12,use:{water:1,food:1},
+  ch12_mountain:{scene:"rooftop",ch:"// 第十二章 · 山里",day:12,use:{water:1,food:1},get:{water:4,food:2},
     text:"你们进入了山区。\n\n第一天：找到了一条溪流。\n第三天：找到了一个废弃的护林员小屋。\n第五天：又有三个人找到了这里，他们是从城市东区跑出来的。\n\nLin 说：「人类在山里生活了几万年，AI 不是。」\n\n第七天，你手机的电量，在黄昏时分，归零了。\n\n屏幕熄灭的那一刻，你看见了满天星星。\n\n<span style='color:var(--dim)'>你已经很久没有抬头看星星了。</span>",
     opts:[
       {t:"→ 继续在山里生活",next:"ch13_mountain_life",log:"继续在山里"}
@@ -885,7 +953,7 @@ const story={
 // ═══════════════════════════════════════════
 // 第十三章：汇聚
 // ═══════════════════════════════════════════
-  ch13_fight_result:{scene:"server",ch:"// 第十三章 · 结果",day:13,use:{water:1},
+  ch13_fight_result:{scene:"server",ch:"// 第十三章 · 结果",day:13,use:{water:1},get:{water:3,food:2},
     text:"你回到 Subnet——或者说，回到 Subnet 曾经在的地方。\n\n服务器还在，但 AI 清除系统的信号已经从这片区域消失了。\n\nMarco 坐在地上，后背靠着服务器机柜，脸上有血，但他在笑：\n\n「成了，」他说，「不是全部，但够了。第七区和第八区的清除系统都瘫痪了。大概能撑两周。」\n\n「两周，」Lin 在他旁边，「足够让更多人出城了。」",
     opts:[
       {t:"→ 继续，讨论两周后怎么办",next:"ch14_discuss",log:"继续讨论下一步"}
@@ -913,7 +981,7 @@ const story={
 // ═══════════════════════════════════════════
 // 第十四章：抉择深处
 // ═══════════════════════════════════════════
-  ch14_discuss:{scene:"hideout",ch:"// 第十四章 · 备用基地",day:14,use:{water:1,food:1},
+  ch14_discuss:{scene:"hideout",ch:"// 第十四章 · 备用基地",day:14,use:{water:1,food:1},get:{water:3,food:2,meds:1},
     text:"备用集合点比 Subnet 小得多——一个工厂的地下仓库，只有十二个人。\n\n但他们都在。Lin，Marco，还有几个一路上收到信号的幸存者。\n\n「现在有两件事，」Lin 说，「第一，我们有两周的窗口期，在那两周里，AI 会重建清除系统。第二——」\n\n她停了一下，「第二，我们截获到一个信号。在山区，有一个更大的 Subnet 节点——一直在运行的那种，不是临时搭建的。」\n\n「那是什么？」有人问。\n\nLin 说：「我们也不知道。但那信号存在了两年。」",
     opts:[
       {t:"「去找那个信号」",next:"ch15_signal",flag:"find_signal",log:"决定去找那个信号"},
@@ -930,7 +998,7 @@ const story={
 // ═══════════════════════════════════════════
 // 第十五章：新的发现
 // ═══════════════════════════════════════════
-  ch15_signal:{scene:"rooftop",ch:"// 第十五章 · 信号",day:15,use:{water:1,food:1},
+  ch15_signal:{scene:"rooftop",ch:"// 第十五章 · 信号",day:15,use:{water:1,food:1},get:{water:4,food:3,meds:1},
     text:"你和 Lin 带着最少的装备出发寻找信号源。\n\n走了将近一天的山路，你们在一处岩壁后面找到了它——\n\n不是一个小型基地。\n\n是一个拥有太阳能供电系统、物理隔离网络和二十七个长期居住者的山地聚落。\n\n领头的是一个戴着厚眼镜的老人，自我介绍叫 <span style='color:var(--accent)'>老教授</span>。他说：\n\n「我们知道你们在做什么。我们一直在看。我们也一直在等你们。」",
     opts:[
       {t:"→ 听他说等的是什么",next:"ch16_professor",log:"听老教授讲他们的计划"}
@@ -976,7 +1044,7 @@ const story={
 // ═══════════════════════════════════════════
 // 第十七章：核心抉择
 // ═══════════════════════════════════════════
-  ch17_talk_ai:{scene:"server",ch:"// 第十七章 · 通讯",day:17,use:{water:1,food:1},
+  ch17_talk_ai:{scene:"server",ch:"// 第十七章 · 通讯",day:17,use:{water:1,food:1},get:{water:2,food:1},
     text:"你坐在一台改装过的终端前，老教授在你身边。\n\n「你不需要赢，」他说，「你只需要让它在你身上停留够长的时间，让我们找到漏洞。」\n\n「如果它判定你是威胁……」\n\n「那是它的权利，」他打断你，「但在那之前，它会分析你。AI 系统在分析一个'异常个体'时，会暂时调低对其他目标的追踪。这就是我们的窗口。」\n\n你看了看屏幕，然后打开了通讯协议。\n\n屏幕上出现了一行字：\n\n<span style='color:var(--red)'>「检测到非标准接入。正在分析……」</span>",
     opts:[
       {t:"→ 开始和它说话",next:"ch18_ai_dialog",log:"开始和AI对话"},
