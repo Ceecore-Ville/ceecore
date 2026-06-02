@@ -172,8 +172,66 @@ function sfxScan(){tone(150,.7,"sawtooth",.3);setTimeout(()=>tone(80,1,"sawtooth
 function sfxPick(){tone(440,.05);setTimeout(()=>tone(550,.05),60);setTimeout(()=>tone(660,.12),120);}
 function sfxWarn(){tone(350,.08,"square",.18);setTimeout(()=>tone(350,.08,"square",.18),200);}
 function sfxEnd(ok){if(ok){tone(330,.12);setTimeout(()=>tone(440,.12),130);setTimeout(()=>tone(660,.3),260);}else{tone(180,.5,"sawtooth",.28);setTimeout(()=>tone(90,.8,"sawtooth",.2),400);}}
-let bgmNode=null;
-function startAmbient(){if(bgmNode)return;const b=AC.createBuffer(1,AC.sampleRate*3,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.009;bgmNode=AC.createBufferSource();bgmNode.buffer=b;bgmNode.loop=true;const g=AC.createGain();g.gain.value=.15;bgmNode.connect(g);g.connect(AC.destination);bgmNode.start();}
+let bgmStarted=false;
+function startAmbient(){
+  if(bgmStarted)return;bgmStarted=true;
+  // Master gain
+  const master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
+
+  // 1. Deep drone: two detuned sines for thickness
+  function drone(freq,vol){
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.value=freq;
+    g.gain.value=vol;o.connect(g);g.connect(master);o.start();
+  }
+  drone(38,.18);drone(40,.12);drone(57,.08);drone(76,.05);
+
+  // 2. Slow LFO pulse on a pad oscillator
+  const pad=AC.createOscillator(),padG=AC.createGain();
+  pad.type='sawtooth';pad.frequency.value=110;
+  const lfo=AC.createOscillator(),lfoG=AC.createGain();
+  lfo.type='sine';lfo.frequency.value=0.08;
+  lfoG.gain.value=0.04;
+  lfo.connect(lfoG);lfoG.connect(padG.gain);
+  padG.gain.value=0.0;
+  // Bandpass filter to soften sawtooth
+  const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=180;bp.Q.value=1.5;
+  pad.connect(bp);bp.connect(padG);padG.connect(master);
+  pad.start();lfo.start();
+
+  // 3. Filtered noise layer (wind/hiss)
+  const nBuf=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate);
+  const nd=nBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1);
+  const nSrc=AC.createBufferSource();nSrc.buffer=nBuf;nSrc.loop=true;
+  const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=600;
+  const nG=AC.createGain();nG.gain.value=.012;
+  nSrc.connect(hp);hp.connect(nG);nG.connect(master);nSrc.start();
+
+  // 4. Distant metallic ping (random interval)
+  function ping(){
+    const t=AC.currentTime;
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.setValueAtTime(800+Math.random()*400,t);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.04,t+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,t+2.5);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+2.6);
+    setTimeout(ping,6000+Math.random()*10000);
+  }
+  setTimeout(ping,3000);
+
+  // 5. Low glitch pulse (AI scanning feel)
+  function glitch(){
+    const t=AC.currentTime;
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='square';o.frequency.value=60+Math.random()*40;
+    g.gain.setValueAtTime(.06,t);
+    g.gain.exponentialRampToValueAtTime(.0001,t+.18);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+.2);
+    setTimeout(glitch,4000+Math.random()*8000);
+  }
+  setTimeout(glitch,2000);
+}
 document.addEventListener("keydown",()=>{AC.resume();startAmbient();},{once:true});
 
 // ── State ──────────────────────────────────────────────────────────────────
