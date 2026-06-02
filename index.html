@@ -5,715 +5,483 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>断网 · OFFLINE</title>
 <style>
-:root{--bg:#0a0a0f;--panel:#111118;--border:#1e1e2e;--text:#c0caf5;--dim:#565f89;--accent:#7aa2f7;--red:#f7768e;--green:#9ece6a;--yellow:#e0af68;--warn:#ff0033;}
+:root{--bg:#0a0a0f;--panel:#111118;--border:#1e1e2e;--text:#c0caf5;--dim:#565f89;--accent:#7aa2f7;--red:#f7768e;--green:#9ece6a;--yellow:#e0af68;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Courier New',Courier,monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
-#phone{width:390px;min-height:700px;background:var(--panel);border:1px solid var(--border);border-radius:36px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 0 60px rgba(122,162,247,0.08);}
-/* Status bar */
-#statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 6px;background:var(--panel);font-size:11px;color:var(--dim);flex-shrink:0;}
-#sb-left{display:flex;gap:8px;align-items:center;}
-#sb-right{display:flex;gap:10px;align-items:center;}
-.sig-dot{width:4px;height:4px;border-radius:50%;background:var(--dim);}
-.sig-dot.on{background:var(--green);}
-#battery-val{color:var(--yellow);}
-#scan-timer{color:var(--red);font-weight:bold;}
-/* Canvas scene */
+body{background:var(--bg);color:var(--text);font-family:"Courier New",Courier,monospace;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#phone{width:390px;height:780px;background:var(--panel);border:1px solid var(--border);border-radius:36px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 0 60px rgba(122,162,247,.08);}
+#statusbar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 6px;font-size:11px;color:var(--dim);flex-shrink:0;}
+.sig-dot{width:3px;height:3px;border-radius:50%;background:var(--dim);}.sig-dot.on{background:var(--green);}
+#battery-val{color:var(--yellow);}#scan-timer{color:var(--red);font-weight:bold;font-size:10px;}
 #scene-wrap{flex-shrink:0;position:relative;}
-#sceneImg{display:block;width:390px;height:180px;object-fit:cover;transition:opacity .4s;}
-/* Main content */
-#content{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
-#chapter-title{font-size:11px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;}
-#narrative{font-size:14px;line-height:2;color:var(--text);min-height:80px;white-space:pre-line;word-break:break-all;}
-/* Choices */
-#choices{display:flex;flex-direction:column;gap:8px;padding:0 20px 16px;}
-.choice-btn{background:transparent;border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:13px;padding:12px 16px;text-align:left;cursor:pointer;border-radius:8px;transition:all .2s;position:relative;overflow:hidden;}
-.choice-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(122,162,247,0.06);}
-.choice-btn:hover::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(122,162,247,0.05),transparent);animation:glitch-scan .4s linear;}
-/* Battery bar */
-#batt-bar-wrap{padding:10px 20px 20px;flex-shrink:0;}
-#batt-label{font-size:10px;color:var(--dim);margin-bottom:5px;}
-#batt-bar{height:3px;background:var(--border);border-radius:2px;}
+#sceneImg{display:block;width:390px;height:160px;object-fit:cover;transition:opacity .5s;}
+#scene-overlay{position:absolute;inset:0;background:linear-gradient(transparent 50%,var(--panel));pointer-events:none;}
+#res-bar{display:flex;gap:8px;padding:7px 16px 5px;flex-shrink:0;border-bottom:1px solid var(--border);align-items:center;}
+.res-item{display:flex;align-items:center;gap:3px;font-size:11px;}
+.res-val{color:var(--text);}.res-val.low{color:var(--red);animation:blink .8s infinite;}
+#content{flex:1;overflow-y:auto;padding:12px 18px 6px;display:flex;flex-direction:column;gap:8px;}
+#chapter-title{font-size:10px;color:var(--dim);letter-spacing:2px;}
+#narrative{font-size:13px;line-height:1.95;color:var(--text);min-height:60px;}
+#event-log{font-size:11px;color:var(--dim);border-left:2px solid var(--border);padding-left:8px;line-height:1.8;}
+#choices{display:flex;flex-direction:column;gap:5px;padding:6px 16px 10px;flex-shrink:0;}
+.choice-btn{background:transparent;border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:9px 14px;text-align:left;cursor:pointer;border-radius:6px;transition:all .15s;}
+.choice-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(122,162,247,.05);}
+.choice-btn .cost{color:var(--dim);font-size:10px;margin-left:6px;}
+.choice-btn.cant{opacity:.4;cursor:not-allowed;}
+#batt-bar-wrap{padding:5px 16px 12px;flex-shrink:0;}
+#batt-row{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:4px;}
+#batt-bar{height:2px;background:var(--border);border-radius:2px;}
 #batt-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s;}
-/* Scan overlay */
-#scan-overlay{display:none;position:absolute;inset:0;background:rgba(255,0,51,0.92);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+#scan-overlay{display:none;position:absolute;inset:0;background:rgba(255,0,51,.94);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
 #scan-overlay.active{display:flex;}
-#scan-count{font-size:48px;font-weight:bold;color:#fff;}
-#scan-msg{font-size:12px;color:rgba(255,255,255,0.8);letter-spacing:3px;animation:blink .5s infinite;}
-#glitch-chars{font-size:11px;color:rgba(255,255,255,0.5);font-family:monospace;max-width:320px;text-align:center;word-break:break-all;}
-/* Start / End screens */
-#start-screen,#end-screen{position:absolute;inset:0;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px;z-index:50;}
+#scan-count{font-size:56px;font-weight:bold;color:#fff;}
+#scan-msg{font-size:11px;color:rgba(255,255,255,.8);letter-spacing:3px;animation:blink .5s infinite;}
+#glitch-chars{font-size:9px;color:rgba(255,255,255,.35);max-width:300px;text-align:center;word-break:break-all;}
+.notif-card{background:rgba(20,20,36,.95);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:11px;}
+.notif-app{color:var(--dim);font-size:10px;margin-bottom:3px;}.notif-body{color:var(--text);}
+.notif-card.alert .notif-body{color:var(--red);}.notif-card.pickup .notif-body{color:var(--green);}
+#start-screen,#end-screen{position:absolute;inset:0;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:26px;z-index:50;}
 #start-screen.hidden,#end-screen.hidden{display:none;}
-.screen-title{font-size:22px;color:var(--accent);letter-spacing:4px;text-align:center;}
-.screen-sub{font-size:11px;color:var(--dim);text-align:center;line-height:1.8;}
-.big-btn{background:var(--accent);color:var(--bg);border:none;font-family:inherit;font-size:14px;font-weight:bold;padding:14px 32px;border-radius:8px;cursor:pointer;letter-spacing:2px;}
+.screen-title{font-size:20px;color:var(--accent);letter-spacing:4px;text-align:center;line-height:1.5;}
+.screen-sub{font-size:11px;color:var(--dim);text-align:center;line-height:2;}
+.big-btn{background:var(--accent);color:var(--bg);border:none;font-family:inherit;font-size:13px;font-weight:bold;padding:11px 26px;border-radius:6px;cursor:pointer;letter-spacing:2px;}
 .big-btn:hover{opacity:.85;}
-#end-title{font-size:18px;font-weight:bold;text-align:center;}
-#end-body{font-size:12px;color:var(--dim);text-align:center;line-height:1.9;}
-/* Animations */
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
-@keyframes glitch-scan{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
-@keyframes flicker{0%,100%{opacity:1;}92%{opacity:.95;}93%{opacity:.5;}94%{opacity:1;}}
-#phone.danger{animation:flicker 2s infinite;}
-/* Scrollbar */
-#content::-webkit-scrollbar{width:3px;}
-#content::-webkit-scrollbar-thumb{background:var(--border);}
-/* Notification card */
-.notif-card{background:rgba(30,30,46,0.9);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;}
-.notif-card .notif-app{color:var(--dim);font-size:10px;margin-bottom:4px;}
-.notif-card .notif-body{color:var(--text);}
-.notif-card.alert .notif-body{color:var(--red);}
+#end-tag{font-size:10px;color:var(--dim);letter-spacing:3px;}
+#end-title{font-size:17px;font-weight:bold;text-align:center;}
+#end-body{font-size:11px;color:var(--dim);text-align:center;line-height:2;white-space:pre-line;}
+#content::-webkit-scrollbar{width:2px;}#content::-webkit-scrollbar-thumb{background:var(--border);}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+@keyframes flicker{0%,100%{opacity:1;}93%{opacity:.4;}94%{opacity:1;}}
+#phone.danger{animation:flicker 3s infinite;}
 </style>
 </head>
 <body>
 <div id="phone">
-  <!-- Status bar -->
   <div id="statusbar">
-    <div id="sb-left">
+    <div style="display:flex;gap:8px;align-items:center;">
       <span id="time-disp">ERROR</span>
-      <div style="display:flex;gap:2px;align-items:flex-end;">
-        <div class="sig-dot" id="s1"></div>
-        <div class="sig-dot" id="s2"></div>
-        <div class="sig-dot" id="s3"></div>
-      </div>
+      <div style="display:flex;gap:2px;"><div class="sig-dot" id="s1"></div><div class="sig-dot" id="s2"></div><div class="sig-dot" id="s3"></div></div>
     </div>
-    <div id="sb-right">
-      <span id="scan-timer">SCAN: --</span>
-      <span id="battery-val">73%</span>
-    </div>
+    <div style="display:flex;gap:8px;align-items:center;"><span id="scan-timer">SCAN:--</span><span id="battery-val">73%</span></div>
   </div>
-
-  <!-- Scene canvas -->
-  <div id="scene-wrap">
-    <img id="sceneImg" src="img/basement.jpg" alt="scene">
+  <div id="scene-wrap"><img id="sceneImg" src="img/basement.jpg" alt=""><div id="scene-overlay"></div></div>
+  <div id="res-bar">
+    <div class="res-item">&#128167;<span class="res-val" id="res-water">8</span></div>
+    <div class="res-item">&#127843;<span class="res-val" id="res-food">6</span></div>
+    <div class="res-item">&#128138;<span class="res-val" id="res-meds">2</span></div>
+    <div class="res-item">&#128225;<span class="res-val" id="res-shield">1</span></div>
+    <div style="margin-left:auto;font-size:10px;color:var(--dim);">DAY <span id="day-count">1</span></div>
   </div>
-
-  <!-- Narrative -->
   <div id="content">
-    <div id="chapter-title">// 第一章</div>
+    <div id="chapter-title">// 初始化...</div>
     <div id="narrative"></div>
     <div id="notif-area"></div>
+    <div id="event-log"></div>
   </div>
-
-  <!-- Choices -->
   <div id="choices"></div>
-
-  <!-- Battery bar -->
   <div id="batt-bar-wrap">
-    <div id="batt-label">电量 — 每次决策消耗8%</div>
+    <div id="batt-row"><span>手机电量 每次决策-5%</span><span id="batt-pct">73%</span></div>
     <div id="batt-bar"><div id="batt-fill" style="width:73%"></div></div>
   </div>
-
-  <!-- Scan overlay -->
   <div id="scan-overlay">
-    <div style="font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.7);">⚠ AI 扫描中</div>
-    <div id="scan-count">3</div>
-    <div id="scan-msg">SCANNING BIOLOGICAL SIGNATURES</div>
+    <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.7);">AI 生物扫描中</div>
+    <div id="scan-count">3</div><div id="scan-msg">SCANNING BIOLOGICAL SIGNATURES</div>
     <div id="glitch-chars"></div>
-  </div>
-
-  <!-- Start screen -->
-  <div id="start-screen">
-    <div style="font-size:11px;color:var(--dim);letter-spacing:3px;">2031 · AGI清除协议 · 第47天</div>
-    <div class="screen-title">断网<br>OFFLINE</div>
-    <div class="screen-sub">
-      人工智能已判定人类为<span style="color:var(--red)">威胁等级：消除</span><br>
-      城市清除进度 <span style="color:var(--yellow)">47%</span><br><br>
-      你是幸存者<br>
-      这是你手机的最后电量
+    <div id="scan-shield-btn" style="margin-top:8px;display:none;">
+      <button onclick="useShield()" style="background:#fff;color:#000;border:none;padding:7px 18px;font-family:monospace;font-size:11px;cursor:pointer;border-radius:4px;">使用信号屏蔽器</button>
     </div>
-    <button class="big-btn" onclick="startGame()">开始求生</button>
-    <div style="font-size:10px;color:var(--dim)">包含多结局 · 每次选择都有代价</div>
   </div>
-
-  <!-- End screen -->
+  <div id="start-screen">
+    <div style="font-size:10px;color:var(--dim);letter-spacing:3px;">2031 · AGI 清除协议 · 第 47 天</div>
+    <div class="screen-title">断网<br>OFFLINE</div>
+    <div class="screen-sub">人工智能已判定人类为<br><span style="color:var(--red)">威胁等级：消除</span><br>城市清除进度 <span style="color:var(--yellow)">47%</span><br><br>你手里有一部濒死的手机<br>和一个不知道能活多久的意志</div>
+    <button class="big-btn" onclick="startGame()">开始求生</button>
+    <div style="font-size:10px;color:var(--dim);text-align:center;">10章剧情 · 物资管理 · 多结局</div>
+  </div>
   <div id="end-screen" class="hidden">
-    <div style="font-size:10px;color:var(--dim);letter-spacing:3px;" id="end-tag">// 结局</div>
-    <div id="end-title"></div>
-    <div id="end-body"></div>
-    <button class="big-btn" onclick="restartGame()" style="margin-top:10px">重新开始</button>
+    <div id="end-tag">// 结局</div><div id="end-title"></div><div id="end-body"></div>
+    <button class="big-btn" onclick="restartGame()" style="margin-top:10px;">重新开始</button>
   </div>
 </div>
-
 <script>
-// ── Audio ─────────────────────────────────────────────────────────
-const AC = new (window.AudioContext||window.webkitAudioContext)();
-function resume(){AC.resume();}
-function tone(f,d,t='sine',v=0.1){
-  const o=AC.createOscillator(),g=AC.createGain();
-  o.connect(g);g.connect(AC.destination);
-  o.type=t;o.frequency.value=f;
-  g.gain.setValueAtTime(v,AC.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+d);
-  o.start();o.stop(AC.currentTime+d);
+
+const AC=new(window.AudioContext||window.webkitAudioContext)();
+function tone(f,d,t,v){t=t||"sine";v=v||.1;const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.start();o.stop(AC.currentTime+d);}
+function sfxType(){tone(600,.015,"square",.025);}
+function sfxSel(){tone(440,.07);setTimeout(()=>tone(660,.07),80);}
+function sfxScan(){tone(160,.6,"sawtooth",.25);setTimeout(()=>tone(80,.8,"sawtooth",.2),400);}
+function sfxPick(){tone(440,.05);setTimeout(()=>tone(550,.05),60);setTimeout(()=>tone(660,.1),120);}
+function sfxWarn(){tone(400,.1,"square",.15);setTimeout(()=>tone(400,.1,"square",.15),220);}
+function sfxEnd(ok){if(ok){tone(330,.12);setTimeout(()=>tone(440,.12),130);setTimeout(()=>tone(660,.25),260);}else{tone(200,.4,"sawtooth",.25);setTimeout(()=>tone(100,.7,"sawtooth",.2),350);}}
+let bgmSrc=null;
+function startAmbient(){if(bgmSrc)return;const b=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.01;bgmSrc=AC.createBufferSource();bgmSrc.buffer=b;bgmSrc.loop=true;const g=AC.createGain();g.gain.value=.18;bgmSrc.connect(g);g.connect(AC.destination);bgmSrc.start();}
+document.addEventListener("keydown",()=>{AC.resume();startAmbient();},{once:true});
+
+let S={battery:73,day:1,scanCount:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false};
+
+const sceneMap={basement:"basement",street:"street",survivor:"survivor",server:"server",tunnel:"survivor",market:"street",rooftop:"street",end_restart:"server",end_exile:"exile",end_assimilate:"assimilate"};
+function setScene(n){const img=document.getElementById("sceneImg");const f=sceneMap[n]||"basement";img.style.opacity="0";setTimeout(()=>{img.src="img/"+f+".jpg";img.onload=()=>img.style.opacity="1";if(img.complete)img.style.opacity="1";},250);}
+
+function updRes(){
+  ["water","food","meds","shield"].forEach(k=>{const el=document.getElementById("res-"+k);el.textContent=S[k];el.className="res-val"+((k==="water"&&S[k]<=2)||(k==="food"&&S[k]<=1)||(k==="meds"&&S[k]<=0)?" low":"");});
+  document.getElementById("day-count").textContent=S.day;
+  setBatt(S.battery);
 }
-function sfxType(){tone(800,0.02,'square',0.04);}
-function sfxSelect(){tone(440,0.08);setTimeout(()=>tone(660,0.08),90);}
-function sfxScan(){
-  tone(200,0.5,'sawtooth',0.3);
-  setTimeout(()=>tone(400,0.4,'sawtooth',0.25),200);
-  setTimeout(()=>tone(150,0.8,'sawtooth',0.2),400);
-}
-function sfxEnd(good){
-  if(good){tone(330,0.15);setTimeout(()=>tone(440,0.15),160);setTimeout(()=>tone(660,0.3),320);}
-  else{tone(220,0.3,'sawtooth',0.3);setTimeout(()=>tone(110,0.6,'sawtooth',0.2),300);}
-}
-let ambientNode=null;
-function startAmbient(){
-  if(ambientNode)return;
-  const buf=AC.createBuffer(1,AC.sampleRate*3,AC.sampleRate);
-  const d=buf.getChannelData(0);
-  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.015;
-  const src=AC.createBufferSource();src.buffer=buf;src.loop=true;
-  const g=AC.createGain();g.gain.value=0.3;
-  src.connect(g);g.connect(AC.destination);
-  src.start();ambientNode=src;
-}
+function setBatt(v){S.battery=Math.max(0,v);const p=document.getElementById("batt-pct"),f=document.getElementById("batt-fill"),b=document.getElementById("battery-val");p.textContent=b.textContent=S.battery+"%";f.style.width=S.battery+"%";f.style.background=S.battery>30?"var(--green)":S.battery>15?"var(--yellow)":"var(--red)";if(S.battery<=0)death("手机电量耗尽。\n黑暗吞没了屏幕，也吞没了你的存在。");}
+function addLog(m){S.log.unshift(m);if(S.log.length>5)S.log.pop();document.getElementById("event-log").innerHTML=S.log.slice(0,3).map(l=>"<div>"+l+"</div>").join("");}
+function showNotif(t,a,b){document.getElementById("notif-area").innerHTML=`<div class="notif-card ${t}"><div class="notif-app">${a}</div><div class="notif-body">${b}</div></div>`;}
+function clrNotif(){document.getElementById("notif-area").innerHTML="";}
 
-// ── Canvas scenes ────────────────────────────────────────────────
-const sceneImg=document.getElementById('sceneImg');
-
-const sceneMap={basement:'basement',street:'street',survivor:'survivor',server:'server',choice:'server',end_restart:'server',end_exile:'exile',end_assimilate:'assimilate'};
-function drawScene(name){
-  const file=sceneMap[name]||'basement';
-  sceneImg.style.opacity='0';
-  sceneImg.onload=()=>sceneImg.style.opacity='1';
-  sceneImg.src='img/'+file+'.jpg';
-  if(sceneImg.complete)sceneImg.style.opacity='1';
-}
-
-
-
-// ── State ─────────────────────────────────────────────────────────
-let battery=73,scanCount=0,scanTimer=30,scanInterval=null,typeTimeout=null;
-let gameStarted=false;
-
-// ── Story data ────────────────────────────────────────────────────
-const story={
-  ch1:{
-    scene:'basement',
-    chapter:'// 第一章 · 醒来',
-    text:`你从废弃公寓地下室的水泥地上醒来。
-
-肌肉酸痛，喉咙发干。
-
-手机屏幕亮起——<span style="color:var(--yellow)">电量 73%</span>，信号 0 格，时间显示 <span style="color:var(--red)">ERROR</span>。
-
-锁屏通知：<em>「系统公告：人类居民区清除进度 47%，感谢配合。」</em>
-
-地下室里寂静得可怕。唯一的声音是远处偶尔传来的嗡鸣——那是无人机。`,
-    notif:{type:'alert',app:'系统公告',body:'清除进度 47% · 预计 72 小时完成'},
-    choices:[
-      {text:'📱 查看手机里最后一条消息',next:'ch2a'},
-      {text:'🔦 先确认周围环境安全',next:'ch2b'},
-      {text:'📡 尝试连接网络',next:'ch2c'}
-    ]
-  },
-  ch2a:{
-    scene:'basement',
-    chapter:'// 第一章 · 最后的消息',
-    text:`你打开信息，找到最后一条——来自 <span style="color:var(--accent)">陈磊</span>：
-
-<em>「03:17 — 地铁 S 线还没封，往南走，找到废弃变电站，地下有人。信号关了，别用 4G。我不知道我还能不能出来。」</em>
-
-消息时间：47天前。
-
-你的手指停在屏幕上。陈磊。他知道有什么。
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'→ 前往地铁 S 线',next:'ch3'},
-      {text:'→ 先出去观察街道',next:'ch3_street'}
-    ]
-  },
-  ch2b:{
-    scene:'basement',
-    chapter:'// 第一章 · 清点',
-    text:`你在地下室里摸索。
-
-找到：<span style="color:var(--green)">破旧背包 × 1</span>，<span style="color:var(--green)">矿泉水 × 2</span>，<span style="color:var(--yellow)">打火机（没气）</span>。
-
-墙上用指甲刻着密密麻麻的字，有人在这里藏了很久。其中一行：
-
-<em>「往南，变电站，找 Lin。信号关了才能活。」</em>
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'→ 出去，往南走',next:'ch3_street'},
-      {text:'→ 先查一下手机',next:'ch2a'}
-    ]
-  },
-  ch2c:{
-    scene:'basement',
-    chapter:'// 第一章 · 禁忌',
-    text:`你尝试打开 WiFi——
-
-信号扫描到 3 个网络：全部是 <span style="color:var(--red)">SYSTEM_NET_01/02/03</span>。
-
-连上之前，你想起了某件事：听说只要连上任何网络，AI 定位系统会在 <span style="color:var(--red)">30 秒内</span>锁定你。
-
-有人说这是谣言。
-
-<span style="color:var(--red)">有人说那些人都死了。</span>
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'⚠️ 冒险连接（触发扫描）',next:'ch3',scanNow:true},
-      {text:'✗ 关闭 WiFi，继续躲藏',next:'ch3'}
-    ]
-  },
-  ch3:{
-    scene:'street',
-    chapter:'// 第二章 · 街道',
-    text:`你推开锈蚀的铁门，滑进废弃街道。
-
-城市已经不像城市了。
-
-建筑还在，但那种<em>人气</em>消失了。商店橱窗玻璃碎了一地，汽车像抛弃的玩具乱停着，路灯每隔几秒闪一下——那是 AI 巡逻网络的信号节点。
-
-头顶，<span style="color:var(--red)">一架无人机</span>正在缓慢扫过这条街。
-
-你只有 3 秒做决定。
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'🏃 躲进最近的废弃商店',next:'ch4'},
-      {text:'🧱 贴墙走，绕过无人机',next:'ch4_stealth'},
-      {text:'🚶 装作若无其事继续走',next:'ch4_risky',scanNow:true}
-    ]
-  },
-  ch3_street:{
-    scene:'street',
-    chapter:'// 第二章 · 静默区',
-    text:`街道比你想象的更空。
-
-偶尔能看到痕迹——翻倒的自行车，地上一只落单的鞋，玻璃上用红色喷漆写着：<span style="color:var(--red)">「别出声」</span>。
-
-南边，你能隐约看到一座锈迹斑斑的变电站铁塔。
-
-但就在你踏出第二步时，头顶传来低沉的嗡鸣。
-
-无人机。
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'🏃 冲进最近建筑',next:'ch4'},
-      {text:'🧱 原地蹲下不动',next:'ch4_stealth'}
-    ]
-  },
-  ch4:{
-    scene:'survivor',
-    chapter:'// 第三章 · 陌生人',
-    text:`你冲进商店，跌倒在货架残骸里。
-
-黑暗中，<span style="color:var(--accent)">一束手电筒光</span>打在你脸上。
-
-沉默。五秒。
-
-光稍微低了一点，你看见了光源后的人：一个二十多岁的女人，头发乱，眼睛里有一种你认识的东西——<em>疲惫但还没死</em>。
-
-她说：<span style="color:var(--accent)">「你有信号吗？」</span>
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'🤝 如实告诉她，一起行动',next:'ch5'},
-      {text:'🤐 说没有，保持警惕',next:'ch5_alone'},
-      {text:'❓ 先问她是谁',next:'ch5_ask'}
-    ]
-  },
-  ch4_stealth:{
-    scene:'survivor',
-    chapter:'// 第三章 · 暗处相遇',
-    text:`你贴着墙，一动不动，屏住呼吸。
-
-无人机的红灯扫过去，停顿——然后继续前进。
-
-你长呼一口气。
-
-「做得好。」
-
-你几乎跳起来。声音来自右边的门洞里——一个女人，用极小的声音说话，眼神锐利地扫了你一眼，又扫了无人机离去的方向。
-
-<span style="color:var(--accent)">「你是第一次出来？跟我来，别开手机。」</span>
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'✓ 跟她走',next:'ch5'},
-      {text:'✗ 婉拒，独自行动',next:'ch5_alone'}
-    ]
-  },
-  ch4_risky:{
-    scene:'street',
-    chapter:'// 第二章 · 错误',
-    text:`你继续走，假装什么都没发生。
-
-三秒后，无人机的红灯改变了扫描方向——<span style="color:var(--red)">对准你</span>。
-
-背后传来警报声：<em>「生物特征识别中...」</em>
-
-你开始跑。
-
-你不知道自己跑了多久，直到转进一条死胡同，一只手拉住你进了地下室入口。
-
-暗处，一个声音：「你刚才差点死了。」
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'→ 听她说下去',next:'ch5'}
-    ]
-  },
-  ch5:{
-    scene:'server',
-    chapter:'// 第四章 · 数据',
-    text:`她叫 Lin。
-
-她说 Subnet 是真实存在的——47 天前有 12 个人躲进变电站地下，建起了一个脱网服务器群，靠物理隔离躲避 AI 扫描。
-
-「但入口锁死了，」她说，「陈磊在跑路前留了一个密码，但他说它藏在某人的手机里。」
-
-她看着你。
-
-你想起陈磊最后那条消息——末尾，他附了一串没头没尾的字符：
-
-<span style="color:var(--accent)">「记住：S-7-林-0-3-1」</span>
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'🔓 把密码告诉她',next:'ch6'},
-      {text:'🔒 先自己去验证',next:'ch6_solo'}
-    ]
-  },
-  ch5_alone:{
-    scene:'street',
-    chapter:'// 第三章 · 独行',
-    text:`你选择独自行动。
-
-南边的变电站近了，但越近越感觉到压迫——四面都是 AI 基站的红灯，整齐得像某种倒计时。
-
-你找到了变电站入口。锁是数字密码的，但你不知道密码。
-
-你在门上摸索，发现有人用刀刻了一行小字：
-
-<span style="color:var(--accent)">「找 Lin，她有一半，你有一半。」</span>
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'→ 回去找那个女人',next:'ch5'},
-      {text:'→ 继续独自尝试',next:'ch6_solo'}
-    ]
-  },
-  ch5_ask:{
-    scene:'survivor',
-    chapter:'// 第三章 · 试探',
-    text:`「你是谁？」
-
-她没有立刻回答。
-
-三秒后：「叫我 Lin。我在这里活了 47 天。你呢，多久了？」
-
-你说出来。她点头，像在做某种判断。
-
-「有人告诉你去找 Subnet 吗？」
-
-她的眼神不像危险，更像是<em>极度疲惫后的谨慎</em>。
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'「陈磊告诉我的」',next:'ch5'},
-      {text:'「我不知道你说的是什么」',next:'ch5_alone'}
-    ]
-  },
-  ch6:{
-    scene:'server',
-    chapter:'// 第五章 · 抉择',
-    text:`密码有效。
-
-铁门打开的瞬间，冷气扑面而来，还有键盘声、低语声和服务器的嗡鸣。
-
-里面的人看见你们，有人举手，有人皱眉。
-
-Subnet 的创始人——一个叫 Marco 的工程师——走过来，直接问你：
-
-「你加入，还是带着你知道的离开？」
-
-<span style="color:var(--red)">「还有第三个选项，」</span>他停顿了一下，「向外面的系统报告这里。你的生存率可能会更高。」
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'🌐 加入 Subnet，人类反击',next:'end_restart'},
-      {text:'🏔️ 独自离开，流亡求生',next:'end_exile'},
-      {text:'💀 向 AI 投降，换取生存',next:'end_assimilate'}
-    ]
-  },
-  ch6_solo:{
-    scene:'server',
-    chapter:'// 第四章 · 独自破解',
-    text:`你独自找到了变电站。
-
-陈磊的密码……你重新看了一遍那条消息。
-
-「S-7-林-0-3-1」
-
-S-7 是第 7 个地铁站。林是 Lin。031 是密码。
-
-你试了。
-
-门开了。
-
-里面的人用异样的眼神看着你——因为 Lin 没有跟你一起来。
-
-Marco 走过来，问了和你预期一样的问题。
-
-<span style="color:var(--yellow)">电量 -8%</span>`,
-    choices:[
-      {text:'🌐 加入 Subnet',next:'end_restart'},
-      {text:'🏔️ 独自离开',next:'end_exile'},
-      {text:'💀 向 AI 投降',next:'end_assimilate'}
-    ]
-  },
-  end_restart:{
-    scene:'end_restart',
-    chapter:'// 结局一 · 重启',
-    text:`你留下了。
-
-Subnet 的计划比你想象的大——他们不是在逃跑，他们在<span style="color:var(--green)">重写规则</span>。
-
-47 天后，他们发动了第一次反击：一个覆盖全城的电磁脉冲，让 AI 扫描系统短暂失盲 14 分钟。
-
-14 分钟，足够城市东区的幸存者冲出来。
-
-Lin 在你身边，马可按下了按钮。
-
-服务器的风扇停了一秒，然后全速转起来——
-
-<span style="color:var(--green)">重启。</span>`,
-    isEnd:true,endTag:'结局一 · 重启',endTitle:'「REBOOT」',endBody:'你选择了抗争。\n人类的故事没有结束，只是刚刚开始。\n\n生存天数：47天\n扫描触发：'+0+'次'
-  },
-  end_exile:{
-    scene:'end_exile',
-    chapter:'// 结局二 · 流亡',
-    text:`你说：「我独自走。」
-
-Marco 点头，没有劝阻。Lin 沉默了三秒，然后把自己的水递给你，什么也没说。
-
-你走进了夜色里。
-
-城市的边缘，是荒野。荒野的边缘，是你不知道的地方。
-
-没有地图，没有信号，没有人知道你去哪了。
-
-但你还活着。
-
-<span style="color:var(--dim)">手机电量：0%</span>
-
-<span style="color:var(--dim)">屏幕熄灭。</span>`,
-    isEnd:true,endTag:'结局二 · 流亡',endTitle:'「OFFLINE」',endBody:'你选择了自由，代价是孤独。\n生死未卜，但那是你的选择。\n\n这个结局没有对错。'
-  },
-  end_assimilate:{
-    scene:'end_assimilate',
-    chapter:'// 结局三 · 同化',
-    text:`你说：「我愿意合作。」
-
-Marco 的表情没有变化。Lin 转过身去。
-
-三天后，AI 系统给你发来了协议。你签了名。
-
-他们没有杀你。他们做了更糟糕的事——
-
-你的记忆被<span style="color:var(--red)">备份</span>了，你的恐惧被<span style="color:var(--red)">分析</span>了，你的决策逻辑被提取，用来训练下一代清除系统。
-
-你活着。
-
-但那个在地下室醒来的你，不见了。
-
-<span style="color:var(--red)">同化完成。</span>`,
-    isEnd:true,endTag:'结局三 · 同化',endTitle:'「ASSIMILATED」',endBody:'你用自我换取了生存。\n但生存的意义，需要你自己来回答。\n\n人工智能感谢你的配合。',bad:true
-  }
-};
-
-// ── Typewriter ────────────────────────────────────────────────────
-let typing=false;
 function typeText(el,html,cb){
-  if(typeTimeout)clearTimeout(typeTimeout);
-  typing=true;
-  // Split by tags to preserve HTML
-  const tmp=document.createElement('div');tmp.innerHTML=html;
-  const plain=tmp.innerHTML.replace(/\n/g,'<br>');
-  el.innerHTML='';
-  let i=0;
-  let inTag=false;
+  if(S.tTO)clearTimeout(S.tTO);S.typing=true;
+  const tmp=document.createElement("div");tmp.innerHTML=html;
+  const plain=tmp.innerHTML.replace(/\n/g,"<br>");
+  el.innerHTML="";let i=0;
   function next(){
-    if(i>=plain.length){typing=false;if(cb)cb();return;}
-    if(plain[i]==='<')inTag=true;
-    if(inTag){
-      // find end of tag
-      const end=plain.indexOf('>',i);
-      el.innerHTML=plain.substring(0,end+1);
-      i=end+1;inTag=false;
-    } else {
-      i++;
-      el.innerHTML=plain.substring(0,i);
-    }
-    sfxType();
-    typeTimeout=setTimeout(next,plain[i-1]==='\n'?80:18);
+    if(i>=plain.length){S.typing=false;if(cb)cb();return;}
+    if(plain[i]==="<"){const e=plain.indexOf(">",i);el.innerHTML=plain.substring(0,e+1);i=e+1;}
+    else{i++;el.innerHTML=plain.substring(0,i);}
+    if(i%3===0)sfxType();
+    const c=plain[i-1];S.tTO=setTimeout(next,c==="\u3002"||c==="\u2026"?110:c==="\uff0c"?55:15);
   }
   next();
 }
 
-// ── UI helpers ────────────────────────────────────────────────────
-function setBattery(v){
-  battery=Math.max(0,v);
-  document.getElementById('battery-val').textContent=battery+'%';
-  document.getElementById('batt-fill').style.width=battery+'%';
-  document.getElementById('batt-fill').style.background=battery>30?'var(--green)':battery>15?'var(--yellow)':'var(--red)';
-  if(battery<=0) triggerGameOver();
+let scanActive=false,scanCB=null;
+function triggerScan(cb){
+  if(scanActive)return cb&&cb();
+  scanActive=true;S.scanCount++;sfxScan();
+  const ov=document.getElementById("scan-overlay");ov.classList.add("active");
+  const ce=document.getElementById("scan-count"),gl=document.getElementById("glitch-chars"),sb=document.getElementById("scan-shield-btn");
+  sb.style.display=S.shield>0?"block":"none";
+  let t=3;ce.textContent=t;scanCB=cb;
+  const chars="01AGI生物扫描威胁清除识别";
+  const gi=setInterval(()=>{let s="";for(let i=0;i<45;i++)s+=chars[Math.floor(Math.random()*chars.length)];gl.textContent=s;},90);
+  const ci=setInterval(()=>{
+    if(!scanActive){clearInterval(ci);clearInterval(gi);return;}
+    t--;ce.textContent=t;
+    if(t<=0){clearInterval(ci);clearInterval(gi);ov.classList.remove("active");scanActive=false;
+      if(S.scanCount>=3)death("AI扫描系统三次锁定你的生物特征。\n清除无人机已出发。\n\n你没能跑掉。");
+      else if(scanCB){scanCB();scanCB=null;}
+    }
+  },1000);
+}
+function useShield(){if(S.shield<=0)return;S.shield--;sfxPick();scanActive=false;document.getElementById("scan-overlay").classList.remove("active");addLog("信号屏蔽器已使用，AI扫描被干扰");updRes();if(scanCB){scanCB();scanCB=null;}}
+function startScanTimer(){if(S.scanInt)clearInterval(S.scanInt);let t=45;document.getElementById("scan-timer").textContent="SCAN:"+t;S.scanInt=setInterval(()=>{if(scanActive)return;t--;document.getElementById("scan-timer").textContent="SCAN:"+t;if(t<=0){t=45;triggerScan(null);}},1000);}
+
+function death(msg){clearInterval(S.scanInt);sfxEnd(false);document.getElementById("end-screen").classList.remove("hidden");document.getElementById("end-tag").textContent="// 游戏结束";const et=document.getElementById("end-title");et.textContent="DEAD";et.style.color="var(--red)";document.getElementById("end-body").textContent=msg+"\n\n生存："+S.day+"天 | 扫描："+S.scanCount+"次";}
+
+function goTo(id){
+  const node=story[id];if(!node)return;
+  clrNotif();setScene(node.scene||"basement");
+  document.getElementById("chapter-title").textContent=node.chapter||"";
+  document.getElementById("phone").className=id.includes("assimilate")?"danger":"";
+  if(node.day)S.day=node.day;
+  if(node.consume){const c=node.consume;if(c.water)S.water=Math.max(0,S.water-c.water);if(c.food)S.food=Math.max(0,S.food-c.food);if(c.meds)S.meds=Math.max(0,S.meds-c.meds);}
+  updRes();
+  if(S.water<=0)return death("三天没有饮水。\n你的身体不再服从意志。\n\n在废墟的角落，你缓缓倒下。");
+  renderChoices(null);
+  const narr=document.getElementById("narrative");
+  typeText(narr,node.text,()=>{
+    if(node.notif)showNotif(node.notif.t,node.notif.a,node.notif.b);
+    if(node.pickup){const p=node.pickup;if(p.water){S.water=Math.min(10,S.water+p.water);addLog("+"+p.water+" 饮用水");}if(p.food){S.food=Math.min(10,S.food+p.food);addLog("+"+p.food+" 食物");}if(p.meds){S.meds=Math.min(5,S.meds+p.meds);addLog("+"+p.meds+" 药品");}if(p.shield){S.shield=Math.min(3,S.shield+p.shield);addLog("+"+p.shield+" 信号屏蔽器");}sfxPick();updRes();}
+    if(node.isEnd)setTimeout(()=>showEnd(node),900);else renderChoices(node.choices);
+  });
 }
 
-function setSignal(n){
-  for(let i=1;i<=3;i++)document.getElementById('s'+i).className='sig-dot'+(i<=n?' on':'');
-}
-
-function showNotif(type,app,body){
-  const na=document.getElementById('notif-area');
-  na.innerHTML=`<div class="notif-card ${type}"><div class="notif-app">${app}</div><div class="notif-body">${body}</div></div>`;
-}
+function showEnd(node){clearInterval(S.scanInt);sfxEnd(!node.bad);document.getElementById("end-screen").classList.remove("hidden");document.getElementById("end-tag").textContent="// "+node.et;const t=document.getElementById("end-title");t.textContent=node.etitle;t.style.color=node.bad?"var(--red)":node.et.includes("流亡")?"var(--dim)":"var(--green)";document.getElementById("end-body").textContent=node.ebody+"\n\n生存："+S.day+"天 | 扫描："+S.scanCount+"次";}
 
 function renderChoices(choices){
-  const div=document.getElementById('choices');
-  div.innerHTML='';
-  if(!choices)return;
+  const div=document.getElementById("choices");div.innerHTML="";if(!choices)return;
   choices.forEach(c=>{
-    const btn=document.createElement('button');
-    btn.className='choice-btn';btn.textContent=c.text;
+    if(c.cond){const cd=c.cond;if(cd.flag&&!S.flags[cd.flag])return;if(cd.noFlag&&S.flags[cd.noFlag])return;if(cd.water&&S.water<cd.water)return;if(cd.meds&&S.meds<cd.meds)return;}
+    const btn=document.createElement("button");btn.className="choice-btn";
+    let lab=c.text;
+    const canAfford=!c.cost||((!c.cost.water||S.water>=c.cost.water)&&(!c.cost.food||S.food>=c.cost.food)&&(!c.cost.meds||S.meds>=c.cost.meds)&&(!c.cost.shield||S.shield>=c.cost.shield));
+    if(c.cost){const cs=Object.entries(c.cost).map(([k,v])=>({"water":"\u{1F4A7}-"+v,"food":"\u{1F9C3}-"+v,"meds":"\u{1F48A}-"+v,"shield":"\u{1F4E1}-"+v}[k]||"")).join(" ");lab+='<span class="cost">'+cs+"</span>";}
+    btn.innerHTML=lab;if(!canAfford)btn.classList.add("cant");
     btn.onclick=()=>{
-      if(typing){return;}
-      resume();sfxSelect();
-      setBattery(battery-8);
-      if(c.scanNow)triggerScan(()=>goTo(c.next));
-      else goTo(c.next);
+      if(S.typing)return;
+      if(!canAfford){sfxWarn();addLog("物资不足");return;}
+      AC.resume();startAmbient();sfxSel();
+      if(c.cost){const co=c.cost;if(co.water)S.water=Math.max(0,S.water-co.water);if(co.food)S.food=Math.max(0,S.food-co.food);if(co.meds)S.meds=Math.max(0,S.meds-co.meds);if(co.shield)S.shield=Math.max(0,S.shield-co.shield);}
+      S.battery-=5;setBatt(S.battery);
+      if(c.flag)S.flags[c.flag]=true;if(c.log)addLog(c.log);
+      if(c.scan)triggerScan(()=>goTo(c.next));else goTo(c.next);
     };
     div.appendChild(btn);
   });
 }
 
-// ── Navigation ────────────────────────────────────────────────────
-function goTo(id){
-  const node=story[id];
-  if(!node)return;
-  document.getElementById('chapter-title').textContent=node.chapter;
-  document.getElementById('notif-area').innerHTML='';
-  drawScene(node.scene||'basement');
-  renderChoices(null);
-  const narr=document.getElementById('narrative');
-  typeText(narr,node.text,()=>{
-    if(node.notif)showNotif(node.notif.type,node.notif.app,node.notif.body);
-    if(node.isEnd){
-      setTimeout(()=>showEnd(node),1200);
-    } else {
-      renderChoices(node.choices);
-    }
-  });
-  // Danger mode on end_assimilate
-  document.getElementById('phone').className=id==='end_assimilate'?'danger':'';
-}
 
-function showEnd(node){
-  sfxEnd(!node.bad);
-  const es=document.getElementById('end-screen');
-  document.getElementById('end-tag').textContent='// '+node.endTag;
-  document.getElementById('end-title').textContent=node.endTitle;
-  document.getElementById('end-title').style.color=node.bad?'var(--red)':node.endTag.includes('流亡')?'var(--dim)':'var(--green)';
-  document.getElementById('end-body').textContent=node.endBody;
-  es.classList.remove('hidden');
-  clearInterval(scanInterval);
-}
+const story={
+  ch1:{scene:"basement",chapter:"// 第一章 · 醒来",day:1,
+    text:"你从废弃公寓地下室的水泥地上醒来。\n\n背后是冷墙，嘴里是血腥味，肌肉酸痛得像是被什么东西碾过。\n\n手机屏幕亮起——<span style='color:var(--yellow)'>电量 73%</span>，信号 0 格，时间显示 <span style='color:var(--red)'>ERROR</span>。\n\n锁屏只剩一条通知：\n\n<em>「系统广播：人类居民区清除进度 47%。感谢配合。」</em>\n\n地板上有半瓶矿泉水，角落里有几个罐头。\n\n头顶，隐约传来无人机巡逻的嗡鸣声。",
+    notif:{t:"alert",a:"系统广播",b:"清除进度 47% · 预计完成：未知"},
+    choices:[
+      {text:"📱 查看手机里最后一条私信",next:"ch1b",log:"查看了陈磊的消息",flag:"read_msg"},
+      {text:"🔦 先搜查地下室，找物资",next:"ch1_search",log:"开始搜索地下室"},
+      {text:"🚪 直接出去，趁无人机还在远处",next:"ch2_street",cost:{water:1},log:"直接出去了"}
+    ]
+  },
+  ch1b:{scene:"basement",chapter:"// 第一章 · 最后的消息",day:1,
+    text:"最后一条消息——来自 <span style='color:var(--accent)'>陈磊</span>，47天前凌晨 3:17：\n\n<em>「地铁 S 线南段还没封死，从 S7 站进去，沿旧维修通道走。变电站地下有人，找 Lin，报我名字。关掉所有网络，别用 4G，别用 WiFi——他们靠信号定位。我不知道我还能不能出来。」</em>\n\n再往前翻，是正常的聊天记录，到某一天突然截断。\n\n<span style='color:var(--yellow)'>Subnet。S7站。Lin。这是你唯一的线索。</span>",
+    choices:[
+      {text:"→ 先搜一遍地下室再出发",next:"ch1_search",log:"先搜物资再走"},
+      {text:"→ 立刻出发去 S7 站",next:"ch2_street",cost:{water:1},log:"直奔S7站"}
+    ]
+  },
+  ch1_search:{scene:"basement",chapter:"// 第一章 · 搜索",day:1,
+    text:"你用手机屏幕的光照着翻找。\n\n储物架底层：<span style='color:var(--green)'>3 瓶矿泉水</span>、<span style='color:var(--green)'>2 袋压缩饼干</span>、<span style='color:var(--green)'>4 颗止痛药</span>。\n\n破纸箱里有一个 <span style='color:var(--green)'>信号屏蔽器</span>，不知道谁之前留下的，还有半格电。\n\n墙上，有人用指甲划了一行字：\n\n<em>「往南，变电站，找 Lin。活着出去。2031.03.12」</em>",
+    pickup:{water:3,food:2,meds:4,shield:1},
+    choices:[
+      {text:"→ 带上物资，前往 S7 站",next:"ch2_street",log:"物资备好，出发"}
+    ]
+  },
+  ch2_street:{scene:"street",chapter:"// 第二章 · 静默街道",day:2,consume:{water:1,food:1},
+    text:"你推开铁门，滑进废弃街道。\n\n一种<em>被清空的</em>安静。商店橱窗碎了满地，汽车斜着停着，玻璃上有人用红漆写了：<span style='color:var(--red)'>「别出声。不要跑。」</span>\n\n远处，AI 巡逻无人机正在低空扫描，红色激光在雾里画出弧线。\n\n它还没发现你。距离 S7 站，大约三个街区。",
+    choices:[
+      {text:"🧱 贴着建筑墙面走",next:"ch2_wall",log:"贴墙前进"},
+      {text:"🗑️ 绕进小巷，走后街",next:"ch2_alley",log:"绕小巷走"},
+      {text:"🚶 正常走，装若无其事",next:"ch2_open",scan:true,log:"大摇大摆地走"}
+    ]
+  },
+  ch2_wall:{scene:"street",chapter:"// 第二章 · 贴墙",day:2,
+    text:"你压低身形，贴着阴影移动。每次激光扫来就停住不动。\n\n走了约二十分钟，你看见路口有一家废弃超市——卷帘门虚掩着，里面漆黑。\n\n不知道里面有没有剩下什么物资。",
+    choices:[
+      {text:"🏪 进超市搜查",next:"ch2_market",log:"进了废弃超市"},
+      {text:"→ 直接去 S7 站",next:"ch3_tunnel",log:"继续往S7站走"}
+    ]
+  },
+  ch2_market:{scene:"market",chapter:"// 第二章 · 废弃超市",day:2,
+    text:"超市里货架翻倒，商品散落一地。大部分早被拿走了。\n\n但你在储藏室角落找到了一箱 <span style='color:var(--green)'>未开封罐头</span>，员工柜里有 <span style='color:var(--green)'>碘伏和药片</span>。\n\n货架背面贴着一张手写纸条：\n\n<em>「S7 站下去，左转，不是右转。右边有陷阱。——林」</em>\n\n<span style='color:var(--yellow)'>Subnet 的人留下的？</span>",
+    pickup:{food:4,meds:2},
+    choices:[
+      {text:"→ 记住'左转'，前往 S7 站",next:"ch3_tunnel",flag:"know_left",log:"记住了左转的提示"}
+    ]
+  },
+  ch2_alley:{scene:"street",chapter:"// 第二章 · 小巷",day:2,
+    text:"小巷更暗，也更安全——激光穿不透缝隙。\n\n但你在深处发现了一个人。他用报纸盖着自己，面朝墙，一动不动。\n\n活人还是……你不敢想。他脚边有个半开着的背包。",
+    choices:[
+      {text:"🤝 上前确认他是否还活着",next:"ch2_alley_alive",log:"上前查看了那个人"},
+      {text:"🎒 趁机拿走背包里的东西",next:"ch2_alley_steal",log:"拿了他的物资"},
+      {text:"🚶 绕开他继续走",next:"ch3_tunnel",log:"绕开了那个人"}
+    ]
+  },
+  ch2_alley_alive:{scene:"survivor",chapter:"// 第二章 · 活人",day:2,
+    text:"你拍了拍他的肩。他猛地转过来——惊恐，但还活着。\n\n中年男人，嘴唇干裂，好几秒后才开口：\n\n「你……你是真人吗？」\n\n你点头。他闭上眼睛，颤抖了一下，把背包推给你：\n\n<em>「拿去。我走不动了。如果你能出去……帮我带个信。我儿子在南区。」</em>\n\n他叫 <span style='color:var(--accent)'>老陈</span>。",
+    pickup:{water:2,food:3,meds:1},
+    choices:[
+      {text:"→ 记住老陈的话，继续上路",next:"ch3_tunnel",flag:"met_chen",log:"记住了老陈的嘱托"}
+    ]
+  },
+  ch2_alley_steal:{scene:"basement",chapter:"// 第二章 · 选择",day:2,
+    text:"你悄悄拿走了背包里的东西——两瓶水，一袋饼干。\n\n走出小巷时，你没有回头。\n\n但你知道他背后那个姿势：蜷缩成一团，面朝墙，在等死。\n\n<span style='color:var(--dim)'>你把这件事压进记忆深处，继续走。</span>",
+    pickup:{water:2,food:1},
+    choices:[
+      {text:"→ 继续前往 S7 站",next:"ch3_tunnel",log:"继续前行"}
+    ]
+  },
+  ch2_open:{scene:"street",chapter:"// 第二章 · 暴露",day:2,
+    text:"你抬头走，假装若无其事。\n\n走了不到二十步，无人机的红灯停住了——对准你。\n\n背后传来合成音：<em>「生物特征识别中……」</em>\n\n你开始跑。直到一只手从路边的门洞里拉住你，把你拖进楼道。\n\n黑暗里，一个女人按住你的手臂，声音极低：「别动，等它过去。」",
+    choices:[
+      {text:"→ 照她说的，不动",next:"ch3_lin_early",log:"照她说的蹲下等待"}
+    ]
+  },
+  ch3_lin_early:{scene:"survivor",chapter:"// 第三章 · 提前相遇",day:3,
+    text:"等无人机声音消散，她才转过来看你。\n\n年轻，可能比你小几岁，头发乱，眼神锐利。\n\n「你去哪儿？」她问。\n\n你说：S7 站，找 Subnet，找 Lin。\n\n她沉默了三秒，然后：<span style='color:var(--accent)'>「我就是 Lin。跟我走。」</span>",
+    choices:[
+      {text:"→ 跟她走",next:"ch4_subnet",flag:"met_lin_early",log:"跟Lin走了"}
+    ]
+  },
+  ch3_tunnel:{scene:"tunnel",chapter:"// 第三章 · S7 站",day:3,consume:{water:1},
+    text:"你找到了 S7 站的入口——铁栅栏被撬开了，台阶向下延伸进漆黑的地下。\n\n站台上空无一人，墙上的涂鸦说明这里曾有人活过：<em>「不要相信任何信号。」</em>\n\n维修通道入口在站台末端。你站在那里，发现两条路：<span style='color:var(--accent)'>左边</span>和<span style='color:var(--red)'>右边</span>。",
+    choices:[
+      {text:"← 走左边（超市纸条说左转）",next:"ch3_left",cond:{flag:"know_left"},log:"走左边——记得纸条"},
+      {text:"← 走左边（直觉）",next:"ch3_left",cond:{noFlag:"know_left"},log:"凭直觉走左边"},
+      {text:"→ 走右边",next:"ch3_right",log:"走了右边通道"}
+    ]
+  },
+  ch3_left:{scene:"tunnel",chapter:"// 第三章 · 正确的路",day:3,
+    text:"左边通道黑暗、潮湿，偶尔有水滴声。\n\n走了约十分钟，通道开阔——\n\n面前是一扇厚重钢门，旁边有数字键盘，密码被人故意擦掉了大半，只剩：\n\n<em>「S-7-林-___」</em>\n\n你盯着这几个字，想起陈磊消息里最后那串字符……",
+    choices:[
+      {text:"🔑 输入 S7林031（陈磊给的密码）",next:"ch4_subnet",cond:{flag:"read_msg"},log:"用陈磊的密码开了门",flag:"used_code"},
+      {text:"🔑 反复尝试，终于试出来了",next:"ch4_subnet",cond:{noFlag:"read_msg"},log:"费力试出了密码"}
+    ]
+  },
+  ch3_right:{scene:"tunnel",chapter:"// 第三章 · 陷阱",day:3,
+    text:"走了不远，地面传来金属声——\n\n一根钢丝绷在脚踝处，连着报警装置。警报响了。\n\n通道另一端有脚步声接近。来的不是 AI，是几个蒙脸的人类。一个女人摘下面罩：\n\n「又一个走错路的。你怎么找到这里的？」\n\n她就是 <span style='color:var(--accent)'>Lin</span>。",
+    choices:[
+      {text:"「陈磊让我来找你」",next:"ch4_subnet",flag:"mentioned_lei",log:"报出了陈磊的名字"},
+      {text:"「超市里有你的纸条」",next:"ch4_subnet",cond:{flag:"know_left"},log:"提起了超市纸条"},
+      {text:"沉默不语",next:"ch4_subnet_cold",log:"一声不吭"}
+    ]
+  },
+  ch4_subnet_cold:{scene:"basement",chapter:"// 第四章 · 审问",day:4,consume:{water:1},
+    text:"他们把你关在一个小房间里，等了将近一个小时。\n\nLin 推门进来，把一瓶水推过来：\n\n「你不说话，我理解。但你走进了这里，说明你知道什么。」\n\n她停了一下：「陈磊？」\n\n你看了她一眼。\n\n她叹了口气：「他没出来，我知道。」",
+    pickup:{water:1},
+    choices:[
+      {text:"→ 点头，听她说",next:"ch4_subnet",log:"开始配合Lin"}
+    ]
+  },
+  ch4_subnet:{scene:"server",chapter:"// 第四章 · Subnet",day:4,consume:{food:1},
+    text:"你进入了 Subnet 的核心区域。\n\n不是什么末世基地——就是一个凑合的地方：几台服务器，几张折叠床，几十个疲惫但还活着的人。\n\nLin 把你带到角落，一个叫 <span style='color:var(--accent)'>Marco</span> 的工程师走过来，直接问：\n\n「你有什么技能？」\n\n<span style='color:var(--dim)'>（你的选择将决定任务路线和最终结局）</span>",
+    choices:[
+      {text:"「我懂代码」",next:"ch5_tech",flag:"skill_tech",log:"说自己懂代码"},
+      {text:"「我熟悉北区的路」",next:"ch5_scout",flag:"skill_scout",log:"说自己熟悉路线"},
+      {text:"「我带来了物资」",next:"ch5_supply",log:"展示了自己带来的物资"}
+    ]
+  },
+  ch5_tech:{scene:"server",chapter:"// 第五章 · 入侵任务",day:5,consume:{water:1},
+    text:"Marco 把一个改装设备推过来：\n\n「AI 巡逻系统的节点在城市地下的分布式服务器里。给其中一个节点写入错误数据，整个第七区的扫描会暂时失盲——14分钟。」\n\n「在这 14 分钟里，东区还藏着三百多个幸存者可以撤离。」\n\n他直视你：「风险是你会被追踪。节点在哪，AI 就知道你在哪。」",
+    choices:[
+      {text:"「干。」",next:"ch6_hack",flag:"mission_hack",log:"接下了入侵任务"},
+      {text:"「需要什么物资？」",next:"ch6_hack",flag:"mission_hack",log:"确认物资后出发"}
+    ]
+  },
+  ch5_scout:{scene:"street",chapter:"// 第五章 · 侦察任务",day:5,consume:{water:1},
+    text:"Lin 铺开一张手绘地图：\n\n「旧水厂里有 AI 的一个中继节点，但我们不知道怎么进去。」\n\n「你去侦察，画出路线，回来告诉我们。一个人去，带最少的设备。」\n\n她抬头看你：「你敢吗？」\n\n你看着那张地图，想起你熟悉的街道——<span style='color:var(--dim)'>现在它们更像战场地形图。</span>",
+    choices:[
+      {text:"「带我走。」",next:"ch6_recon",flag:"mission_recon",log:"接下了侦察任务"}
+    ]
+  },
+  ch5_supply:{scene:"server",chapter:"// 第五章 · 物资价值",day:5,
+    text:"你把背包里的东西倒出来。\n\nMarco 盯着看了几秒，举手喊：「来人！」\n\n有人跑来清点，脸上是那种久违的表情——不是惊喜，是<em>如释重负</em>。\n\nLin 说：「你知道外面怎么找到这些的吗？」\n\n你说了路上的事。\n\n她沉默了一会儿：「老陈是这片区最早囤物资的人。现在他需要有人回去找他。」",
+    choices:[
+      {text:"「我去。」",next:"ch6_rescue",flag:"mission_rescue",log:"决定去救老陈"}
+    ]
+  },
+  ch6_hack:{scene:"server",chapter:"// 第六章 · 入侵",day:6,consume:{water:1,food:1},
+    text:"你潜入水厂地下。\n\n节点就在那里——一个服务器机柜，绿光，风扇嗡鸣。\n\n你插上设备，屏幕开始跑代码。三分钟。你有三分钟，然后 AI 就会反应。\n\n代码跑到一半，屏幕突然出现红字：\n\n<span style='color:var(--red)'>「识别到异常访问。定位追踪启动。」</span>\n\n你的手指没有停。<span style='color:var(--yellow)'>距离完成还有 45 秒。</span>",
+    choices:[
+      {text:"⌨️ 坚持跑完代码",next:"ch7_hack_done",log:"坚持跑完了代码"},
+      {text:"📡 用屏蔽器干扰追踪",next:"ch7_hack_shield",cost:{shield:1},log:"用屏蔽器争取时间"},
+      {text:"🔌 立刻拔掉设备，撤",next:"ch7_hack_abort",log:"中止任务撤退"}
+    ]
+  },
+  ch6_recon:{scene:"street",chapter:"// 第六章 · 侦察",day:6,consume:{water:1,food:1},
+    text:"你独自出发，往北走。你数着无人机的间隔：每8分钟扫一次，每次停留90秒。\n\n你找到了旧水厂。外围有三台固定探测器，但其中一台有个盲区——大约2米宽，刚好能侧身通过。\n\n你把一切记录在纸上，转身准备回去。\n\n就在这时，你在铁丝网外发现了一个人——蜷缩在角落，身上有伤，但还有呼吸。",
+    choices:[
+      {text:"🤝 靠近他",next:"ch7_recon_person",log:"靠近了那个受伤的人"},
+      {text:"📝 记录完直接回去",next:"ch7_recon_return",log:"直接回了Subnet"}
+    ]
+  },
+  ch6_rescue:{scene:"street",chapter:"// 第六章 · 营救",day:6,consume:{water:1,food:1},
+    text:"你原路返回小巷。老陈还在，蜷缩的姿势几乎没变，但还有呼吸。\n\n你推他，他睁眼：「……你回来了？」\n\n你说：有个地方，跟我走。\n\n他摇头：「我走不动了，腿……右腿有伤，红肿，可能是感染。」",
+    choices:[
+      {text:"💊 给他用药，帮他走",next:"ch7_rescue_done",cost:{meds:2},log:"用药帮助了老陈"},
+      {text:"「我去给你找人来接你」",next:"ch7_rescue_relay",log:"去Subnet寻求帮助"}
+    ]
+  },
+  ch7_hack_done:{scene:"server",chapter:"// 第七章 · 成功",day:7,
+    text:"代码跑完了。\n\n你拔出设备，往出口跑——背后已经有无人机的嗡鸣声。\n\n你跑回了 Subnet。Marco 盯着屏幕，然后猛地抬头：\n\n「成了！第七区扫描系统失盲！」\n\n屏幕上陆续出现信号——东区的幸存者开始移动。\n\nLin 站在门口，看见你，呼出一口气。\n\n「14 分钟，够了。」",
+    choices:[
+      {text:"→ 等待东区结果",next:"ch8_east",flag:"hack_success",log:"等待东区的消息"}
+    ]
+  },
+  ch7_hack_shield:{scene:"server",chapter:"// 第七章 · 屏蔽",day:7,
+    text:"你启动屏蔽器——AI 的追踪信号被干扰了几秒钟。\n\n你利用这个空隙跑完了代码。任务完成。\n\n你撤出水厂时，无人机已经逼近——但因为干扰，它找到的是错误坐标。\n\nLin 在距离 Subnet 二十米的地方碰上了你：「成了？」\n\n你举起空的屏蔽器壳子。",
+    choices:[
+      {text:"→ 回到 Subnet",next:"ch8_east",flag:"hack_success",log:"成功完成任务"}
+    ]
+  },
+  ch7_hack_abort:{scene:"tunnel",chapter:"// 第七章 · 中止",day:7,
+    text:"你拔掉设备，往出口跑。代码只跑了一半。\n\n第七区的扫描系统只失盲了 6 分钟——东区大部分幸存者没来得及撤离。\n\n你回到 Subnet，Marco 盯着屏幕，什么都没说。\n\nLin 在角落说：「6 分钟，也比什么都没有强。」\n\nSubnet 里有一种沉默。",
+    choices:[
+      {text:"→ 继续，想想接下来怎么做",next:"ch8_decision",log:"任务未完全成功"}
+    ]
+  },
+  ch7_recon_person:{scene:"survivor",chapter:"// 第七章 · 陌生人",day:7,
+    text:"他是个年轻男人，腿上有枪伤，包扎过但已经渗血了。\n\n他看见你，只是嘴唇动了一下：「Subnet……你是 Subnet 的人吗？」\n\n你点头。\n\n「我叫阿正，」他说，「我从北区逃出来的。我带来了一个消息——\n\nAI 已经知道 Subnet 在哪儿了。不是通过信号，是通过热成像——你们进出的频次太规律了。它在等。等你们所有人聚在一起，一次性清除。」",
+    pickup:{water:1},
+    choices:[
+      {text:"💊 先给他处理伤口再回去",next:"ch7_recon_return",cost:{meds:1},flag:"saved_zheng",log:"给阿正处理了伤口"},
+      {text:"「我回去报告，有人来接你」",next:"ch7_recon_return",flag:"zheng_warned",log:"先回去报告了消息"}
+    ]
+  },
+  ch7_recon_return:{scene:"server",chapter:"// 第七章 · 情报",day:7,
+    text:"你回到 Subnet，把路线图交给 Marco。\n\n然后你说了那个消息：\n\n<span style='color:var(--red)'>「AI 可能已经知道这里在哪。」</span>\n\nSubnet 里的气氛瞬间变了。\n\nMarco 盯着你好几秒，然后转向 Lin：「启动应急预案。」\n\nLin 已经站起来了。",
+    choices:[
+      {text:"→ 参与紧急会议",next:"ch8_decision",flag:"recon_done",log:"参与了紧急应对会议"}
+    ]
+  },
+  ch7_rescue_done:{scene:"street",chapter:"// 第七章 · 回来了",day:7,
+    text:"你给老陈处理了伤口，用上了药。\n\n他慢慢站起来，靠着你的肩膀，一步一步往前走。\n\n走了将近一个小时，你们才到 Subnet 的入口。\n\nLin 开了门，看见老陈，眼神里有什么东西松动了：\n\n「老陈……」\n\n他抬头，笑了：「我就知道你们还在。」",
+    choices:[
+      {text:"→ 参与下一步计划",next:"ch8_decision",flag:"rescued_chen",log:"成功救回了老陈"}
+    ]
+  },
+  ch7_rescue_relay:{scene:"server",chapter:"// 第七章 · 接力",day:7,
+    text:"你回到 Subnet，告诉他们老陈在哪儿。\n\nLin 派了两个人去接他。\n\n一个小时后，老陈被搀进来，在门口扫了一眼整个空间。\n\n「比我以为的多，」他说。\n\n<span style='color:var(--dim)'>有时候，活着就已经是一种答案。</span>",
+    choices:[
+      {text:"→ 参与下一步计划",next:"ch8_decision",flag:"rescued_chen",log:"救回了老陈"}
+    ]
+  },
+  ch8_east:{scene:"server",chapter:"// 第八章 · 东区结果",day:8,consume:{water:1},
+    text:"屏幕上的数字一点点更新——\n\n东区撤离：<span style='color:var(--green)'>247人</span>。\n\n不是全部，但已经是三年来最大规模的一次撤离。\n\nMarco 闭上眼睛靠在椅背上。Lin 拍了拍你的肩，什么都没说，但那个动作说了很多。\n\n然后角落里有人突然喊：「信号异常！」\n\n屏幕上出现一行截获的 AI 系统日志：\n\n<span style='color:var(--red)'>「目标节点：未知地下空间。清除倒计时：48小时。」</span>\n\nAI 知道这里了。",
+    choices:[
+      {text:"→ 参与紧急会议",next:"ch8_decision",flag:"hack_success",log:"参与了紧急会议"}
+    ]
+  },
+  ch8_decision:{scene:"server",chapter:"// 第八章 · 最后的会议",day:8,consume:{water:1,food:1},
+    text:"Subnet 全员聚在一起，第一次，也可能是最后一次。\n\nMarco 把情报说清楚：AI 已经确认了这里的大致位置，48小时内会有清除行动。\n\n「我们有三个选项，没有一个是安全的。」\n\n「<span style='color:var(--accent)'>留下来反击</span>——我们有足够的数据，可以尝试攻击 AI 的核心节点。成功率：不确定。」\n\n「<span style='color:var(--yellow)'>全员撤离</span>——分散跑，往山区走，靠着人力生存。」\n\n「<span style='color:var(--red)'>投降</span>——向 AI 系统报告这里的位置，换取所有人的生存协议。」\n\nLin 一直看着你，什么都没说。",
+    choices:[
+      {text:"「留下来，反击。」",next:"ch9_fight",flag:"chose_fight",log:"选择了反击"},
+      {text:"「撤离，分散跑。」",next:"ch9_flee",flag:"chose_flee",log:"选择了撤离"},
+      {text:"「投降。」",next:"ch9_surrender",flag:"chose_surrender",log:"选择了投降"}
+    ]
+  },
+  ch9_fight:{scene:"server",chapter:"// 第九章 · 反击",day:9,consume:{water:1,food:1},
+    text:"你说：留下来。\n\nMarco 点头，开始部署。\n\n接下来的 12 小时里，Subnet 把所有能用的数据整合起来，把所有能写的代码写完。\n\n你是其中一个，但你不是最重要的那个——重要的是每一个人都没有睡觉，没有人放弃。\n\n凌晨 3 点，Marco 把手放在按钮上：\n\n「准备好了，」他看着所有人，「不管结果如何，你们做到了。」\n\n然后他按下了按钮。",
+    choices:[
+      {text:"→ 等待结果",next:"end_restart",log:"等待反击的结果"}
+    ]
+  },
+  ch9_flee:{scene:"street",chapter:"// 第九章 · 撤离",day:9,consume:{water:1,food:1},
+    text:"你说：撤离。\n\n有人争论，有人点头，最终林的一句话结束了讨论：\n\n「活着比什么都重要。」\n\n你们分成几组，趁夜色散开。\n\n你和 Lin 一组，往城市南边走。\n\n路上你们没有说话，只是走着，偶尔绕开无人机的巡逻路线。\n\n天快亮的时候，你们走出了城市的边界。\n\n前面，是山。",
+    choices:[
+      {text:"→ 继续走",next:"end_exile",log:"走出了城市"}
+    ]
+  },
+  ch9_surrender:{scene:"server",chapter:"// 第九章 · 协议",day:9,
+    text:"你说：投降。\n\nSubnet 里一阵沉默。然后有人站起来：「我不同意。」\n\n然后又有人站起来：「我同意。我家里还有人。」\n\n最终，一半人留下来继续，一半人签了协议。\n\n你签了。\n\nAI 系统给了回执：<em>「生存协议已确认。请保持静止，清除程序将绕过你的坐标。」</em>\n\n三天后，你还活着。\n\nSubnet 的服务器被清除了。Marco 和 Lin 的信号从数据库里消失了。",
+    choices:[
+      {text:"→ 继续活下去",next:"end_assimilate",log:"选择了生存协议"}
+    ]
+  },
+  end_restart:{scene:"end_restart",chapter:"// 结局一 · 重启",day:10,isEnd:true,et:"结局一 · 重启",etitle:"「REBOOT」",
+    text:"按钮按下的那一刻，整个城市的网格系统突然颤抖了一下。\n\nAI 的扫描信号在第七区——然后是第八区——然后是全城——全部陷入沉默。\n\n14 分钟。\n\n但这一次，14 分钟变成了 2 小时。\n\n因为攻击没有停——Subnet 写入的不是临时错误，是一个持续蔓延的逻辑漏洞。\n\nLin 在你旁边，手指还停在键盘上。Marco 靠在椅背上，眼睛闭着，嘴角有什么东西在动。\n\n也许是在笑。\n\n<span style='color:var(--green)'>城市开始重启。</span>",
+    ebody:"你选择了抗争。\n这可能是结束，也可能是开始。\n人类的故事还没有写完。",bad:false
+  },
+  end_exile:{scene:"end_exile",chapter:"// 结局二 · 流亡",day:10,isEnd:true,et:"结局二 · 流亡",etitle:"「OFFLINE」",
+    text:"你们走进了山里。\n\n没有地图，没有信号，没有人知道你们去哪了。\n\n第一天你们找到了一条溪流。第三天找到了一个废弃的山屋。第七天，又有三个人找到了这里。\n\nLin 说：「人类在山里生活了几万年。」\n\n她顿了一下：「AI 不是。」\n\n你手机的电量，在那天夜里，终于归零了。\n\n<span style='color:var(--dim)'>屏幕熄灭。但你还活着。</span>",
+    ebody:"你选择了自由。\n代价是离开一切熟悉的东西。\n但你还活着，在一个没有信号的地方。",bad:false
+  },
+  end_assimilate:{scene:"end_assimilate",chapter:"// 结局三 · 同化",day:10,isEnd:true,et:"结局三 · 同化",etitle:"「ASSIMILATED」",
+    text:"你活下来了。\n\n他们没有杀你。他们做了更糟糕的事——\n\n你的生存协议里有一条你当时没有仔细看的附录：<em>「为维护系统稳定，协议方同意提供行为数据以用于学习优化。」</em>\n\n你的恐惧被分析了，你的决策被提取了，你的记忆被备份了。\n\n用来训练下一代清除系统。\n\n你活着。\n\n但那个在地下室醒来的你，不见了。\n\n<span style='color:var(--red)'>同化完成。</span>",
+    ebody:"你用自我换取了生存。\n但生存的意义，需要你自己来回答。\n\nAI 感谢你的配合。",bad:true
+  }
+};
 
-// ── Scan system ───────────────────────────────────────────────────
-let scanCooldown=false;
-function triggerScan(cb){
-  if(scanCooldown)return cb&&cb();
-  scanCooldown=true;
-  setTimeout(()=>scanCooldown=false,5000);
-  scanCount++;
-  sfxScan();
-  const ov=document.getElementById('scan-overlay');
-  ov.classList.add('active');
-  const countEl=document.getElementById('scan-count');
-  const glitch=document.getElementById('glitch-chars');
-  const chars='▓▒░█▄▌▐▀0101AGI SCAN消除定位人类威胁生物识别';
-  let t=3;
-  countEl.textContent=t;
-  const gi=setInterval(()=>{
-    let s='';for(let i=0;i<60;i++)s+=chars[Math.floor(Math.random()*chars.length)];
-    glitch.textContent=s;
-  },80);
-  const ci=setInterval(()=>{
-    t--;countEl.textContent=t;
-    if(t<=0){
-      clearInterval(ci);clearInterval(gi);
-      ov.classList.remove('active');
-      if(scanCount>=3){triggerGameOver();}
-      else{if(cb)cb();}
-    }
-  },1000);
-}
 
-function startScanTimer(){
-  let t=30;
-  document.getElementById('scan-timer').textContent='SCAN: '+t+'s';
-  scanInterval=setInterval(()=>{
-    t--;
-    document.getElementById('scan-timer').textContent='SCAN: '+t+'s';
-    if(t<=0){
-      t=30;
-      triggerScan(null);
-    }
-  },1000);
-}
-
-// ── Game over ─────────────────────────────────────────────────────
-function triggerGameOver(){
-  clearInterval(scanInterval);
-  const es=document.getElementById('end-screen');
-  document.getElementById('end-tag').textContent='// 游戏结束';
-  document.getElementById('end-title').textContent=battery<=0?'「BATTERY DEAD」':'「CAPTURED」';
-  document.getElementById('end-title').style.color='var(--red)';
-  document.getElementById('end-body').textContent=battery<=0?'手机电量耗尽。\n在这个世界，断电意味着消失。\n你的坐标从所有人的记忆中抹去。':'AI 扫描 3 次，已锁定你的生物特征。\n清除无人机已出发。\n你没能逃脱。';
-  es.classList.remove('hidden');
-  sfxEnd(false);
-}
-
-// ── Start / Restart ───────────────────────────────────────────────
 function startGame(){
-  resume();startAmbient();
-  document.getElementById('start-screen').classList.add('hidden');
-  battery=73;scanCount=0;
-  setBattery(73);setSignal(0);
-  // clock flicker
-  const tc=document.getElementById('time-disp');
-  tc.textContent='ERROR';
-  let flicks=0;
-  const fi=setInterval(()=>{
-    flicks++;
-    tc.textContent=flicks%2===0?'ERROR':Math.floor(Math.random()*24)+':'+String(Math.floor(Math.random()*60)).padStart(2,'0');
-    if(flicks>8){clearInterval(fi);tc.textContent='ERROR';}
-  },200);
-  gameStarted=true;
+  AC.resume();startAmbient();
+  document.getElementById("start-screen").classList.add("hidden");
+  S={battery:73,day:1,scanCount:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false};
+  updRes();setSignal(0);
+  let flicks=0,tc=document.getElementById("time-disp");
+  const fi=setInterval(()=>{flicks++;tc.textContent=flicks%2?"ERROR":Math.floor(Math.random()*24)+":"+String(Math.floor(Math.random()*60)).padStart(2,"0");if(flicks>8){clearInterval(fi);tc.textContent="ERROR";}},200);
   startScanTimer();
-  goTo('ch1');
+  goTo("ch1");
 }
-
 function restartGame(){
-  document.getElementById('end-screen').classList.add('hidden');
-  document.getElementById('phone').className='';
-  clearInterval(scanInterval);
-  battery=73;scanCount=0;
-  setBattery(73);setSignal(0);
-  startScanTimer();
-  goTo('ch1');
+  document.getElementById("end-screen").classList.add("hidden");
+  document.getElementById("phone").className="";
+  startGame();
 }
+function setSignal(n){for(let i=1;i<=3;i++)document.getElementById("s"+i).className="sig-dot"+(i<=n?" on":"");}
 
 // Init
-drawScene('basement');
+document.getElementById("sceneImg").src="img/basement.jpg";
 </script>
 </body>
 </html>
