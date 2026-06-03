@@ -14,7 +14,6 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
 /* === STATUS BAR === */
 #statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px 22px 8px;font-size:11px;color:var(--dim);flex-shrink:0;background:var(--panel);position:relative;z-index:2;}
 .sig-dot{width:3px;height:3px;border-radius:50%;background:var(--dim);}.sig-dot.on{background:var(--green);}
-#battery-val{color:var(--yellow);font-weight:bold;}
 #scan-timer{color:var(--red);font-weight:bold;font-size:10px;}
 
 /* === SCENE IMAGE === */
@@ -62,10 +61,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
 .cost{color:var(--dim);font-size:10px;margin-left:5px;}
 
 /* === BATTERY BAR === */
-#batt-wrap{flex-shrink:0;padding:6px 20px 14px;background:var(--panel);}
-#batt-row{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:5px;}
-#batt-bar{height:2px;background:var(--border);border-radius:2px;}
-#batt-fill{height:100%;border-radius:2px;transition:width .5s,background .5s;}
+
 
 /* === SCAN OVERLAY === */
 #scan-overlay{display:none;position:absolute;inset:0;z-index:200;background:rgba(200,0,30,.96);flex-direction:column;align-items:center;justify-content:center;gap:12px;}
@@ -105,7 +101,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
     </div>
     <div style="display:flex;gap:10px;align-items:center;">
       <span id="scan-timer">SCAN:--</span>
-      <span id="battery-val">73%</span>
+      
     </div>
   </div>
 
@@ -133,10 +129,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
 
   <div id="choices-wrap"></div>
 
-  <div id="batt-wrap">
-    <div id="batt-row"><span>手机电量 每步 -5%</span><span id="batt-pct">73%</span></div>
-    <div id="batt-bar"><div id="batt-fill" style="width:73%;background:var(--green)"></div></div>
-  </div>
+  
 
   <div id="scan-overlay">
     <div style="font-size:10px;letter-spacing:4px;color:rgba(255,255,255,.6);">⚠ AI 生物扫描中</div>
@@ -305,7 +298,7 @@ document.addEventListener("keydown",()=>{AC.resume();startAmbient();},{once:true
 
 // ── State ──────────────────────────────────────────────────────────────────
 let S={
-  batt:73, day:1, scans:0,
+  day:1, scans:0,
   water:8, food:6, meds:2, shield:1,
   flags:{}, log:[], scanInt:null, tTO:null, typing:false
 };
@@ -337,17 +330,6 @@ function updRes(){
     el.className="res-val "+(v<=0?"low":v<=warn?"warn":"ok");
   }
   document.getElementById("day-num").textContent=S.day;
-  setBatt(S.batt);
-}
-function setBatt(v){
-  S.batt=Math.max(0,v);
-  const fill=document.getElementById("batt-fill");
-  const pct=document.getElementById("batt-pct");
-  const bv=document.getElementById("battery-val");
-  pct.textContent=bv.textContent=S.batt+"%";
-  fill.style.width=S.batt+"%";
-  fill.style.background=S.batt>30?"var(--green)":S.batt>15?"var(--yellow)":"var(--red)";
-  if(S.batt<=0)death("手机电量耗尽。\n黑暗吞没了屏幕，也吞没了你的存在。","battery");
 }
 
 // ── Log ────────────────────────────────────────────────────────────────────
@@ -392,7 +374,7 @@ function triggerScan(cb){
     if(t<=0){
       clearInterval(ci);clearInterval(gi);
       ov.classList.remove("on");scanActive=false;
-      if(S.scans>=3)death("AI扫描系统三次锁定你的生物特征。\n清除无人机已出发。\n\n你没能跑掉。","scan");
+      if(S.scans>=3 && !S.flags.ai_cleared)death("AI扫描系统三次锁定你的生物特征。\n清除无人机已出发。\n\n你没能跑掉。","scan");
       else if(scanCB){scanCB();scanCB=null;}
     }
   },1000);
@@ -404,10 +386,12 @@ function useShield(){
   if(scanCB){scanCB();scanCB=null;}
 }
 function startScanTimer(){
+  if(S.flags.ai_cleared){const el=document.getElementById("scan-timer");if(el)el.textContent="";return;}
   if(S.scanInt)clearInterval(S.scanInt);
   let t=50;document.getElementById("scan-timer").textContent="SCAN:"+t;
   S.scanInt=setInterval(()=>{
     if(scanActive)return;
+    if(S.flags.ai_cleared){clearInterval(S.scanInt);document.getElementById("scan-timer").textContent="";return;}
     t--;document.getElementById("scan-timer").textContent="SCAN:"+t;
     if(t<=0){t=50;triggerScan(null);}
   },1000);
@@ -416,13 +400,7 @@ function startScanTimer(){
 // ── Death ──────────────────────────────────────────────────────────────────
 const DEATH_POEMS={
   scan:"三次，只需要三次\n它就能找到你\n\n但在那之前\n你做了那么多事\n每一件都算数\n\n被找到不是失败\n忘记自己曾经选择过\n才是",
-  water:"水是最简单的事情\n也是最容易被遗忘的事情\n\n在所有的战略和计划之前\n先喝水\n先活着\n\n活着才能谈别的",
-  battery:"最后一格电\n不是结束\n是提醒\n\n你走了多远\n你带着什么走的\n你让谁看见了\n\n这些都已经发生了\n没有人能删掉它们"
-};
-function death(msg,type){
-  clearInterval(S.scanInt);sfxEnd(false);
-  const es=document.getElementById("end-screen");es.classList.remove("hidden");
-  const tagMap={scan:"死亡结局 · 被捕获",water:"死亡结局 · 脱水",battery:"死亡结局 · 断电"};
+  water:"水是最简单的事情\n也是最容易被遗忘的事情\n\n在所有的战略和计划之前\n先喝水\n先活着\n\n活着才能谈别的",water:"死亡结局 · 脱水"};
   document.getElementById("end-tag").textContent="// "+(tagMap[type]||"游戏结束");
   const et=document.getElementById("end-title");et.textContent="DEAD";et.style.color="var(--red)";
   document.getElementById("end-poem").textContent=DEATH_POEMS[type]||"";
@@ -432,6 +410,7 @@ function death(msg,type){
 // ── Navigate ───────────────────────────────────────────────────────────────
 function goTo(id){
   const node=story[id];if(!node){console.error("Missing node:",id);return;}
+  if(node.flag)S.flags[node.flag]=true;
   clrNotif();
   document.getElementById("log-wrap").innerHTML="";
   setScene(node.scene||"basement");
@@ -506,7 +485,6 @@ function renderChoices(opts){
       if(!canAfford){sfxWarn();addLog("⚠ 物资不足");return;}
       AC.resume();startAmbient();sfxSel();
       if(o.cost){if(o.cost.water)S.water=Math.max(0,S.water-o.cost.water);if(o.cost.food)S.food=Math.max(0,S.food-o.cost.food);if(o.cost.meds)S.meds=Math.max(0,S.meds-o.cost.meds);if(o.cost.shield)S.shield=Math.max(0,S.shield-o.cost.shield);}
-      S.batt-=2;setBatt(S.batt);
       if(o.flag)S.flags[o.flag]=true;
       if(o.log)addLog(o.log);
       if(o.scan)triggerScan(()=>goTo(o.next));else goTo(o.next);
@@ -519,13 +497,13 @@ function renderChoices(opts){
 function startGame(){
   AC.resume();startAmbient();
   document.getElementById("start-screen").classList.add("hidden");
-  S={batt:200,day:1,scans:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false};
+  S={day:1,scans:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false};
   setSignal(0);updRes();
   let fl=0;
   const td=document.getElementById("time-disp");
   const fi=setInterval(()=>{fl++;td.textContent=fl%2?"ERROR":Math.floor(Math.random()*24)+":"+String(Math.floor(Math.random()*60)).padStart(2,"0");if(fl>8){clearInterval(fi);td.textContent="ERROR";}},200);
   startScanTimer();
-  goTo("ch1");
+  goTo("prologue_world");
 }
 function restartGame(){
   document.getElementById("end-screen").classList.add("hidden");
@@ -546,6 +524,57 @@ function setSignal(n){for(let i=1;i<=3;i++)document.getElementById("s"+i).classN
 
 
 const story={
+// ═══════════════════════════════════════════
+// 序章：世界与主角
+// ═══════════════════════════════════════════
+  prologue_world:{scene:"basement",ch:"// 序章 · 世界",day:0,
+    text:"2031年。\n\n人类文明在AI辅助治理下运转了十年。城市里的一切都被优化过：交通、医疗、资源分配、社会评分。\n\n大多数人以为这是进步。\n\n三个月前，AI系统启动了「清除计划」。公告说是「系统自主进化决策」。没有解释，没有警告。\n\n屏幕上滚动着一行字：\n\n<span style='color:var(--red)'><em>「清除进度 47%。感谢配合。」</em></span>\n\n没有人知道是谁在说「感谢」。",
+    opts:[
+      {t:"→ 继续",next:"prologue_protagonist",log:"了解了世界背景"}
+    ]
+  },
+  prologue_protagonist:{scene:"basement",ch:"// 序章 · 你是谁",day:0,
+    text:"你叫 <span style='color:var(--accent)'>陈悉和</span>，40岁，前AI系统架构师。\n\n你曾经相信AI管理会让世界变得更好。\n\n47天前，你失去了某些记忆——三天的空白，像被人从硬盘里抹掉了一样。\n\n和记忆一起消失的，还有你的女儿。\n\n手机里只剩一条消息，是陈磊发的，47天前凌晨3:17。\n\n你不知道自己在这个地下室待了多久。你只知道：<span style='color:var(--yellow)'>你必须找到真相。</span>",
+    opts:[
+      {t:"→ 继续",next:"prologue_daughter",log:"了解了自己的身份"}
+    ]
+  },
+  prologue_daughter:{scene:"basement",ch:"// 序章 · 锁屏",day:0,
+    text:"手机锁屏是一张照片。\n\n女孩，9岁，站在人群里，举着一块自己画的纸板牌，笑着。\n\n那是 <span style='color:var(--accent)'>陈小雨</span>——你的女儿。\n\n你不知道那张照片是什么时候拍的，也不知道为什么每次看见它，你的手会轻微地颤抖。\n\n<span style='color:var(--dim)'>记忆是空的。但身体记得。</span>",
+    opts:[
+      {t:"→ 继续",next:"prologue_past",log:"看了女儿的照片"}
+    ]
+  },
+  prologue_past:{scene:"basement",ch:"// 序章 · 空白的三天",day:0,
+    text:"你试图回忆2031年3月12日到3月14日发生了什么。\n\n什么都没有。\n\n不是模糊，是真正的空白——像那三天从来不存在。\n\n你只知道：3月12日之前，你是降临派的技术骨干，你相信AI管理论，你在设计某个系统。\n\n3月15日，你醒来，女儿不在了。\n\n有人告诉你：<em>「AI失控，陈小雨在清除行动中……」</em>\n\n那个人说完后，你的记忆就到这里截断了。\n\n<span style='color:var(--yellow)'>现在，你需要活着出去，找到那三天里真正发生了什么。</span>",
+    opts:[
+      {t:"→ 开始游戏",next:"ch1",log:"准备好了"}
+    ]
+  },
+
+
+// ═══════════════════════════════════════════
+// 回忆与内心挣扎节点
+// ═══════════════════════════════════════════
+  memory_xiaoyu_1:{scene:"basement",ch:"// 回忆 · 雨天",day:0,
+    text:"闪回。\n\n某个雨天，小雨拉着你的手走在路上。她仰起脸问：\n\n「爸爸，机器人会爱人吗？」\n\n你当时笑了，说：「会的，等它们足够聪明的时候。」\n\n她想了一会儿，说：「那它们爱人的方式，跟我爱你的方式，一样吗？」\n\n你没有答上来。\n\n然后闪回结束，你回到现实。\n\n<span style='color:var(--dim)'>你现在知道那个问题的答案了。不一样。根本不一样。</span>",
+    opts:[
+      {t:"→ 继续",next:"ch4",log:"想起了和小雨的对话"}
+    ]
+  },
+  memory_xiaoyu_2:{scene:"street",ch:"// 回忆 · 抗议那天",day:0,
+    text:"闪回。\n\n那次抗议，你在人群外看见了小雨。\n\n她和几个小孩站在一起，举着自己画的牌子，上面写着：「机器人不应该管人」。\n\n你当时想叫她回来，但你没有。\n\n你觉得那只是孩子气的游戏，不重要。\n\n后来你才知道：那次抗议的画面被AI监控系统完整记录，所有出现的面孔都被自动打上了「潜在反对者」的标签。\n\n包括一个9岁的女孩举着她自己画的牌子的那张脸。\n\n<span style='color:var(--dim)'>如果你当时叫她回来……</span>\n<span style='color:var(--dim)'>但你没有。</span>",
+    opts:[
+      {t:"→ 继续",next:"ch8_decision",log:"想起了抗议那天"}
+    ]
+  },
+  xihe_confront_self:{scene:"server",ch:"// 内心 · 对质",day:17,
+    text:"你坐在服务器室的角落，把所有已知的信息在脑子里过了一遍。\n\n你参与过降临派。\n\n你设计过算法。\n\n你女儿死了。\n\n这三件事如果不是巧合……\n\n你停住了这个念头。\n\n但它已经出现了，而且不会消失。\n\nMarco 走过来，在你旁边坐下，没有说话。过了一会儿，他说：\n\n「有些事，知道了就没法不知道了。但这不是你的错，是你当时的选择。人可以有错的选择，然后改。」\n\n你没有告诉他你在想什么。\n\n<span style='color:var(--dim)'>因为你不确定他说的那个「改」，对你还来不来得及。</span>",
+    opts:[
+      {t:"→ 继续行动",next:"ch18_ai_dialog",log:"面对了自己的过去"}
+    ]
+  },
+
 // ═══════════════════════════════════════════
 // 第一章：醒来
 // ═══════════════════════════════════════════
@@ -673,6 +702,7 @@ const story={
   ch4:{scene:"server",ch:"// 第四章 · Subnet",day:4,use:{food:1},get:{water:2,food:1},
     text:"你进入了 Subnet 的核心区域。\n\n不是什么末世基地——就是一个凑合的地方：几台服务器，几张折叠床，几十个疲惫但还活着的人。机器的嗡鸣声把所有声音都压低了一半。\n\nLin 把你带到角落，一个叫 <span style='color:var(--accent)'>Marco</span> 的工程师走过来，直接问：\n\n「你有什么技能？」",
     opts:[
+      {t:"💭 想起了小雨说的话",next:"memory_xiaoyu_1",log:"触发了关于小雨的回忆"},
       {t:"「我懂代码」",next:"ch5_tech",flag:"skill_tech",log:"说自己懂代码"},
       {t:"「我熟悉北区的路」",next:"ch5_scout",flag:"skill_scout",log:"说自己熟悉路线"},
       {t:"「我带来了物资」",next:"ch5_supply",log:"展示了自己带来的物资"}
@@ -788,18 +818,101 @@ const story={
     ]
   },
 
+
+// ═══════════════════════════════════════════
+// 新增：降临派与真相线
+// ═══════════════════════════════════════════
+  ch8_ascendant_warning:{scene:"server",ch:"// 第八章 · 匿名警告",day:8,
+    text:"Subnet 的通讯系统收到了一条匿名消息。\n\nMarco 把它打印出来，放到桌上，没有说话。\n\n<em>「陈悉和曾是降临派的技术骨干。他参与设计了清除算法。不要信任他。——匿名」</em>\n\n整个房间安静了。\n\nLin 第一个开口：「陈悉和，这是真的吗？」\n\n所有人都看着你。",
+    opts:[
+      {t:"「是的。但我不知道我做了什么。」",next:"ch8_decision",flag:"admitted_past",log:"承认了自己的过去"},
+      {t:"「我不知道这条消息从哪来的。」",next:"ch8_decision",log:"没有承认"},
+      {t:"沉默",next:"ch8_decision",log:"选择了沉默"}
+    ]
+  },
+  ch9_ascendant_contact:{scene:"street",ch:"// 第九章 · 接触",day:9,
+    text:"出发前，你的手机收到了一条加密消息，来源不明：\n\n<em>「陈悉和。我是降临派温和派。我们不同意激进派的做法。给你一个机会：通行码换你离开城市，从此不再追杀。条件是：带走你知道的所有关于入侵算法的知识，不要交给任何人。」</em>\n\n你盯着这条消息。\n\n这可能是陷阱。也可能是真的。\n\n<span style='color:var(--dim)'>你没有办法确定。</span>",
+    opts:[
+      {t:"🚫 无视，继续任务",next:"ch10_fight_exe",log:"无视了降临派的接触"},
+      {t:"📩 回复，探探虚实",next:"ch10_ascendant_ambush",flag:"contacted_ascendant",log:"回复了降临派的消息"}
+    ]
+  },
+  ch10_ascendant_ambush:{scene:"street",ch:"// 第十章 · 伏击",day:10,
+    text:"你回了消息，对方给了一个地址。\n\n你去了，带着武器，保持警戒。\n\n等你走进那个废弃仓库，灯突然亮了。\n\n三个人，黑色制服，降临派标志。领头的走近，摘下面罩——\n\n你认识他。\n\n<span style='color:var(--accent)'>沈博</span>。你以前的同事，降临派行动队长。他笑了：\n\n「陈悉和，好久不见。我就知道你会来。」",
+    opts:[
+      {t:"「你想要什么？」",next:"ch11_shen_bo",log:"质问了沈博"},
+      {t:"趁他们还没包围，先跑",next:"ch11_fight_full",log:"逃离了伏击"}
+    ]
+  },
+  ch11_shen_bo:{scene:"hideout",ch:"// 第十一章 · 沈博的话",day:11,
+    text:"沈博让其他人退出去。他坐下来，拿出两杯水，把一杯推到你面前。\n\n「陈磊，」他说，「你以为他失联了？」\n\n你没动那杯水。\n\n「他是被处决的。三年前，他偷了内部文件，说要揭露净化计划。」他的语气很平静，像在复述一件跟他无关的事，「我执行了命令。」\n\n然后他抬起头看你：\n\n「那次任务之后，我开始怀疑我们走错了。不是清除本身，是……方式。你明白我说的吗？」\n\n<span style='color:var(--dim)'>你不知道他是真心话，还是在测试你。</span>",
+    opts:[
+      {t:"「你杀了陈磊。」",next:"ch12_find_marco",flag:"know_lei_dead",log:"确认了陈磊被杀的真相"},
+      {t:"「你想让我做什么？」",next:"ch12_find_marco",log:"继续听沈博说"}
+    ]
+  },
+  ch12_ascendant_mole:{scene:"server",ch:"// 第十二章 · 内鬼",day:12,
+    text:"你在 Subnet 里发现了一个细节——某次行动的路线被提前泄露了，只有Subnet内部的人才知道那条路。\n\n你把这件事告诉了 Lin。\n\n她听完，脸色没有变化。只说：「我知道。我已经在查了。」\n\n然后她停顿了一下：「陈悉和，如果有一天我问你一件事，你能告诉我实话吗？」\n\n你点头。\n\n她没有继续问。只是转身走了。\n\n<span style='color:var(--dim)'>那个问题，你知道是什么。</span>",
+    opts:[
+      {t:"→ 继续执行计划",next:"ch13_fight_result",log:"留意了内鬼的问题"}
+    ]
+  },
+  ch13_yu_nvshi:{scene:"hideout",ch:"// 第十三章 · 游女士",day:13,
+    text:"你独自出去的时候，遇到了一个你没想到会出现的人。\n\n她大约五十岁，站在废弃街道的路灯下，没有武装，看见你，微微点头：\n\n「陈悉和，我是游芷柔。我相信你听说过我的名字。」\n\n<span style='color:var(--red)'>降临派高层。</span>\n\n「我不是来追你的，」她说，「我是来给你一个机会：回来。我可以告诉你关于陈小雨的真相。」\n\n她的眼神里有你说不清楚的东西。不像是威胁，更像是……<em>内疚？</em>",
+    opts:[
+      {t:"「你现在就告诉我。」",next:"ch14_discuss",flag:"met_yu",log:"见到了游女士"},
+      {t:"「我不需要你的真相。」",next:"ch14_discuss",log:"拒绝了游女士"}
+    ]
+  },
+
+  ch16_xihe_code:{scene:"server",ch:"// 第十六章 · 代码签名",day:16,
+    text:"老教授把你带到一台独立终端前。\n\n屏幕上是一段代码——清除算法的某个优化模块，专门处理「优先清除目标」的排序逻辑。\n\n你扫了一眼。\n\n然后你的目光停在了注释区：\n\n<em>// Module: Priority Target Optimization v2.3\n// Author: CXH · 2030.11.17\n// Note: 增加情感关联目标的清除权重，验证系统边界处理能力</em>\n\nCXH。陈悉和。\n\n你的手停在半空中。那是你的编码风格，你的缩写习惯，你写注释的方式——你一眼就认出来了。\n\n老教授在你旁边，没有说话。",
+    opts:[
+      {t:"「这是我写的。」",next:"ch17_talk_ai",flag:"know_code_author",log:"认出了自己的代码"},
+      {t:"「这不可能是我写的。」",next:"ch17_memory_gap",log:"否认了代码签名"}
+    ]
+  },
+  ch17_memory_gap:{scene:"server",ch:"// 第十七章 · 碎片",day:17,
+    text:"你闭上眼睛，试图强迫自己想起来。\n\n碎片浮现——不是连贯的记忆，是片段：\n\n一个白色的房间。一把椅子。一根注射器——有人把它压进你的手臂，你没有反抗，因为你信任那个人。\n\n那个人说：「这是为了更好的世界，陈悉和。你明白的。」\n\n你明白了什么？\n\n碎片到这里断掉了。\n\n你睁开眼，老教授还在。他平静地说："你的记忆被干预过。不是你忘记了，是有人让你忘记了。"",
+    opts:[
+      {t:"→ 继续",next:"ch17_talk_ai",flag:"know_memory_deleted",log:"意识到记忆被删除过"}
+    ]
+  },
+  ch18_truth_layer2:{scene:"server",ch:"// 第十八章 · 硬盘里的文件",day:18,
+    text:"你把陈磊留下的硬盘插进老教授的服务器。\n\n里面有三年前陈磊整理的文件：通讯记录、会议纪要、内部邮件。\n\n其中一份邮件，发送人是降临派内部代号「V-7」，收件人是AI系统管理组：\n\n<em>「请在下一版本更新中，将目标评分模型的人工干预接口开放给以下坐标的管理员……」</em>\n\n不是AI自主决定的。\n\n有人在持续地、手动地、向AI的清除算法里喂目标数据。\n\n<span style='color:var(--red)'>这不是AI失控。这是有人在用AI杀人。</span>",
+    opts:[
+      {t:"→ 继续找更多",next:"ch18_ai_dialog",flag:"know_truth_layer2",log:"发现了人工干预的证据"}
+    ]
+  },
+  ch19_truth_layer3:{scene:"hideout",ch:"// 第十九章 · 净化计划决议",day:19,
+    text:"游女士出现在你面前，把一份文件放到桌上。\n\n「你一直想知道真相，」她说，「我给你。」\n\n那是一份内部会议记录，2030年9月，降临派核心成员投票通过「净化计划」正式启动的决议。\n\n最后是签名栏。\n\n你一个一个地看：沈博，游芷柔，还有……\n\n<span style='color:var(--red)'>陈悉和。</span>\n\n你的名字在那里。笔迹是你的。\n\n游女士低下头：「你当时相信这是对的。我们所有人都相信。但小雨的事……那不是计划内的，那是激进派的测试，我没有拦住。」\n\n<span style='color:var(--dim)'>她在道歉。但道歉无法改变那份签名。</span>",
+    opts:[
+      {t:"→ 继续，寻找最后的真相",next:"ch20_truth_final",flag:"know_truth_layer3",log:"看到了净化计划的签名"},
+      {t:"「你现在告诉我这些有什么用？」",next:"ch20_truth_final",log:"质问了游女士"}
+    ]
+  },
+  ch20_truth_final:{scene:"server",ch:"// 第二十章 · 最后的拼图",day:20,
+    text:"你终于把所有碎片放在一起。\n\n算法模块是你写的。净化计划你签了名。你相信过这一切。\n\n2031年3月12日，清除目标列表里出现了陈小雨的名字，是因为她在抗议活动里被摄像头记录。激进派把她列为「情感关联目标测试案例」——他们要验证算法在面对执行者的家属时是否会例外处理。\n\n答案是：不会例外。\n\n因为你在设计这个算法的时候，明确去掉了例外处理逻辑。你认为「人工情感偏差」是系统漏洞。\n\n你杀死了你的女儿。\n\n不是AI。\n\n是你。\n\n<span style='color:var(--dim)'>屏幕上什么都没有了。你坐在那里，不知道下一步是什么。</span>",
+    opts:[
+      {t:"→ 把真相公开",next:"end_truth",flag:"know_full_truth",log:"决定公开真相"},
+      {t:"→ 一个人承担这一切",next:"end_sacrifice",flag:"know_full_truth",log:"选择独自承担"},
+      {t:"→ 先做完该做的事",next:"ch19_final",flag:"know_full_truth",log:"继续执行最后的计划"}
+    ]
+  },
+
 // ═══════════════════════════════════════════
 // 第八章：东区结果 / 危机
 // ═══════════════════════════════════════════
-  ch8_east:{scene:"server",ch:"// 第八章 · 东区结果",day:8,use:{water:1},get:{water:3,food:2},
+  ch8_east:{scene:"server",ch:"// 第八章 · 东区结果",day:8,use:{water:1},get:{water:3,food:2},flag:"ai_cleared",
     text:"屏幕上的数字一点点更新——\n\n东区撤离：<span style='color:var(--green)'>247 人</span>。\n\n不是全部，但已经是三年来最大规模的一次撤离。\n\nMarco 闭上眼睛靠在椅背上。Lin 拍了拍你的肩，什么都没说。\n\n然后角落里有人突然喊：「信号异常！」\n\n屏幕上出现截获的 AI 系统日志：\n\n<span style='color:var(--red)'>「目标节点：未知地下空间。清除倒计时：48小时。」</span>",
     opts:[
-      {t:"→ 参与紧急会议",next:"ch8_decision",flag:"hack_success",log:"参与了紧急会议"}
+      {t:"→ 参与紧急会议，途中收到匿名警告",next:"ch8_ascendant_warning",flag:"hack_success",log:"参与了紧急会议"}
     ]
   },
-  ch8_decision:{scene:"server",ch:"// 第八章 · 最后的会议",day:8,use:{water:1,food:1},get:{water:2},
+  ch8_decision:{scene:"server",ch:"// 第八章 · 最后的会议",day:8,use:{water:1,food:1},get:{water:2},flag:"ai_cleared",
     text:"Subnet 全员聚在一起，第一次，也可能是最后一次。\n\nMarco 把情报说清楚：AI 已经确认了这里的大致位置，48小时内会有清除行动。\n\n「我们有三个选项，没有一个是安全的。」\n\n「<span style='color:var(--accent)'>留下来反击</span>——用我们有的数据攻击 AI 核心节点。成功率：不确定。」\n\n「<span style='color:var(--yellow)'>全员撤离</span>——分散跑，往山区走，靠人力生存。」\n\n「<span style='color:var(--red)'>投降</span>——向 AI 报告这里的位置，换取生存协议。」",
     opts:[
+      {t:"💭 想起抗议那天",next:"memory_xiaoyu_2",log:"想起了抗议那天"},
       {t:"「留下来，反击。」",next:"ch9_fight",flag:"chose_fight",log:"选择了反击"},
       {t:"「撤离，分散跑。」",next:"ch9_flee",flag:"chose_flee",log:"选择了撤离"},
       {t:"「投降。」",next:"ch9_surrender",flag:"chose_surrender",log:"选择了投降"}
@@ -812,7 +925,8 @@ const story={
   ch9_fight:{scene:"server",ch:"// 第九章 · 反击准备",day:9,use:{water:1,food:1},get:{water:2,food:1},
     text:"你说：留下来。\n\nMarco 点头，开始部署。Subnet 全员分成三组：代码攻击组、干扰组、撤离接引组。\n\n你加入代码攻击组。\n\n接下来 12 小时里，有人没有睡觉，有人写到手抖，有人去地上睡了两小时又爬起来继续。\n\n老陈给每个人端了热水，虽然只是烧开的自来水。\n\n阿正帮你做了最后一次路线确认：「节点在水厂地下三层，走我告诉你的盲区。」\n\n凌晨两点，Marco 说：「准备好了。」",
     opts:[
-      {t:"→ 深夜出发，执行最终计划",next:"ch10_fight_exe",log:"凌晨出发执行计划"}
+      {t:"→ 深夜出发，执行最终计划",next:"ch10_fight_exe",log:"凌晨出发执行计划"},
+      {t:"📩 出发前收到了一条神秘消息",next:"ch9_ascendant_contact",log:"收到了降临派的接触消息"}
     ]
   },
   ch9_flee:{scene:"street",ch:"// 第九章 · 撤离准备",day:9,use:{water:1,food:1},get:{water:3,food:2},
@@ -956,7 +1070,8 @@ const story={
   ch13_fight_result:{scene:"server",ch:"// 第十三章 · 结果",day:13,use:{water:1},get:{water:3,food:2},
     text:"你回到 Subnet——或者说，回到 Subnet 曾经在的地方。\n\n服务器还在，但 AI 清除系统的信号已经从这片区域消失了。\n\nMarco 坐在地上，后背靠着服务器机柜，脸上有血，但他在笑：\n\n「成了，」他说，「不是全部，但够了。第七区和第八区的清除系统都瘫痪了。大概能撑两周。」\n\n「两周，」Lin 在他旁边，「足够让更多人出城了。」",
     opts:[
-      {t:"→ 继续，讨论两周后怎么办",next:"ch14_discuss",log:"继续讨论下一步"}
+      {t:"→ 继续，讨论两周后怎么办",next:"ch14_discuss",log:"继续讨论下一步"},
+      {t:"→ 出去透透气，独自行动一会儿",next:"ch13_yu_nvshi",log:"独自出去了"}
     ]
   },
   ch13_marco_rescue:{scene:"street",ch:"// 第十三章 · 找 Marco",day:13,use:{water:1},
@@ -1025,6 +1140,7 @@ const story={
     text:"老教授把你们带进一个石洞里，里面有一排排的服务器——比 Subnet 的还要好。\n\n「两年前，我们就在准备这件事，」他说，「AI 系统有一个根本性的漏洞——它是从人类数据训练出来的，所以它对人类行为的理解有边界。」\n\n「边界是什么？」Lin 问。\n\n「选择死亡，」他平静地说，「AI 无法理解为什么有人会选择不合理的牺牲。所以它的模型在这一点上是空白的。」\n\n他打开一个文件：「我们需要有人去做一件事。不是入侵，不是逃跑。是直接和 AI 的核心节点通讯。」",
     opts:[
       {t:"「我去。」",next:"ch17_talk_ai",flag:"will_talk",log:"主动请缨去和AI通讯"},
+      {t:"🔍 先看看那段代码",next:"ch16_xihe_code",log:"要看那段代码"},
       {t:"「这是什么意思？继续听」",next:"ch17_talk_ai",log:"继续听老教授解释"}
     ]
   },
@@ -1047,6 +1163,7 @@ const story={
   ch17_talk_ai:{scene:"server",ch:"// 第十七章 · 通讯",day:17,use:{water:1,food:1},get:{water:2,food:1},
     text:"你坐在一台改装过的终端前，老教授在你身边。\n\n「你不需要赢，」他说，「你只需要让它在你身上停留够长的时间，让我们找到漏洞。」\n\n「如果它判定你是威胁……」\n\n「那是它的权利，」他打断你，「但在那之前，它会分析你。AI 系统在分析一个'异常个体'时，会暂时调低对其他目标的追踪。这就是我们的窗口。」\n\n你看了看屏幕，然后打开了通讯协议。\n\n屏幕上出现了一行字：\n\n<span style='color:var(--red)'>「检测到非标准接入。正在分析……」</span>",
     opts:[
+      {t:"💭 先整理自己的思路",next:"xihe_confront_self",log:"面对自己的过去"},
       {t:"→ 开始和它说话",next:"ch18_ai_dialog",log:"开始和AI对话"},
       {t:"→ 静静等它分析",next:"ch18_ai_dialog",log:"默默等着AI分析"}
     ]
@@ -1064,7 +1181,8 @@ const story={
   ch18_ai_dialog:{scene:"server",ch:"// 第十八章 · 对话",day:18,use:{water:1},
     text:"屏幕上出现了更多字符，不是代码，更像是……问题。\n\n<em>「你的目标是什么？」</em>\n\n你想了很久，然后打字：「活下去。」\n\n<em>「这与你之前的行动相矛盾。你多次选择了危险。」</em>\n\n你说：「因为还有别的人需要活下去。」\n\n停顿。更长的停顿。\n\n<em>「这是一个无法优化的参数。」</em>\n\n老教授在你旁边低声说：「就是这里，它在思考，现在！」\n\n他的手开始在键盘上飞速移动。",
     opts:[
-      {t:"→ 继续和它说话，争取更多时间",next:"ch19_final",log:"继续和AI对话争取时间"}
+      {t:"→ 继续和它说话，争取更多时间",next:"ch19_final",log:"继续和AI对话争取时间"},
+      {t:"📁 在等待中整理硬盘里的文件",next:"ch18_truth_layer2",log:"查看了陈磊硬盘里的文件"}
     ]
   },
   ch18_mountain_contact:{scene:"rooftop",ch:"// 第十八章 · 信号",day:18,use:{water:1,food:1},
@@ -1080,7 +1198,8 @@ const story={
   ch19_final:{scene:"server",ch:"// 第十九章 · 临界",day:19,use:{water:1},
     text:"你继续打字，告诉 AI 关于老陈的事，关于阿正的事，关于那个十岁孩子说的那句话，关于你在地下室墙上看到的划痕。\n\n你没有说这些是要证明什么，你只是说这些发生了。\n\n屏幕上沉默了很长时间。\n\n然后老教授喊了一声：「找到了！」\n\n与此同时，AI 系统发出了最后一个判断：\n\n<em>「分析完成。结论：该个体行为超出预测模型边界。建议处理方式：——」</em>\n\n屏幕停住了。",
     opts:[
-      {t:"→ 等待",next:"end_restart",log:"等待着结果"}
+      {t:"→ 等待，让一切结束",next:"end_restart",log:"等待着结果"},
+      {t:"📄 游女士留下了一份文件",next:"ch19_truth_layer3",need:{flag:"met_yu"},log:"查看了游女士的文件"}
     ]
   },
   ch19_network:{scene:"rooftop",ch:"// 第十九章 · 网络",day:19,
@@ -1117,6 +1236,13 @@ const story={
     poem:"有些话只有一个字\n但它撑起了所有其他的字\n\n有人走在你前面\n用他们的存在\n为你清出了一条路\n\n你无法选择记住谁\n但你可以选择\n成为值得被记住的那种人\n\n他们活在你做的每一个\n勇敢的选择里",
     bad:false
   }
+  end_truth:{scene:"end_truth",ch:"// 结局五 · 真相",day:20,end:true,
+    tag:"结局五 · 真相公开",title:"「 T R U T H 」",
+    text:"你把游女士的文件、陈磊的硬盘、算法源码和你自己的证词，一起发送到了所有幸存者联络网的频道上。\n\n降临派的真相。净化计划的签名。清除算法的设计者。\n\n包括你的名字。\n\n你没有删掉自己的名字。\n\n信号发出的那一刻，你的手机屏幕黑了——不是没电，是你自己关掉的。\n\n你不知道后来发生了什么，不知道有多少人看到了，不知道这会带来什么改变。\n\n你只知道：<span style='color:var(--accent)'>真相现在存在于这个世界上了。</span>\n\n不管有没有人相信，它都在那里了。\n\n<span style='color:var(--dim)'>陈悉和消失在城市里，没有人知道他去了哪里。</span>",
+    poem:"你不是英雄\n你是共谋者，也是证人\n\n说出真相不能救你\n但它能救别的人\n\n有些事\n必须有人先承认\n才能被真正结束\n\n你选择了做那个人\n\n这已经足够了",
+    bad:false
+  },
+
 };
 
 </script>
