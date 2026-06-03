@@ -400,7 +400,13 @@ function startScanTimer(){
 // ── Death ──────────────────────────────────────────────────────────────────
 const DEATH_POEMS={
   scan:"三次，只需要三次\n它就能找到你\n\n但在那之前\n你做了那么多事\n每一件都算数\n\n被找到不是失败\n忘记自己曾经选择过\n才是",
-  water:"水是最简单的事情\n也是最容易被遗忘的事情\n\n在所有的战略和计划之前\n先喝水\n先活着\n\n活着才能谈别的",water:"死亡结局 · 脱水"};
+  water:"水是最简单的事情\n也是最容易被遗忘的事情\n\n在所有的战略和计划之前\n先喝水\n先活着\n\n活着才能谈别的",
+  food:"饥饿是最诚实的感受\n它不会骗你\n\n你知道你需要什么\n你只是没有\n\n这不是你的错\n这个世界亏欠你的"
+};
+const tagMap={scan:"死亡结局 · 被扫描",water:"死亡结局 · 脱水",food:"死亡结局 · 饥饿"};
+function death(msg,type){
+  clearInterval(S.scanInt);
+  document.getElementById("end-screen").classList.remove("hidden");
   document.getElementById("end-tag").textContent="// "+(tagMap[type]||"游戏结束");
   const et=document.getElementById("end-title");et.textContent="DEAD";et.style.color="var(--red)";
   document.getElementById("end-poem").textContent=DEATH_POEMS[type]||"";
@@ -873,7 +879,7 @@ const story={
     ]
   },
   ch17_memory_gap:{scene:"server",ch:"// 第十七章 · 碎片",day:17,
-    text:"你闭上眼睛，试图强迫自己想起来。\n\n碎片浮现——不是连贯的记忆，是片段：\n\n一个白色的房间。一把椅子。一根注射器——有人把它压进你的手臂，你没有反抗，因为你信任那个人。\n\n那个人说：「这是为了更好的世界，陈悉和。你明白的。」\n\n你明白了什么？\n\n碎片到这里断掉了。\n\n你睁开眼，老教授还在。他平静地说："你的记忆被干预过。不是你忘记了，是有人让你忘记了。"",
+    text:"你闭上眼睛，试图强迫自己想起来。\n\n碎片浮现——不是连贯的记忆，是片段：\n\n一个白色的房间。一把椅子。一根注射器——有人把它压进你的手臂，你没有反抗，因为你信任那个人。\n\n那个人说：「这是为了更好的世界，陈悉和。你明白的。」\n\n你明白了什么？\n\n碎片到这里断掉了。\n\n你睁开眼，老教授还在。他平静地说：「你的记忆被干预过。不是你忘记了，是有人让你忘记了。」",
     opts:[
       {t:"→ 继续",next:"ch17_talk_ai",flag:"know_memory_deleted",log:"意识到记忆被删除过"}
     ]
@@ -1235,7 +1241,7 @@ const story={
     text:"你在那台终端前坐了整整一个小时，让 AI 分析你，读取你，追踪你。\n\n老教授的代码需要一个小时的窗口。\n\n一个小时里，AI 把全部注意力放在了你身上。城市里的其他扫描全部暂停了。\n\n其他人撤离了。\n\n当 AI 系统最终完成分析，锁定了你的坐标，你已经不在乎了。\n\n你的手机最后还有一格信号。你发了最后一条消息——不是给某个人，是发到旧的 Subnet 频道里，不知道有没有人能收到：\n\n<em>「活下去。」</em>",
     poem:"有些话只有一个字\n但它撑起了所有其他的字\n\n有人走在你前面\n用他们的存在\n为你清出了一条路\n\n你无法选择记住谁\n但你可以选择\n成为值得被记住的那种人\n\n他们活在你做的每一个\n勇敢的选择里",
     bad:false
-  }
+  },
   end_truth:{scene:"end_truth",ch:"// 结局五 · 真相",day:20,end:true,
     tag:"结局五 · 真相公开",title:"「 T R U T H 」",
     text:"你把游女士的文件、陈磊的硬盘、算法源码和你自己的证词，一起发送到了所有幸存者联络网的频道上。\n\n降临派的真相。净化计划的签名。清除算法的设计者。\n\n包括你的名字。\n\n你没有删掉自己的名字。\n\n信号发出的那一刻，你的手机屏幕黑了——不是没电，是你自己关掉的。\n\n你不知道后来发生了什么，不知道有多少人看到了，不知道这会带来什么改变。\n\n你只知道：<span style='color:var(--accent)'>真相现在存在于这个世界上了。</span>\n\n不管有没有人相信，它都在那里了。\n\n<span style='color:var(--dim)'>陈悉和消失在城市里，没有人知道他去了哪里。</span>",
