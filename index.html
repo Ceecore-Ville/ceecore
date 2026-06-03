@@ -100,7 +100,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
       <span style="display:flex;gap:2px;"><span class="sig-dot" id="s1"></span><span class="sig-dot" id="s2"></span><span class="sig-dot" id="s3"></span></span>
     </div>
     <div style="display:flex;gap:10px;align-items:center;">
-      <span id="scan-timer">SCAN:--</span>
+      <span style="font-size:9px;color:var(--dim)">AI威胁扫描</span><span id="scan-timer">--</span>
       
     </div>
   </div>
@@ -311,6 +311,7 @@ const SCENES={
   end_restart:"end_restart",end_exile:"end_exile",end_assimilate:"end_assimilate",end_sacrifice:"end_sacrifice",end_truth:"end_truth"
 };
 function setScene(k){
+  S.currentScene=k||"basement";
   const img=document.getElementById("sceneImg");
   const f=SCENES[k]||"basement";
   img.style.opacity="0";
@@ -386,13 +387,14 @@ function useShield(){
   if(scanCB){scanCB();scanCB=null;}
 }
 function startScanTimer(){
-  if(S.flags.ai_cleared){const el=document.getElementById("scan-timer");if(el)el.textContent="";return;}
+  const timerEl=document.getElementById("scan-timer");
+  if(S.flags.ai_cleared||S.currentScene==="basement"){if(timerEl)timerEl.textContent="安全";return;}
   if(S.scanInt)clearInterval(S.scanInt);
-  let t=50;document.getElementById("scan-timer").textContent="SCAN:"+t;
+  let t=50;timerEl.textContent=t+"s";
   S.scanInt=setInterval(()=>{
     if(scanActive)return;
-    if(S.flags.ai_cleared){clearInterval(S.scanInt);document.getElementById("scan-timer").textContent="";return;}
-    t--;document.getElementById("scan-timer").textContent="SCAN:"+t;
+    if(S.flags.ai_cleared||S.currentScene==="basement"){clearInterval(S.scanInt);timerEl.textContent="安全";return;}
+    t--;timerEl.textContent=t+"s";
     if(t<=0){t=50;triggerScan(null);}
   },1000);
 }
