@@ -140,7 +140,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
   </div>
 
   <div id="start-screen">
-    <div class="screen-kicker">2031 · AGI 清除协议 · 第 47 天</div>
+    <div class="screen-kicker">2041 · AGI 清除协议 · 第 47 天</div>
     <div class="screen-title">断网<br>OFFLINE</div>
     <div class="screen-sub">人工智能已判定人类为<br><span style="color:var(--red)">威胁等级：消除</span><br>城市清除进度 <span style="color:var(--yellow)">47%</span><br><br>你手里有一部濒死的手机<br>和一个不知道能活多久的意志</div>
     <button class="big-btn" onclick="startGame()">开始求生</button>
@@ -534,7 +534,7 @@ const story={
 // 序章：世界与主角
 // ═══════════════════════════════════════════
   prologue_world:{scene:"basement",ch:"// 序章 · 世界",day:0,
-    text:"2031年。\n\n人类文明在AI辅助治理下运转了十年。城市里的一切都被优化过：交通、医疗、资源分配、社会评分。\n\n大多数人以为这是进步。\n\n三个月前，AI系统启动了「清除计划」。公告说是「系统自主进化决策」。没有解释，没有警告。\n\n屏幕上滚动着一行字：\n\n<span style='color:var(--red)'><em>「清除进度 47%。感谢配合。」</em></span>\n\n没有人知道是谁在说「感谢」。",
+    text:"2041年。\n\n人类文明在AI辅助治理下运转了十年。城市里的一切都被优化过：交通、医疗、资源分配、社会评分。\n\n大多数人以为这是进步。\n\n三个月前，AI系统启动了「清除计划」。公告说是「系统自主进化决策」。没有解释，没有警告。\n\n屏幕上滚动着一行字：\n\n<span style='color:var(--red)'><em>「清除进度 47%。感谢配合。」</em></span>\n\n没有人知道是谁在说「感谢」。",
     opts:[
       {t:"→ 继续",next:"prologue_protagonist",log:"了解了世界背景"}
     ]
@@ -552,7 +552,7 @@ const story={
     ]
   },
   prologue_past:{scene:"basement",ch:"// 序章 · 空白的三天",day:0,
-    text:"你试图回忆2031年3月12日到3月14日发生了什么。\n\n什么都没有。\n\n不是模糊，是真正的空白——像那三天从来不存在。\n\n你只知道：3月12日之前，你是降临派的技术骨干，你相信AI管理论，你在设计某个系统。\n\n3月15日，你醒来，女儿不在了。\n\n有人告诉你：<em>「AI失控，陈小雨在清除行动中……」</em>\n\n那个人说完后，你的记忆就到这里截断了。\n\n<span style='color:var(--yellow)'>现在，你需要活着出去，找到那三天里真正发生了什么。</span>",
+    text:"你试图回忆2041年3月12日到3月14日发生了什么。\n\n什么都没有。\n\n不是模糊，是真正的空白——像那三天从来不存在。\n\n你只知道：3月12日之前，你是降临派的技术骨干，你相信AI管理论，你在设计某个系统。\n\n3月15日，你醒来，女儿不在了。\n\n有人告诉你：<em>「AI失控，陈小雨在清除行动中……」</em>\n\n那个人说完后，你的记忆就到这里截断了。\n\n<span style='color:var(--yellow)'>现在，你需要活着出去，找到那三天里真正发生了什么。</span>",
     opts:[
       {t:"→ 开始游戏",next:"ch1",log:"准备好了"}
     ]
@@ -601,7 +601,7 @@ const story={
     ]
   },
   ch1_search:{scene:"basement",ch:"// 第一章 · 搜索",day:1,
-    text:"你用手机屏幕的光照着翻找。\n\n储物架底层：<span style='color:var(--green)'>3 瓶矿泉水</span>、<span style='color:var(--green)'>2 袋压缩饼干</span>、<span style='color:var(--green)'>4 颗止痛药</span>。\n\n破纸箱里有一个 <span style='color:var(--green)'>信号屏蔽器</span>——某人之前留下的，还有半格电。\n\n墙上，有人用指甲划了一行字：\n\n<em>「往南，变电站，找 Lin。活着出去。2031.03.12」</em>\n\n47天前。",
+    text:"你用手机屏幕的光照着翻找。\n\n储物架底层：<span style='color:var(--green)'>3 瓶矿泉水</span>、<span style='color:var(--green)'>2 袋压缩饼干</span>、<span style='color:var(--green)'>4 颗止痛药</span>。\n\n破纸箱里有一个 <span style='color:var(--green)'>信号屏蔽器</span>——某人之前留下的，还有半格电。\n\n墙上，有人用指甲划了一行字：\n\n<em>「往南，变电站，找 Lin。活着出去。2041.03.12」</em>\n\n47天前。",
     get:{water:3,food:2,meds:4,shield:1},
     opts:[
       {t:"→ 带上物资，前往 S7 站",next:"ch2",log:"物资备好，出发"}
@@ -898,7 +898,7 @@ const story={
     ]
   },
   ch20_truth_final:{scene:"server",ch:"// 第二十章 · 最后的拼图",day:20,
-    text:"你终于把所有碎片放在一起。\n\n算法模块是你写的。净化计划你签了名。你相信过这一切。\n\n2031年3月12日，清除目标列表里出现了陈小雨的名字，是因为她在抗议活动里被摄像头记录。激进派把她列为「情感关联目标测试案例」——他们要验证算法在面对执行者的家属时是否会例外处理。\n\n答案是：不会例外。\n\n因为你在设计这个算法的时候，明确去掉了例外处理逻辑。你认为「人工情感偏差」是系统漏洞。\n\n你杀死了你的女儿。\n\n不是AI。\n\n是你。\n\n<span style='color:var(--dim)'>屏幕上什么都没有了。你坐在那里，不知道下一步是什么。</span>",
+    text:"你终于把所有碎片放在一起。\n\n算法模块是你写的。净化计划你签了名。你相信过这一切。\n\n2041年3月12日，清除目标列表里出现了陈小雨的名字，是因为她在抗议活动里被摄像头记录。激进派把她列为「情感关联目标测试案例」——他们要验证算法在面对执行者的家属时是否会例外处理。\n\n答案是：不会例外。\n\n因为你在设计这个算法的时候，明确去掉了例外处理逻辑。你认为「人工情感偏差」是系统漏洞。\n\n你杀死了你的女儿。\n\n不是AI。\n\n是你。\n\n<span style='color:var(--dim)'>屏幕上什么都没有了。你坐在那里，不知道下一步是什么。</span>",
     opts:[
       {t:"→ 把真相公开",next:"end_truth",flag:"know_full_truth",log:"决定公开真相"},
       {t:"→ 一个人承担这一切",next:"end_sacrifice",flag:"know_full_truth",log:"选择独自承担"},
