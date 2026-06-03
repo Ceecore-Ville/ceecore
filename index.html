@@ -419,6 +419,8 @@ function death(msg,type){
 // ── Navigate ───────────────────────────────────────────────────────────────
 function goTo(id){
   const node=story[id];if(!node){console.error("Missing node:",id);return;}
+  if(S.currentNode&&!node.end){S.history.push(JSON.parse(JSON.stringify({...S,history:[],currentNode:S.currentNode})));if(S.history.length>20)S.history.shift();}
+  S.currentNode=id;
   if(node.flag)S.flags[node.flag]=true;
   clrNotif();
   document.getElementById("log-wrap").innerHTML="";
@@ -500,13 +502,26 @@ function renderChoices(opts){
     };
     wrap.appendChild(btn);
   });
+  // 上一步按钮
+  if(S.history&&S.history.length>0&&!node.end){
+    const backBtn=document.createElement("button");
+    backBtn.className="choice-btn";
+    backBtn.style.cssText="opacity:.5;font-size:11px;border-style:dashed;";
+    backBtn.textContent="↩ 上一步";
+    backBtn.onclick=()=>{
+      if(S.typing)return;
+      const prev=S.history.pop();
+      if(prev){const pid=prev.currentNode;Object.assign(S,prev);S.currentNode=pid;goTo(pid);}
+    };
+    wrap.appendChild(backBtn);
+  }
 }
 
 // ── Game init ──────────────────────────────────────────────────────────────
 function startGame(){
   AC.resume();startAmbient();
   document.getElementById("start-screen").classList.add("hidden");
-  S={day:1,scans:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false};
+  S={day:1,scans:0,water:8,food:6,meds:2,shield:1,flags:{},log:[],scanInt:null,tTO:null,typing:false,history:[]};
   setSignal(0);updRes();
   let fl=0;
   const td=document.getElementById("time-disp");
