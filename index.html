@@ -143,7 +143,7 @@ body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;
     <div class="screen-kicker">2041 · AGI 清除协议 · 第 47 天</div>
     <div class="screen-title">断网<br>OFFLINE</div>
     <div class="screen-sub">人工智能已判定人类为<br><span style="color:var(--red)">威胁等级：消除</span><br>城市清除进度 <span style="color:var(--yellow)">47%</span><br><br>你手里有一部濒死的手机<br>和一个不知道能活多久的意志</div>
-    <button class="big-btn" onclick="startGame()">开始求生</button>
+    <button class="big-btn" onclick="startGame()">开始</button>
     <div style="font-size:10px;color:var(--dim);line-height:1.9;text-align:center;">20章剧情 · 物资管理 · 多结局<br><span style='color:var(--yellow)'>⚠ AI扫描倒计时归零时会触发扫描<br>扫描时点击「使用信号屏蔽器」可阻断<br>被扫描3次即触发被捕结局</span></div>
   </div>
 
@@ -596,7 +596,7 @@ const story={
     ]
   },
   ch1b:{scene:"basement",ch:"// 第一章 · 最后的消息",day:1,
-    text:"最后一条消息来自 <span style='color:var(--accent)'>陈磊</span>，四十七天前，凌晨三点十七分：\n\n<em>「地铁 S 线南段还没封死，从 S7 站进去，沿旧维修通道走。变电站地下有人，找 林思远，报我名字。关掉所有网络，别用 4G，别用 WiFi——他们靠信号定位。我不知道我还能不能出来。」</em>\n\n再往前，聊天还在继续。然后某一天，戛然而止。\n\n<span style='color:var(--yellow)'>Subnet。S7站。林思远。这是你唯一没被抹掉的名字。</span>",
+    text:"最后一条消息来自 <span style='color:var(--accent)'>陈磊</span>，四十七天前，凌晨三点十七分：\n\n<em>「地铁 S 线南段还没封死，从 S7 站进去，沿旧维修通道走。变电站地下有人，找 林思远，报我名字。关掉所有网络——他们靠信号定位。我不知道我还能不能出来。」</em>\n\n再往前，聊天还在继续。然后某一天，戛然而止。\n\n<span style='color:var(--yellow)'>Subnet。S7站。林思远。这是你唯一没被抹掉的名字。</span>",
     opts:[
       {t:"→ 先搜一遍地下室再出发",next:"ch1_search",log:"先搜物资再走"},
       {t:"→ 立刻出发去 S7 站",next:"ch2",cost:{water:1},log:"直奔S7站"}
