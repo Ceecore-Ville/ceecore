@@ -1,594 +1,698 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>PULSE · 脉冲</title>
+<title>高考模拟器</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    width: 100%; height: 100%;
-    background: #080810;
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-    font-family: 'Courier New', Courier, monospace;
-  }
-  #wrapper {
-    position: relative;
-    display: flex; flex-direction: column; align-items: center;
-  }
-  #gameCanvas {
-    display: block;
-    image-rendering: pixelated;
-  }
-  /* Scanline overlay */
-  #scanlines {
-    position: absolute; inset: 0;
-    background: repeating-linear-gradient(
-      to bottom,
-      transparent 0px, transparent 3px,
-      rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px
-    );
-    pointer-events: none;
-    z-index: 10;
-  }
-  /* Mobile controls */
-  #mobile-controls {
-    display: none;
-    position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 20;
-  }
-  .dpad { position: relative; width: 120px; height: 120px; }
-  .dpad-btn {
-    position: absolute;
-    width: 36px; height: 36px;
-    background: rgba(122,162,247,0.15);
-    border: 1px solid rgba(122,162,247,0.3);
-    border-radius: 4px;
-    display: flex; align-items: center; justify-content: center;
-    color: #7aa2f7; font-size: 14px;
-    cursor: pointer; user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .dpad-btn:active { background: rgba(122,162,247,0.35); }
-  #btn-up    { top: 0;   left: 42px; }
-  #btn-down  { bottom: 0; left: 42px; }
-  #btn-left  { top: 42px; left: 0; }
-  #btn-right { top: 42px; right: 0; }
+:root{
+  --bg:#0a0c0a;--panel:#111411;--border:#1e261e;
+  --text:#d4e8c2;--dim:#4a6040;--accent:#7fc47e;
+  --red:#e05050;--yellow:#d4b44a;--white:#e8f0e0;
+  --chalk:#f0ede0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+body{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;}
 
-  @media (max-width: 600px), (pointer: coarse) {
-    #mobile-controls { display: block; }
-  }
+#app{
+  width:min(480px,100vw);
+  min-height:min(780px,100vh);
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+}
+
+/* Chalk texture overlay */
+#app::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(100,140,80,.04) 32px);
+  pointer-events:none;z-index:0;
+}
+
+.screen{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;position:relative;z-index:1;
+  animation:fadeIn .35s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── TITLE ─── */
+.title-badge{
+  font-size:11px;letter-spacing:3px;color:var(--dim);margin-bottom:16px;
+  text-transform:uppercase;
+}
+.title-main{
+  font-size:48px;font-weight:900;color:var(--chalk);
+  text-shadow:0 0 30px rgba(127,196,126,.2);
+  letter-spacing:6px;margin-bottom:8px;
+}
+.title-sub{
+  font-size:13px;color:var(--dim);letter-spacing:2px;margin-bottom:40px;
+}
+.year-badge{
+  display:inline-block;
+  border:1px solid var(--accent);
+  color:var(--accent);
+  padding:4px 16px;border-radius:2px;
+  font-size:12px;letter-spacing:4px;margin-bottom:48px;
+}
+.btn-start{
+  background:transparent;border:1px solid var(--accent);
+  color:var(--accent);
+  padding:14px 40px;font-size:15px;letter-spacing:3px;
+  cursor:pointer;border-radius:2px;
+  transition:all .2s;
+  font-family:inherit;
+}
+.btn-start:hover,.btn-start:active{background:var(--accent);color:#0a0c0a;}
+.title-tip{margin-top:20px;font-size:11px;color:var(--dim);}
+
+/* ─── PREP PHASE ─── */
+.phase-label{
+  font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:6px;
+}
+.prep-title{font-size:20px;color:var(--chalk);margin-bottom:6px;font-weight:700;}
+.prep-sub{font-size:12px;color:var(--dim);margin-bottom:28px;text-align:center;line-height:1.8;}
+
+.stat-bar{
+  width:100%;display:flex;gap:12px;margin-bottom:28px;
+}
+.stat{flex:1;text-align:center;}
+.stat-label{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;}
+.stat-val{font-size:18px;font-weight:700;}
+.stat-val.good{color:var(--accent);}
+.stat-val.warn{color:var(--yellow);}
+.stat-val.bad{color:var(--red);}
+
+.prep-card{
+  width:100%;background:rgba(20,28,18,.6);
+  border:1px solid var(--border);border-radius:4px;
+  padding:20px;margin-bottom:16px;
+}
+.prep-q{font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.8;}
+.prep-opts{display:flex;flex-direction:column;gap:8px;}
+.prep-opt{
+  background:transparent;border:1px solid var(--border);
+  color:var(--text);padding:10px 14px;
+  font-size:13px;text-align:left;cursor:pointer;
+  border-radius:2px;transition:all .2s;
+  font-family:inherit;line-height:1.6;
+}
+.prep-opt:hover,.prep-opt:active{border-color:var(--accent);color:var(--accent);}
+
+.progress-dots{display:flex;gap:6px;margin-bottom:24px;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--border);}
+.dot.active{background:var(--accent);}
+.dot.done{background:var(--dim);}
+
+/* ─── EXAM PHASE ─── */
+.exam-header{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:20px;
+}
+.subject-badge{
+  font-size:11px;letter-spacing:2px;color:var(--accent);
+  border:1px solid var(--accent);padding:3px 10px;border-radius:2px;
+}
+.timer-wrap{text-align:right;}
+.timer{font-size:22px;font-weight:700;color:var(--chalk);font-variant-numeric:tabular-nums;}
+.timer.warn{color:var(--yellow);}
+.timer.danger{color:var(--red);animation:blink .5s infinite;}
+@keyframes blink{50%{opacity:.4}}
+.qnum{font-size:10px;color:var(--dim);margin-top:2px;}
+
+.question-text{
+  width:100%;font-size:14px;color:var(--text);
+  line-height:2;margin-bottom:24px;
+  background:rgba(20,28,18,.5);
+  border-left:2px solid var(--accent);
+  padding:14px 16px;border-radius:0 4px 4px 0;
+}
+.options{width:100%;display:flex;flex-direction:column;gap:10px;}
+.opt{
+  display:flex;align-items:flex-start;gap:12px;
+  background:transparent;border:1px solid var(--border);
+  padding:12px 16px;cursor:pointer;border-radius:2px;
+  transition:all .18s;font-family:inherit;text-align:left;
+  width:100%;
+}
+.opt:hover{border-color:var(--accent);}
+.opt-letter{
+  width:20px;height:20px;min-width:20px;
+  border:1px solid var(--dim);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--dim);flex-shrink:0;margin-top:1px;
+}
+.opt-text{font-size:13px;color:var(--text);line-height:1.7;}
+.opt.correct{border-color:var(--accent);background:rgba(127,196,126,.08);}
+.opt.correct .opt-letter{border-color:var(--accent);color:var(--accent);background:rgba(127,196,126,.15);}
+.opt.wrong{border-color:var(--red);background:rgba(224,80,80,.08);}
+.opt.wrong .opt-letter{border-color:var(--red);color:var(--red);}
+.opt.disabled{pointer-events:none;}
+
+.feedback{
+  width:100%;margin-top:16px;padding:12px 16px;
+  border-radius:4px;font-size:13px;line-height:1.8;
+  display:none;
+}
+.feedback.show{display:block;}
+.feedback.correct-fb{background:rgba(127,196,126,.1);border:1px solid rgba(127,196,126,.2);color:var(--accent);}
+.feedback.wrong-fb{background:rgba(224,80,80,.08);border:1px solid rgba(224,80,80,.2);color:var(--red);}
+
+.next-btn{
+  margin-top:16px;width:100%;
+  background:transparent;border:1px solid var(--dim);
+  color:var(--dim);padding:12px;
+  cursor:pointer;border-radius:2px;
+  font-size:13px;letter-spacing:2px;font-family:inherit;
+  transition:all .2s;display:none;
+}
+.next-btn.show{display:block;}
+.next-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Progress bar */
+.exam-progress{
+  width:100%;height:2px;background:var(--border);
+  margin-bottom:20px;border-radius:1px;overflow:hidden;
+}
+.exam-progress-fill{
+  height:100%;background:var(--accent);transition:width .3s;
+}
+
+/* ─── RESULTS ─── */
+.result-title{font-size:13px;letter-spacing:3px;color:var(--dim);margin-bottom:12px;}
+.score-display{
+  font-size:72px;font-weight:900;color:var(--chalk);
+  text-shadow:0 0 40px rgba(127,196,126,.3);
+  margin-bottom:4px;letter-spacing:-2px;
+}
+.score-max{font-size:13px;color:var(--dim);margin-bottom:32px;}
+.ranking{
+  font-size:13px;color:var(--yellow);margin-bottom:24px;letter-spacing:1px;
+}
+.school-card{
+  width:100%;background:rgba(20,28,18,.7);
+  border:1px solid var(--border);border-radius:4px;
+  padding:20px;margin-bottom:20px;text-align:center;
+}
+.school-tier{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:8px;}
+.school-name{font-size:20px;font-weight:700;color:var(--chalk);margin-bottom:6px;}
+.school-major{font-size:13px;color:var(--accent);}
+.school-comment{font-size:12px;color:var(--dim);margin-top:10px;line-height:1.7;}
+
+.breakdown{
+  width:100%;display:flex;gap:8px;margin-bottom:20px;
+}
+.break-item{
+  flex:1;background:rgba(20,28,18,.5);border:1px solid var(--border);
+  border-radius:4px;padding:10px;text-align:center;
+}
+.break-sub{font-size:10px;color:var(--dim);margin-bottom:4px;letter-spacing:1px;}
+.break-score{font-size:18px;font-weight:700;}
+
+.replay-btn{
+  width:100%;background:transparent;border:1px solid var(--accent);
+  color:var(--accent);padding:14px;
+  cursor:pointer;border-radius:2px;
+  font-size:14px;letter-spacing:3px;font-family:inherit;
+  transition:all .2s;
+}
+.replay-btn:hover{background:var(--accent);color:#0a0c0a;}
+.share-tip{font-size:11px;color:var(--dim);margin-top:12px;text-align:center;}
 </style>
 </head>
 <body>
-<div id="wrapper">
-  <canvas id="gameCanvas"></canvas>
-  <div id="scanlines"></div>
-  <div id="mobile-controls">
-    <div class="dpad">
-      <div class="dpad-btn" id="btn-up">▲</div>
-      <div class="dpad-btn" id="btn-left">◀</div>
-      <div class="dpad-btn" id="btn-right">▶</div>
-      <div class="dpad-btn" id="btn-down">▼</div>
-    </div>
-  </div>
+<div id="app">
+  <div id="screen" class="screen"></div>
 </div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────
-const CFG = {
-  tileSize: 24,
-  cols: 21,
-  rows: 21,
-  playerSpeed: 1,       // tiles per move
-  baseInterval: 220,    // ms between enemy spawns
-  minInterval: 60,
-  speedUp: 3,           // ms faster per second
-  nodeCount: 5,
-  nodeScore: 10,
-  survivalScore: 1,     // per 0.5s
-  // colors
-  bg: '#080810',
-  gridLine: '#13132a',
-  playerColor: '#c0d8ff',
-  playerGlow: '#7aa2f7',
-  enemyColor: '#ff6b7a',
-  enemyGlow: '#f7768e',
-  nodeColor: '#9ece6a',
-  nodeGlow: '#c3e88d',
-  trailColor: 'rgba(122,162,247,0.18)',
-  textColor: '#c0caf5',
-  dimColor: '#4a5080',
-  accentColor: '#7aa2f7',
-};
+// ─── DATA ─────────────────────────────────────────────────────────────────
 
-// ── CANVAS SETUP ─────────────────────────────────────────────────────────
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const PREP_QUESTIONS = [
+  {
+    q: "高考前最后三天，你选择怎么度过？",
+    opts: [
+      { text: "每天刷 10 套真题，睡 4 小时", effect: { 知识: 15, 状态: -20 } },
+      { text: "适当复习薄弱点，保证 8 小时睡眠", effect: { 知识: 8, 状态: 10 } },
+      { text: "什么都不看，彻底放松，打游戏", effect: { 知识: -10, 状态: 20 } },
+      { text: "背高中三年所有公式和单词", effect: { 知识: 5, 状态: -15 } },
+    ]
+  },
+  {
+    q: "考试当天早上，妈妈端来一碗热汤面，说"考完再吃"。此时距考试开始还有 25 分钟。",
+    opts: [
+      { text: "快速吃完，心满意足出门", effect: { 知识: 0, 状态: 12 } },
+      { text: "跟妈说不饿，空腹上考场", effect: { 知识: 0, 状态: -10 } },
+      { text: "喝了汤，把面带路上边走边吃", effect: { 知识: 0, 状态: 8 } },
+      { text: "吃了一半，说撑了，快走", effect: { 知识: 0, 状态: 4 } },
+    ]
+  },
+  {
+    q: "进入考场，你发现铅笔盒忘在家了。监考老师借给你一支中性笔，但你习惯用 2B 铅笔答客观题。",
+    opts: [
+      { text: "深呼吸，告诉自己问题不大，继续", effect: { 知识: 0, 状态: 6 } },
+      { text: "向监考老师要求换一间考场", effect: { 知识: 0, 状态: -5 } },
+      { text: "内心崩溃，在草稿纸上写"完了"", effect: { 知识: 0, 状态: -18 } },
+      { text: "借同学的 2B 铅笔，扫了一圈没人有", effect: { 知识: 0, 状态: -8 } },
+    ]
+  },
+];
 
-function resize() {
-  const maxW = window.innerWidth;
-  const maxH = window.innerHeight - (isMobile() ? 140 : 0);
-  const tileW = Math.floor(Math.min(maxW, maxH) / CFG.cols);
-  const tileH = tileW;
-  const W = tileW * CFG.cols;
-  const H = tileH * CFG.rows;
-  canvas.width = W;
-  canvas.height = H;
-  CFG._tile = tileW;
-  CFG._W = W;
-  CFG._H = H;
-  document.getElementById('wrapper').style.width = W + 'px';
-  document.getElementById('wrapper').style.height = (H + (isMobile() ? 140 : 0)) + 'px';
-}
-function isMobile() {
-  return window.innerWidth <= 600 || window.matchMedia('(pointer: coarse)').matches;
-}
-window.addEventListener('resize', () => { resize(); if (state) draw(); });
-resize();
+// 知识=知识储备 状态=临场状态  initial=50/50
+// 综合系数影响最终分数
 
-// ── GAME STATE ────────────────────────────────────────────────────────────
-let state = null;
-let animId = null;
-let lastTime = 0;
-let spawnTimer = 0;
-let scoreTimer = 0;
-let currentInterval = CFG.baseInterval;
-let keys = {};
+const QUESTIONS = [
+  // ─── 语文 ───
+  {
+    subject: "语文",
+    q: "下列各句中，没有语病的一项是：",
+    opts: [
+      "A. 通过这次高考，使我深刻认识到了努力的重要性。",
+      "B. 能否保持良好心态，是高考成功的关键。",
+      "C. 这道数学题的解法多种多样，但最简便的方法只有一种。",
+      "D. 他的语文成绩不仅在全班，而且在全年级都是最好的。",
+    ],
+    answer: 2,
+    explain: "A 项缺少主语（通过……使……），B 项两面对一面，D 项语序不当。C 项表述正确。"
+  },
+  {
+    subject: "语文",
+    q: "\"落霞与孤鹜齐飞，秋水共长天一色\" 出自哪位作者的哪篇作品？",
+    opts: [
+      "A. 王勃《滕王阁序》",
+      "B. 欧阳修《醉翁亭记》",
+      "C. 范仲淹《岳阳楼记》",
+      "D. 苏轼《赤壁赋》",
+    ],
+    answer: 0,
+    explain: "此句出自初唐四杰王勃的《滕王阁序》，是描写滕王阁秋景的千古名句。"
+  },
+  {
+    subject: "语文",
+    q: "鲁迅小说《祝福》中，祥林嫂的悲剧核心是什么？",
+    opts: [
+      "A. 丈夫早逝，生活贫困",
+      "B. 封建礼教和迷信对她的精神摧残",
+      "C. 儿子阿毛被狼吃掉",
+      "D. 鲁四老爷不让她参与祝福活动",
+    ],
+    answer: 1,
+    explain: "祥林嫂的悲剧根源是封建礼教与迷信的双重压迫——\"再嫁\"的污名和\"魂灵\"的恐惧最终将她摧毁，鲁迅以此批判封建社会对人的异化。"
+  },
+  // ─── 数学 ───
+  {
+    subject: "数学",
+    q: "已知集合 A = {x | x² - 3x + 2 = 0}，集合 B = {x | x² - 2x - 3 = 0}，则 A∪B = ?",
+    opts: [
+      "A. {1, 2, 3}",
+      "B. {-1, 1, 2, 3}",
+      "C. {1, 2}",
+      "D. {-1, 2, 3}",
+    ],
+    answer: 1,
+    explain: "A = {1, 2}（x²-3x+2=0的解），B = {-1, 3}（x²-2x-3=0的解），A∪B = {-1, 1, 2, 3}。"
+  },
+  {
+    subject: "数学",
+    q: "函数 f(x) = ln(x+1) + (1-x)/(1+x) 的单调性如何？",
+    opts: [
+      "A. 在定义域内单调递增",
+      "B. 在定义域内单调递减",
+      "C. 先增后减",
+      "D. 先减后增",
+    ],
+    answer: 0,
+    explain: "f'(x) = 1/(x+1) - 2/(1+x)² = (x-1)/(x+1)²... 实际上对 x > -1 均有 f'(x) > 0，函数在定义域 (-1, +∞) 上单调递增。"
+  },
+  {
+    subject: "数学",
+    q: "向量 a = (1, √3)，b = (√3, 1)，则 a 与 b 的夹角为：",
+    opts: [
+      "A. 30°",
+      "B. 45°",
+      "C. 60°",
+      "D. 90°",
+    ],
+    answer: 0,
+    explain: "cos θ = (a·b) / (|a||b|) = (√3+√3) / (2×2) = √3/2，所以 θ = 30°。"
+  },
+  // ─── 英语 ───
+  {
+    subject: "英语",
+    q: "Choose the sentence with correct grammar:\n\"I suggested that he ___ to the doctor immediately.\"",
+    opts: [
+      "A. goes",
+      "B. went",
+      "C. go",
+      "D. going",
+    ],
+    answer: 2,
+    explain: "suggest 后的宾语从句用虚拟语气，should + 动词原形，should 可省略，所以用 go（动词原形）。"
+  },
+  {
+    subject: "英语",
+    q: "The phrase \"under the weather\" means:",
+    opts: [
+      "A. in rainy conditions",
+      "B. feeling slightly ill",
+      "C. working outdoors",
+      "D. troubled by emotions",
+    ],
+    answer: 1,
+    explain: "\"under the weather\" 是英语习语，意思是感觉不舒服/生病，相当于 feeling unwell。"
+  },
+  {
+    subject: "英语",
+    q: "Fill in the blank: \"It is not until we lose health ___ we realize its value.\"",
+    opts: [
+      "A. when",
+      "B. which",
+      "C. that",
+      "D. what",
+    ],
+    answer: 2,
+    explain: "这是\"It is not until…that…\"的强调句型，强调时间状语从句。正确填入 that。"
+  },
+];
 
-function createState() {
-  currentInterval = CFG.baseInterval;
-  const cx = Math.floor(CFG.cols / 2);
-  const cy = Math.floor(CFG.rows / 2);
+// ─── SCHOOL DATA ──────────────────────────────────────────────────────────
+function getSchool(score) {
+  if (score >= 680) return {
+    tier: "★ 顶尖名校",
+    name: "清华大学 / 北京大学",
+    major: "计算机科学与技术",
+    comment: "你站在了中国教育体系的最顶端。凌晨三点的台灯，值了。",
+    color: "#d4b44a"
+  };
+  if (score >= 640) return {
+    tier: "985 高校",
+    name: "复旦大学 / 浙江大学",
+    major: "经济学 / 工学",
+    comment: "双一流院校，毕业生起点不低。父母脸上有光。",
+    color: "#7fc47e"
+  };
+  if (score >= 590) return {
+    tier: "211 高校",
+    name: "南京大学 / 武汉大学",
+    major: "文学 / 理学",
+    comment: "重点大学，四年下来取决于你怎么过。",
+    color: "#7fc47e"
+  };
+  if (score >= 520) return {
+    tier: "普通本科",
+    name: "某省属本科院校",
+    major: "管理学 / 工学",
+    comment: "一本线上，稳稳落地。以后的路还很长。",
+    color: "#a0c0e0"
+  };
+  if (score >= 400) return {
+    tier: "专科 / 高职",
+    name: "某职业技术学院",
+    major: "市场营销 / 数控技术",
+    comment: "条条大路通罗马。技能型人才也有春天。",
+    color: "#c09060"
+  };
   return {
-    phase: 'title',   // title | playing | dead
-    player: { x: cx, y: cy },
-    trail: [],
-    enemies: [],
-    nodes: [],
-    score: 0,
-    best: parseInt(localStorage.getItem('pulse_best') || '0'),
-    deadTimer: 0,
-    flashAlpha: 0,
+    tier: "落榜",
+    name: "复读班",
+    major: "再搏一年",
+    comment: "也许你只是还没到时候。明年见。",
+    color: "#e05050"
   };
 }
 
-// ── NODE SPAWNING ─────────────────────────────────────────────────────────
-function spawnNodes(s) {
-  s.nodes = [];
-  while (s.nodes.length < CFG.nodeCount) {
-    const x = 1 + Math.floor(Math.random() * (CFG.cols - 2));
-    const y = 1 + Math.floor(Math.random() * (CFG.rows - 2));
-    if (Math.abs(x - s.player.x) < 3 && Math.abs(y - s.player.y) < 3) continue;
-    if (s.nodes.find(n => n.x === x && n.y === y)) continue;
-    s.nodes.push({ x, y, pulse: Math.random() * Math.PI * 2 });
-  }
+// ─── STATE ────────────────────────────────────────────────────────────────
+let G = {};
+function initGame() {
+  G = {
+    phase: 'title',
+    stats: { 知识: 50, 状态: 50 },
+    prepIdx: 0,
+    qIdx: 0,
+    correct: 0,
+    answers: [],   // per-subject: {语文:0,数学:0,英语:0}
+    subjectCorrect: { 语文: 0, 数学: 0, 英语: 0 },
+    timerVal: 18,
+    timerInterval: null,
+    answered: false,
+  };
 }
 
-// ── ENEMY TYPES ───────────────────────────────────────────────────────────
-// Enemies move tile-by-tile toward player with slight randomness
-function spawnEnemy(s) {
-  // Spawn from edge
-  const side = Math.floor(Math.random() * 4);
-  let x, y;
-  if (side === 0) { x = Math.floor(Math.random() * CFG.cols); y = 0; }
-  else if (side === 1) { x = CFG.cols - 1; y = Math.floor(Math.random() * CFG.rows); }
-  else if (side === 2) { x = Math.floor(Math.random() * CFG.cols); y = CFG.rows - 1; }
-  else { x = 0; y = Math.floor(Math.random() * CFG.rows); }
-  s.enemies.push({ x, y, moveTimer: 0, moveInterval: 180 + Math.floor(Math.random() * 120) });
+// ─── RENDER ───────────────────────────────────────────────────────────────
+const screen = document.getElementById('screen');
+function render(html) { screen.innerHTML = html; screen.className = 'screen'; }
+
+// Title
+function showTitle() {
+  G.phase = 'title';
+  render(`
+    <div class="title-badge">2026 · 全国统一高考</div>
+    <div class="title-main">高考</div>
+    <div class="title-sub">GAOKAO SIMULATOR</div>
+    <div class="year-badge">倒计时 0 天</div>
+    <button class="btn-start" onclick="startPrep()">进入考场</button>
+    <div class="title-tip">共 9 道题 · 答完出成绩</div>
+  `);
 }
 
-function moveEnemies(s, dt) {
-  for (const e of s.enemies) {
-    e.moveTimer += dt;
-    if (e.moveTimer >= e.moveInterval) {
-      e.moveTimer = 0;
-      // Move toward player with 80% chance, random 20%
-      let dx = s.player.x - e.x;
-      let dy = s.player.y - e.y;
-      let mx = 0, my = 0;
-      if (Math.random() < 0.8) {
-        if (Math.abs(dx) >= Math.abs(dy)) { mx = dx > 0 ? 1 : -1; }
-        else { my = dy > 0 ? 1 : -1; }
-      } else {
-        // random cardinal
-        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-        const d = dirs[Math.floor(Math.random() * 4)];
-        mx = d[0]; my = d[1];
-      }
-      const nx = Math.max(0, Math.min(CFG.cols - 1, e.x + mx));
-      const ny = Math.max(0, Math.min(CFG.rows - 1, e.y + my));
-      e.x = nx; e.y = ny;
-    }
-  }
+// Prep
+function startPrep() {
+  G.phase = 'prep';
+  G.prepIdx = 0;
+  showPrep();
 }
 
-// ── INPUT ─────────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.repeat) return;
-  keys[e.key] = true;
-  handleKey(e.key);
-});
-document.addEventListener('keyup', e => { keys[e.key] = false; });
-
-// Mobile dpad
-['up','down','left','right'].forEach(dir => {
-  const btn = document.getElementById('btn-' + dir);
-  if (!btn) return;
-  const keyMap = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
-  btn.addEventListener('touchstart', e => { e.preventDefault(); handleKey(keyMap[dir]); }, { passive: false });
-  btn.addEventListener('mousedown', e => { e.preventDefault(); handleKey(keyMap[dir]); });
-});
-
-// Touch swipe
-let touchStart = null;
-canvas.addEventListener('touchstart', e => {
-  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-});
-canvas.addEventListener('touchend', e => {
-  if (!touchStart) return;
-  const dx = e.changedTouches[0].clientX - touchStart.x;
-  const dy = e.changedTouches[0].clientY - touchStart.y;
-  touchStart = null;
-  if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-    handleKey(' ');
+function showPrep() {
+  if (G.prepIdx >= PREP_QUESTIONS.length) {
+    startExam();
     return;
   }
-  if (Math.abs(dx) > Math.abs(dy)) {
-    handleKey(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
-  } else {
-    handleKey(dy > 0 ? 'ArrowDown' : 'ArrowUp');
-  }
-});
+  const pq = PREP_QUESTIONS[G.prepIdx];
+  const dots = PREP_QUESTIONS.map((_, i) =>
+    `<div class="dot ${i < G.prepIdx ? 'done' : i === G.prepIdx ? 'active' : ''}"></div>`
+  ).join('');
 
-function handleKey(k) {
-  if (!state) return;
-  if (state.phase === 'title') {
-    state.phase = 'playing';
-    spawnNodes(state);
-    lastTime = performance.now();
+  render(`
+    <div class="phase-label">考前准备 ${G.prepIdx + 1} / ${PREP_QUESTIONS.length}</div>
+    <div class="prep-title">考前倒计时</div>
+    <div class="progress-dots">${dots}</div>
+    <div class="stat-bar">
+      <div class="stat">
+        <div class="stat-label">知识储备</div>
+        <div class="stat-val ${G.stats.知识 >= 60 ? 'good' : G.stats.知识 >= 40 ? 'warn' : 'bad'}">${G.stats.知识}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">临场状态</div>
+        <div class="stat-val ${G.stats.状态 >= 60 ? 'good' : G.stats.状态 >= 40 ? 'warn' : 'bad'}">${G.stats.状态}</div>
+      </div>
+    </div>
+    <div class="prep-card">
+      <div class="prep-q">${pq.q}</div>
+      <div class="prep-opts">
+        ${pq.opts.map((o, i) =>
+          `<button class="prep-opt" onclick="choosePrepOpt(${i})">${o.text}</button>`
+        ).join('')}
+      </div>
+    </div>
+  `);
+}
+
+function choosePrepOpt(i) {
+  const pq = PREP_QUESTIONS[G.prepIdx];
+  const eff = pq.opts[i].effect;
+  G.stats.知识 = Math.max(0, Math.min(100, G.stats.知识 + eff.知识));
+  G.stats.状态 = Math.max(0, Math.min(100, G.stats.状态 + eff.状态));
+  G.prepIdx++;
+  showPrep();
+}
+
+// Exam
+function startExam() {
+  G.phase = 'exam';
+  G.qIdx = 0;
+  G.correct = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  if (G.qIdx >= QUESTIONS.length) {
+    showResults();
     return;
   }
-  if (state.phase === 'dead') {
-    if (state.deadTimer > 600) {
-      if (k === 'r' || k === 'R' || k === ' ' || k === 'Enter' ||
-          k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight') {
-        state = createState();
-        state.phase = 'playing';
-        spawnNodes(state);
-        lastTime = performance.now();
-        spawnTimer = 0;
-        scoreTimer = 0;
-      }
+  G.answered = false;
+  const q = QUESTIONS[G.qIdx];
+  G.timerVal = 18;
+
+  const progress = ((G.qIdx) / QUESTIONS.length * 100).toFixed(0);
+  const letters = ['A','B','C','D'];
+
+  render(`
+    <div class="exam-progress"><div class="exam-progress-fill" style="width:${progress}%"></div></div>
+    <div class="exam-header">
+      <div class="subject-badge">${q.subject}</div>
+      <div class="timer-wrap">
+        <div class="timer" id="timer">${G.timerVal}</div>
+        <div class="qnum">${G.qIdx + 1} / ${QUESTIONS.length}</div>
+      </div>
+    </div>
+    <div class="question-text">${q.q}</div>
+    <div class="options" id="opts">
+      ${q.opts.map((o, i) => `
+        <button class="opt" id="opt${i}" onclick="selectOpt(${i})">
+          <div class="opt-letter">${letters[i]}</div>
+          <div class="opt-text">${o.replace(/^[A-D]\.\s*/,'')}</div>
+        </button>
+      `).join('')}
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">
+      ${G.qIdx + 1 < QUESTIONS.length ? '下一题 →' : '查看成绩 →'}
+    </button>
+  `);
+
+  startTimer();
+}
+
+function startTimer() {
+  if (G.timerInterval) clearInterval(G.timerInterval);
+  G.timerInterval = setInterval(() => {
+    G.timerVal--;
+    const t = document.getElementById('timer');
+    if (t) {
+      t.textContent = G.timerVal;
+      t.className = 'timer' + (G.timerVal <= 5 ? ' danger' : G.timerVal <= 10 ? ' warn' : '');
     }
-    return;
-  }
-  if (state.phase !== 'playing') return;
-
-  const p = state.player;
-  let nx = p.x, ny = p.y;
-  if (k === 'ArrowUp'    || k === 'w' || k === 'W') ny--;
-  else if (k === 'ArrowDown'  || k === 's' || k === 'S') ny++;
-  else if (k === 'ArrowLeft'  || k === 'a' || k === 'A') nx--;
-  else if (k === 'ArrowRight' || k === 'd' || k === 'D') nx++;
-  else return;
-
-  nx = Math.max(0, Math.min(CFG.cols - 1, nx));
-  ny = Math.max(0, Math.min(CFG.rows - 1, ny));
-
-  // Trail
-  state.trail.unshift({ x: p.x, y: p.y, alpha: 1 });
-  if (state.trail.length > 8) state.trail.pop();
-
-  p.x = nx; p.y = ny;
-
-  // Collect node
-  const ni = state.nodes.findIndex(n => n.x === nx && n.y === ny);
-  if (ni !== -1) {
-    state.score += CFG.nodeScore;
-    state.nodes.splice(ni, 1);
-    if (state.nodes.length === 0) spawnNodes(state);
-    else {
-      // spawn one replacement
-      let attempts = 0;
-      while (attempts++ < 20) {
-        const x = 1 + Math.floor(Math.random() * (CFG.cols - 2));
-        const y = 1 + Math.floor(Math.random() * (CFG.rows - 2));
-        if (Math.abs(x - p.x) < 2 && Math.abs(y - p.y) < 2) continue;
-        if (state.nodes.find(n => n.x === x && n.y === y)) continue;
-        state.nodes.push({ x, y, pulse: Math.random() * Math.PI * 2 });
-        break;
-      }
+    if (G.timerVal <= 0) {
+      clearInterval(G.timerInterval);
+      if (!G.answered) timeUp();
     }
-  }
+  }, 1000);
 }
 
-// ── COLLISION ─────────────────────────────────────────────────────────────
-function checkCollision(s) {
-  const p = s.player;
-  for (const e of s.enemies) {
-    if (e.x === p.x && e.y === p.y) return true;
+function timeUp() {
+  G.answered = true;
+  const q = QUESTIONS[G.qIdx];
+  const letters = ['A','B','C','D'];
+  // Show correct answer
+  const correctBtn = document.getElementById('opt' + q.answer);
+  if (correctBtn) {
+    correctBtn.classList.add('correct');
+    correctBtn.classList.add('disabled');
   }
-  return false;
+  document.querySelectorAll('.opt').forEach(o => o.classList.add('disabled'));
+  const fb = document.getElementById('feedback');
+  if (fb) {
+    fb.className = 'feedback wrong-fb show';
+    fb.innerHTML = `⏱ 时间到！正确答案是 <strong>${letters[q.answer]}</strong>。<br>${q.explain}`;
+  }
+  const nb = document.getElementById('nextBtn');
+  if (nb) nb.className = 'next-btn show';
 }
 
-// ── GAME LOOP ─────────────────────────────────────────────────────────────
-function loop(ts) {
-  animId = requestAnimationFrame(loop);
-  const dt = Math.min(ts - lastTime, 100);
-  lastTime = ts;
+function selectOpt(i) {
+  if (G.answered) return;
+  G.answered = true;
+  clearInterval(G.timerInterval);
 
-  if (!state) { draw(); return; }
+  const q = QUESTIONS[G.qIdx];
+  const isCorrect = i === q.answer;
+  const letters = ['A','B','C','D'];
 
-  if (state.phase === 'playing') {
-    // Survival score
-    scoreTimer += dt;
-    if (scoreTimer >= 500) {
-      state.score += CFG.survivalScore;
-      scoreTimer -= 500;
-    }
-
-    // Speed up
-    currentInterval = Math.max(CFG.minInterval, CFG.baseInterval - (ts / 1000) * CFG.speedUp * 3);
-
-    // Spawn enemies
-    spawnTimer += dt;
-    if (spawnTimer >= currentInterval) {
-      spawnTimer -= currentInterval;
-      spawnEnemy(state);
-    }
-
-    // Move enemies
-    moveEnemies(state, dt);
-
-    // Collision check
-    if (checkCollision(state)) {
-      state.phase = 'dead';
-      state.deadTimer = 0;
-      state.flashAlpha = 1;
-      if (state.score > state.best) {
-        state.best = state.score;
-        localStorage.setItem('pulse_best', state.score);
-      }
-    }
-
-    // Update trail alpha
-    for (const t of state.trail) t.alpha *= 0.85;
-
-    // Update node pulse
-    for (const n of state.nodes) n.pulse += 0.05;
+  if (isCorrect) {
+    G.correct++;
+    G.subjectCorrect[q.subject]++;
   }
 
-  if (state.phase === 'dead') {
-    state.deadTimer += dt;
-    state.flashAlpha = Math.max(0, state.flashAlpha - 0.04);
-  }
+  document.querySelectorAll('.opt').forEach((o, idx) => {
+    o.classList.add('disabled');
+    if (idx === q.answer) o.classList.add('correct');
+    else if (idx === i && !isCorrect) o.classList.add('wrong');
+  });
 
-  draw();
+  const fb = document.getElementById('feedback');
+  if (fb) {
+    fb.className = `feedback ${isCorrect ? 'correct-fb' : 'wrong-fb'} show`;
+    fb.innerHTML = isCorrect
+      ? `✓ 正确！${q.explain}`
+      : `✗ 错了，正确答案是 <strong>${letters[q.answer]}</strong>。<br>${q.explain}`;
+  }
+  const nb = document.getElementById('nextBtn');
+  if (nb) nb.className = 'next-btn show';
 }
 
-// ── DRAW ──────────────────────────────────────────────────────────────────
-function draw() {
-  const T = CFG._tile || 24;
-  const W = CFG._W || canvas.width;
-  const H = CFG._H || canvas.height;
-
-  // Background
-  ctx.fillStyle = CFG.bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // Grid lines
-  ctx.strokeStyle = CFG.gridLine;
-  ctx.lineWidth = 0.5;
-  for (let c = 0; c <= CFG.cols; c++) {
-    ctx.beginPath(); ctx.moveTo(c * T, 0); ctx.lineTo(c * T, H); ctx.stroke();
-  }
-  for (let r = 0; r <= CFG.rows; r++) {
-    ctx.beginPath(); ctx.moveTo(0, r * T); ctx.lineTo(W, r * T); ctx.stroke();
-  }
-
-  if (!state) return;
-
-  if (state.phase === 'title') {
-    drawTitle(T, W, H);
-    return;
-  }
-
-  // Trail
-  for (let i = 0; i < state.trail.length; i++) {
-    const t = state.trail[i];
-    const a = t.alpha * (1 - i * 0.1);
-    ctx.fillStyle = `rgba(122,162,247,${a * 0.4})`;
-    const pad = T * 0.25;
-    ctx.fillRect(t.x * T + pad, t.y * T + pad, T - pad * 2, T - pad * 2);
-  }
-
-  // Energy nodes
-  for (const n of state.nodes) {
-    const cx2 = n.x * T + T / 2;
-    const cy2 = n.y * T + T / 2;
-    const pulse = 0.5 + 0.5 * Math.sin(n.pulse);
-    const r = T * 0.18 + pulse * T * 0.06;
-
-    ctx.shadowBlur = 10 + pulse * 6;
-    ctx.shadowColor = CFG.nodeGlow;
-    ctx.fillStyle = CFG.nodeColor;
-    ctx.beginPath(); ctx.arc(cx2, cy2, r, 0, Math.PI * 2); ctx.fill();
-
-    // Outer ring
-    ctx.strokeStyle = `rgba(156,206,106,${0.3 + pulse * 0.3})`;
-    ctx.lineWidth = 0.5;
-    ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(cx2, cy2, T * 0.38, 0, Math.PI * 2); ctx.stroke();
-  }
-
-  // Enemies
-  ctx.shadowBlur = 0;
-  for (const e of state.enemies) {
-    const ex = e.x * T + T * 0.15;
-    const ey = e.y * T + T * 0.15;
-    const es = T * 0.7;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = CFG.enemyGlow;
-    ctx.fillStyle = CFG.enemyColor;
-    ctx.fillRect(ex, ey, es, es);
-    // Inner darker square
-    ctx.fillStyle = '#cc3344';
-    const p2 = T * 0.28;
-    ctx.fillRect(e.x * T + p2, e.y * T + p2, T - p2 * 2, T - p2 * 2);
-  }
-
-  // Player
-  ctx.shadowBlur = 0;
-  const px = state.player.x * T;
-  const py = state.player.y * T;
-  // Glow layers
-  const glowSizes = [20, 12, 6];
-  const glowAlphas = [0.2, 0.35, 0.6];
-  for (let i = 0; i < glowSizes.length; i++) {
-    ctx.shadowBlur = glowSizes[i];
-    ctx.shadowColor = CFG.playerGlow;
-    const inset = T * (0.05 + i * 0.04);
-    ctx.fillStyle = `rgba(192,216,255,${glowAlphas[i]})`;
-    ctx.fillRect(px + inset, py + inset, T - inset * 2, T - inset * 2);
-  }
-  ctx.shadowBlur = 0;
-  // Solid core
-  const pad = T * 0.2;
-  ctx.fillStyle = CFG.playerColor;
-  ctx.shadowBlur = 15;
-  ctx.shadowColor = '#ffffff';
-  ctx.fillRect(px + pad, py + pad, T - pad * 2, T - pad * 2);
-  ctx.shadowBlur = 0;
-
-  // HUD
-  drawHUD(T, W, H);
-
-  // Death flash
-  if (state.flashAlpha > 0) {
-    ctx.fillStyle = `rgba(247,118,142,${state.flashAlpha * 0.4})`;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  // Game over
-  if (state.phase === 'dead' && state.deadTimer > 300) {
-    drawGameOver(T, W, H);
-  }
+function nextQuestion() {
+  clearInterval(G.timerInterval);
+  G.qIdx++;
+  showQuestion();
 }
 
-function drawTitle(T, W, H) {
-  // Vignette
-  const vg = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.75);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,8,0.7)');
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, W, H);
+// Results
+function showResults() {
+  clearInterval(G.timerInterval);
+  G.phase = 'results';
 
-  const titleSize = Math.floor(T * 2.2);
-  ctx.textAlign = 'center';
+  // Score calc
+  // 满分 750：语文150 数学150 英语150 综合300（简化为3科各150）
+  // 基础分 = correct/total * 满分
+  // 知识加成 + 状态加成
+  const baseRatio = G.correct / QUESTIONS.length;
+  const knowledgeBonus = (G.stats.知识 - 50) * 0.8;
+  const stateBonus = (G.stats.状态 - 50) * 0.6;
+  let rawScore = Math.round(baseRatio * 600 + 60 + knowledgeBonus + stateBonus);
+  rawScore = Math.max(150, Math.min(750, rawScore));
 
-  // PULSE title
-  ctx.shadowBlur = 30;
-  ctx.shadowColor = CFG.playerGlow;
-  ctx.fillStyle = CFG.playerColor;
-  ctx.font = `bold ${titleSize}px 'Courier New', monospace`;
-  ctx.fillText('PULSE', W / 2, H * 0.38);
+  // per-subject
+  const subjects = ['语文','数学','英语'];
+  const subjectTotal = { 语文: 3, 数学: 3, 英语: 3 };
+  const subjectScores = {};
+  subjects.forEach(s => {
+    const ratio = G.subjectCorrect[s] / subjectTotal[s];
+    const base = Math.round(ratio * 130 + 10);
+    subjectScores[s] = Math.max(10, Math.min(150, base));
+  });
 
-  // Subtitle
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = CFG.dimColor;
-  ctx.font = `${Math.floor(T * 0.55)}px 'Courier New', monospace`;
-  ctx.fillText('· 脉冲 ·', W / 2, H * 0.38 + titleSize * 0.7);
+  // Ranking flavor
+  let ranking = '';
+  if (rawScore >= 680) ranking = '全省前 0.1% · 传说级';
+  else if (rawScore >= 640) ranking = '全省前 1% · 顶尖水准';
+  else if (rawScore >= 590) ranking = '全省前 10% · 重点线上';
+  else if (rawScore >= 520) ranking = '全省前 30% · 一本线以上';
+  else if (rawScore >= 400) ranking = '全省前 60% · 专科线以上';
+  else ranking = '未达专科线';
 
-  // Blink prompt
-  const blink = Math.floor(performance.now() / 600) % 2 === 0;
-  if (blink) {
-    ctx.fillStyle = CFG.accentColor;
-    ctx.font = `${Math.floor(T * 0.52)}px 'Courier New', monospace`;
-    ctx.fillText('PRESS ANY KEY TO START', W / 2, H * 0.6);
-  }
+  const school = getSchool(rawScore);
 
-  // Controls hint
-  ctx.fillStyle = CFG.dimColor;
-  ctx.font = `${Math.floor(T * 0.42)}px 'Courier New', monospace`;
-  ctx.fillText('WASD / ARROW KEYS · AVOID RED · COLLECT GREEN', W / 2, H * 0.72);
+  const breakdown = subjects.map(s => `
+    <div class="break-item">
+      <div class="break-sub">${s}</div>
+      <div class="break-score" style="color:${subjectScores[s]>=100?'#7fc47e':subjectScores[s]>=70?'#d4b44a':'#e05050'}">${subjectScores[s]}</div>
+    </div>
+  `).join('');
 
-  ctx.shadowBlur = 0;
+  render(`
+    <div class="result-title">2026年 全国统一高考成绩</div>
+    <div class="score-display">${rawScore}</div>
+    <div class="score-max">满分 750 分</div>
+    <div class="ranking">${ranking}</div>
+    <div class="breakdown">${breakdown}</div>
+    <div class="school-card">
+      <div class="school-tier">${school.tier}</div>
+      <div class="school-name" style="color:${school.color}">${school.name}</div>
+      <div class="school-major">${school.major}</div>
+      <div class="school-comment">${school.comment}</div>
+    </div>
+    <button class="replay-btn" onclick="initGame();showTitle()">重新高考</button>
+    <div class="share-tip">截图发给朋友，让他也试试</div>
+  `);
 }
 
-function drawHUD(T, W, H) {
-  const fontSize = Math.floor(T * 0.5);
-  ctx.font = `${fontSize}px 'Courier New', monospace`;
-  ctx.shadowBlur = 0;
-
-  // Score (left)
-  ctx.textAlign = 'left';
-  ctx.fillStyle = CFG.dimColor;
-  ctx.fillText('SCORE', T * 0.4, T * 0.75);
-  ctx.fillStyle = CFG.textColor;
-  ctx.font = `bold ${Math.floor(T * 0.6)}px 'Courier New', monospace`;
-  ctx.fillText(String(state.score).padStart(6, '0'), T * 0.4, T * 1.35);
-
-  // Best (right)
-  ctx.textAlign = 'right';
-  ctx.font = `${fontSize}px 'Courier New', monospace`;
-  ctx.fillStyle = CFG.dimColor;
-  ctx.fillText('BEST', W - T * 0.4, T * 0.75);
-  ctx.fillStyle = '#e0af68';
-  ctx.font = `bold ${Math.floor(T * 0.6)}px 'Courier New', monospace`;
-  ctx.fillText(String(state.best).padStart(6, '0'), W - T * 0.4, T * 1.35);
-
-  ctx.textAlign = 'center';
-}
-
-function drawGameOver(T, W, H) {
-  // Overlay
-  ctx.fillStyle = 'rgba(8,8,16,0.82)';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.textAlign = 'center';
-  const titleSize = Math.floor(T * 1.6);
-
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = CFG.enemyGlow;
-  ctx.fillStyle = CFG.enemyColor;
-  ctx.font = `bold ${titleSize}px 'Courier New', monospace`;
-  ctx.fillText('GAME OVER', W / 2, H * 0.36);
-  ctx.shadowBlur = 0;
-
-  // Score
-  ctx.fillStyle = CFG.textColor;
-  ctx.font = `${Math.floor(T * 0.65)}px 'Courier New', monospace`;
-  ctx.fillText(`SCORE  ${String(state.score).padStart(6, '0')}`, W / 2, H * 0.50);
-
-  if (state.score >= state.best) {
-    ctx.fillStyle = '#e0af68';
-    ctx.font = `${Math.floor(T * 0.5)}px 'Courier New', monospace`;
-    ctx.fillText('✦ NEW BEST ✦', W / 2, H * 0.58);
-  } else {
-    ctx.fillStyle = CFG.dimColor;
-    ctx.font = `${Math.floor(T * 0.5)}px 'Courier New', monospace`;
-    ctx.fillText(`BEST  ${String(state.best).padStart(6, '0')}`, W / 2, H * 0.58);
-  }
-
-  // Restart prompt
-  const blink = Math.floor(performance.now() / 600) % 2 === 0;
-  if (blink) {
-    ctx.fillStyle = CFG.accentColor;
-    ctx.font = `${Math.floor(T * 0.52)}px 'Courier New', monospace`;
-    ctx.fillText('[ R ] RESTART', W / 2, H * 0.72);
-  }
-
-  ctx.shadowBlur = 0;
-}
-
-// ── INIT ──────────────────────────────────────────────────────────────────
-state = createState();
-animId = requestAnimationFrame(loop);
+// ─── START ────────────────────────────────────────────────────────────────
+initGame();
+showTitle();
 </script>
 </body>
 </html>
