@@ -547,20 +547,21 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 function showTitle() {
   S.screen = 'title';
+  const hasResume = localStorage.getItem('gaokao_state') && JSON.parse(localStorage.getItem('gaokao_state')||'{}').screen !== 'title';
   render(`
-    <div class="kicker">高考命运模拟器 · MVP</div>
-    <h1>高考</h1>
-    <div style="font-family:'STSong',serif;font-size:13px;color:#8b7355;letter-spacing:3px;margin-bottom:32px">GAOKAO SIMULATOR</div>
-    <div class="card" style="margin-bottom:24px">
+    <div class="title-cover">
+      <div class="cover-top">中华人民共和国</div>
+      <div class="cover-main">高考</div>
+      <div class="cover-sub">GAOKAO SIMULATOR &middot; 命运模拟器</div>
+    </div>
+    <div class="title-seal"><span class="title-seal-text">模拟</span></div>
+    <div class="card" style="margin-bottom:16px">
       <p>选择省份和年份，重走一遍那段改变命运的 100 天。</p>
-      <p>真实政策背景 · 考场微决策 · 10 种结局</p>
+      <p style="margin-bottom:0">真实政策背景 &middot; 考场微决策 &middot; 10 种结局</p>
     </div>
-    <button class="btn btn-primary" onclick="showSelect()">进入考场</button>
-    <div style="margin-top:12px;text-align:center">
-      ${localStorage.getItem('gaokao_state') && JSON.parse(localStorage.getItem('gaokao_state')||'{}').screen !== 'title'
-        ? `<button class="btn" style="font-size:12px" onclick="resumeGame()">继续上一局</button>` : ''}
-    </div>
-    <div class="dim center" style="margin-top:32px">3 省 × 9 组合 · 约 25-30 分钟一局</div>
+    <button class="btn btn-primary" onclick="showSelect()" style="margin-bottom:8px">进 入 考 场</button>
+    ${hasResume ? '<button class="btn" style="text-align:center;letter-spacing:1px" onclick="resumeGame()">继续上一局</button>' : ''}
+    <div class="dim center" style="margin-top:auto;padding-top:20px">3 省 × 9 组合 &nbsp;&middot;&nbsp; 约 25-30 分钟一局</div>
   `);
 }
 
