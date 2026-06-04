@@ -2,697 +2,970 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>高考模拟器</title>
 <style>
-:root{
-  --bg:#0a0c0a;--panel:#111411;--border:#1e261e;
-  --text:#d4e8c2;--dim:#4a6040;--accent:#7fc47e;
-  --red:#e05050;--yellow:#d4b44a;--white:#e8f0e0;
-  --chalk:#f0ede0;
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;}
-body{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#2c2416;display:flex;align-items:center;justify-content:center;font-family:"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif}
+#app{width:min(480px,100vw);min-height:min(780px,100svh);background:#f5edd8;display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.5)}
+/* paper texture lines */
+#app::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(180,150,100,.08) 28px);pointer-events:none;z-index:0}
 
-#app{
-  width:min(480px,100vw);
-  min-height:min(780px,100vh);
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:8px;
-  display:flex;flex-direction:column;
-  position:relative;overflow:hidden;
-}
+/* ── SCREEN CONTAINER ── */
+.screen{flex:1;display:flex;flex-direction:column;padding:32px 24px;position:relative;z-index:1;overflow-y:auto;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.screen::-webkit-scrollbar{width:3px}
+.screen::-webkit-scrollbar-thumb{background:#c8a96e50}
 
-/* Chalk texture overlay */
-#app::before{
-  content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(100,140,80,.04) 32px);
-  pointer-events:none;z-index:0;
-}
+/* ── TYPOGRAPHY ── */
+.kicker{font-size:11px;letter-spacing:3px;color:#8b7355;margin-bottom:8px;text-transform:uppercase}
+h1{font-family:"STSong","SimSun","Songti SC",serif;font-size:42px;color:#1a1206;letter-spacing:4px;line-height:1.1;margin-bottom:6px}
+h2{font-family:"STSong","SimSun","Songti SC",serif;font-size:22px;color:#1a1206;letter-spacing:2px;margin-bottom:16px}
+h3{font-size:15px;color:#2c1a0e;font-weight:700;margin-bottom:10px;line-height:1.6}
+p{font-size:14px;color:#3d2b1a;line-height:2;margin-bottom:12px}
+.dim{color:#8b7355;font-size:12px}
+.red{color:#8b1a1a}
 
-.screen{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:32px 24px;position:relative;z-index:1;
-  animation:fadeIn .35s ease;
-}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* ── BUTTONS ── */
+.btn{display:block;width:100%;padding:14px 20px;background:transparent;border:1px solid #8b7355;color:#2c1a0e;font-size:14px;font-family:inherit;cursor:pointer;text-align:left;transition:all .15s;line-height:1.6;border-radius:2px}
+.btn:hover,.btn:active{background:#e8d9b8;border-color:#2c1a0e}
+.btn-primary{background:#1e3a1e;border-color:#1e3a1e;color:#d4e8c2;text-align:center;letter-spacing:2px}
+.btn-primary:hover,.btn-primary:active{background:#2d4e2d}
+.btn-red{background:#8b1a1a;border-color:#8b1a1a;color:#fce8e8;text-align:center;letter-spacing:2px}
+.btn-red:hover{background:#6b1010}
+.btn-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.btn-opt{padding:12px 16px;background:transparent;border:1px solid #c8a96e;color:#2c1a0e;font-size:13px;font-family:inherit;cursor:pointer;text-align:left;transition:all .15s;border-radius:2px;line-height:1.7}
+.btn-opt:hover,.btn-opt:active{background:#e8d9b8;border-color:#2c1a0e}
+.btn-opt.selected{background:#1e3a1e;border-color:#1e3a1e;color:#d4e8c2}
 
-/* ─── TITLE ─── */
-.title-badge{
-  font-size:11px;letter-spacing:3px;color:var(--dim);margin-bottom:16px;
-  text-transform:uppercase;
-}
-.title-main{
-  font-size:48px;font-weight:900;color:var(--chalk);
-  text-shadow:0 0 30px rgba(127,196,126,.2);
-  letter-spacing:6px;margin-bottom:8px;
-}
-.title-sub{
-  font-size:13px;color:var(--dim);letter-spacing:2px;margin-bottom:40px;
-}
-.year-badge{
-  display:inline-block;
-  border:1px solid var(--accent);
-  color:var(--accent);
-  padding:4px 16px;border-radius:2px;
-  font-size:12px;letter-spacing:4px;margin-bottom:48px;
-}
-.btn-start{
-  background:transparent;border:1px solid var(--accent);
-  color:var(--accent);
-  padding:14px 40px;font-size:15px;letter-spacing:3px;
-  cursor:pointer;border-radius:2px;
-  transition:all .2s;
-  font-family:inherit;
-}
-.btn-start:hover,.btn-start:active{background:var(--accent);color:#0a0c0a;}
-.title-tip{margin-top:20px;font-size:11px;color:var(--dim);}
+/* ── CARDS ── */
+.card{background:#faf6ea;border:1px solid #c8a96e;border-radius:2px;padding:18px 20px;margin-bottom:16px}
+.card-sm{background:#faf6ea;border:1px solid #c8a96e50;padding:12px 16px;margin-bottom:10px;border-radius:2px}
+.stamp{display:inline-block;border:2px solid #8b1a1a;color:#8b1a1a;padding:3px 10px;font-size:11px;letter-spacing:2px;transform:rotate(-3deg);margin-bottom:16px;font-family:"STSong",serif}
+.stamp-ok{border-color:#1e3a1e;color:#1e3a1e;transform:rotate(-2deg)}
 
-/* ─── PREP PHASE ─── */
-.phase-label{
-  font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:6px;
-}
-.prep-title{font-size:20px;color:var(--chalk);margin-bottom:6px;font-weight:700;}
-.prep-sub{font-size:12px;color:var(--dim);margin-bottom:28px;text-align:center;line-height:1.8;}
+/* ── STAT BAR ── */
+.stats-row{display:flex;gap:12px;margin-bottom:20px}
+.stat-box{flex:1;text-align:center;background:#faf6ea;border:1px solid #c8a96e50;padding:8px;border-radius:2px}
+.stat-label{font-size:10px;color:#8b7355;letter-spacing:1px;margin-bottom:4px}
+.stat-val{font-size:20px;font-weight:700;color:#2c1a0e}
+.stat-bar-wrap{height:4px;background:#e0d0b0;border-radius:2px;margin-top:4px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.mood-fill{background:#1e3a1e}
+.know-fill{background:#8b6914}
 
-.stat-bar{
-  width:100%;display:flex;gap:12px;margin-bottom:28px;
-}
-.stat{flex:1;text-align:center;}
-.stat-label{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;}
-.stat-val{font-size:18px;font-weight:700;}
-.stat-val.good{color:var(--accent);}
-.stat-val.warn{color:var(--yellow);}
-.stat-val.bad{color:var(--red);}
+/* ── PROGRESS ── */
+.timeline{display:flex;align-items:center;gap:3px;margin-bottom:20px;flex-wrap:wrap}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:#e0d0b0;flex-shrink:0}
+.tl-dot.done{background:#8b6914}
+.tl-dot.current{background:#8b1a1a;box-shadow:0 0 0 2px #f5edd8,0 0 0 3px #8b1a1a}
+.progress-text{font-size:11px;color:#8b7355;margin-left:6px;white-space:nowrap}
 
-.prep-card{
-  width:100%;background:rgba(20,28,18,.6);
-  border:1px solid var(--border);border-radius:4px;
-  padding:20px;margin-bottom:16px;
-}
-.prep-q{font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.8;}
-.prep-opts{display:flex;flex-direction:column;gap:8px;}
-.prep-opt{
-  background:transparent;border:1px solid var(--border);
-  color:var(--text);padding:10px 14px;
-  font-size:13px;text-align:left;cursor:pointer;
-  border-radius:2px;transition:all .2s;
-  font-family:inherit;line-height:1.6;
-}
-.prep-opt:hover,.prep-opt:active{border-color:var(--accent);color:var(--accent);}
+/* ── EXAM PAPER ── */
+.exam-header{border-bottom:2px solid #2c1a0e;padding-bottom:10px;margin-bottom:20px}
+.exam-title{font-family:"STSong","SimSun",serif;font-size:13px;color:#2c1a0e;text-align:center;letter-spacing:2px}
+.exam-sub{font-size:11px;color:#8b7355;text-align:center;margin-top:4px;letter-spacing:1px}
+.q-block{background:#faf6ea;border:1px solid #c8a96e;border-left:3px solid #2c1a0e;padding:14px 16px;margin-bottom:16px;border-radius:0 2px 2px 0}
+.q-num{font-size:11px;color:#8b7355;letter-spacing:1px;margin-bottom:6px}
+.q-text{font-size:14px;color:#2c1a0e;line-height:2}
 
-.progress-dots{display:flex;gap:6px;margin-bottom:24px;}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--border);}
-.dot.active{background:var(--accent);}
-.dot.done{background:var(--dim);}
+/* ── SCORE REVEAL ── */
+.score-big{font-family:"STSong","SimSun",serif;font-size:80px;color:#1a1206;text-align:center;margin:20px 0 8px;font-weight:900;letter-spacing:-2px}
+.score-sub-row{display:flex;justify-content:center;gap:24px;margin-bottom:24px}
+.score-sub-item{text-align:center}
+.score-sub-val{font-size:22px;font-weight:700}
+.score-sub-label{font-size:10px;color:#8b7355;letter-spacing:1px;margin-top:2px}
 
-/* ─── EXAM PHASE ─── */
-.exam-header{
-  width:100%;display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:20px;
-}
-.subject-badge{
-  font-size:11px;letter-spacing:2px;color:var(--accent);
-  border:1px solid var(--accent);padding:3px 10px;border-radius:2px;
-}
-.timer-wrap{text-align:right;}
-.timer{font-size:22px;font-weight:700;color:var(--chalk);font-variant-numeric:tabular-nums;}
-.timer.warn{color:var(--yellow);}
-.timer.danger{color:var(--red);animation:blink .5s infinite;}
+/* ── ENDING ── */
+.ending-name{font-family:"STSong","SimSun",serif;font-size:32px;color:#1a1206;letter-spacing:4px;margin:24px 0 16px;text-align:center}
+.ending-tagline{font-size:15px;color:#3d2b1a;line-height:2.2;text-align:center;padding:0 8px}
+.divider{border:none;border-top:1px solid #c8a96e;margin:20px 0}
+
+/* ── PROVINCE GRID ── */
+.province-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+.prov-btn{padding:12px 8px;background:#faf6ea;border:1px solid #c8a96e;color:#2c1a0e;font-size:13px;font-family:inherit;cursor:pointer;text-align:center;transition:all .15s;border-radius:2px}
+.prov-btn:hover,.prov-btn.sel{background:#1e3a1e;border-color:#1e3a1e;color:#d4e8c2}
+.year-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.year-btn{padding:12px;background:#faf6ea;border:1px solid #c8a96e;color:#2c1a0e;font-size:14px;font-family:inherit;cursor:pointer;text-align:center;transition:all .15s;border-radius:2px}
+.year-btn:hover,.year-btn.sel{background:#8b1a1a;border-color:#8b1a1a;color:#fce8e8}
+.year-btn.locked{opacity:.4;cursor:not-allowed}
+.tag{display:inline-block;font-size:10px;background:#8b6914;color:#faf6ea;padding:1px 6px;border-radius:1px;margin-top:4px}
+
+/* ── SCHOOL LIST ── */
+.school-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#faf6ea;border:1px solid #c8a96e;margin-bottom:8px;cursor:pointer;transition:all .15s;border-radius:2px}
+.school-item:hover,.school-item.sel{background:#e8d9b8;border-color:#2c1a0e}
+.school-name{font-size:14px;font-weight:700;color:#2c1a0e}
+.school-cut{font-size:11px;color:#8b7355;margin-top:2px}
+.school-tier-badge{font-size:10px;padding:2px 8px;border-radius:1px;background:#1e3a1e;color:#d4e8c2;flex-shrink:0;margin-left:8px}
+
+/* ── FEEDBACK ── */
+.feedback-banner{padding:12px 16px;margin-bottom:12px;border-radius:2px;font-size:13px;line-height:1.8;border-left:3px solid}
+.feedback-pos{background:#f0f8e8;border-color:#2d4a2d;color:#1e3a1e}
+.feedback-neg{background:#fdf0f0;border-color:#8b1a1a;color:#5a0f0f}
+.feedback-neu{background:#faf6ea;border-color:#8b7355;color:#3d2b1a}
+
+/* ── TIMER ── */
+.timer{font-size:32px;font-weight:700;color:#8b1a1a;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.timer.warn{animation:blink .6s infinite}
 @keyframes blink{50%{opacity:.4}}
-.qnum{font-size:10px;color:var(--dim);margin-top:2px;}
 
-.question-text{
-  width:100%;font-size:14px;color:var(--text);
-  line-height:2;margin-bottom:24px;
-  background:rgba(20,28,18,.5);
-  border-left:2px solid var(--accent);
-  padding:14px 16px;border-radius:0 4px 4px 0;
-}
-.options{width:100%;display:flex;flex-direction:column;gap:10px;}
-.opt{
-  display:flex;align-items:flex-start;gap:12px;
-  background:transparent;border:1px solid var(--border);
-  padding:12px 16px;cursor:pointer;border-radius:2px;
-  transition:all .18s;font-family:inherit;text-align:left;
-  width:100%;
-}
-.opt:hover{border-color:var(--accent);}
-.opt-letter{
-  width:20px;height:20px;min-width:20px;
-  border:1px solid var(--dim);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:var(--dim);flex-shrink:0;margin-top:1px;
-}
-.opt-text{font-size:13px;color:var(--text);line-height:1.7;}
-.opt.correct{border-color:var(--accent);background:rgba(127,196,126,.08);}
-.opt.correct .opt-letter{border-color:var(--accent);color:var(--accent);background:rgba(127,196,126,.15);}
-.opt.wrong{border-color:var(--red);background:rgba(224,80,80,.08);}
-.opt.wrong .opt-letter{border-color:var(--red);color:var(--red);}
-.opt.disabled{pointer-events:none;}
-
-.feedback{
-  width:100%;margin-top:16px;padding:12px 16px;
-  border-radius:4px;font-size:13px;line-height:1.8;
-  display:none;
-}
-.feedback.show{display:block;}
-.feedback.correct-fb{background:rgba(127,196,126,.1);border:1px solid rgba(127,196,126,.2);color:var(--accent);}
-.feedback.wrong-fb{background:rgba(224,80,80,.08);border:1px solid rgba(224,80,80,.2);color:var(--red);}
-
-.next-btn{
-  margin-top:16px;width:100%;
-  background:transparent;border:1px solid var(--dim);
-  color:var(--dim);padding:12px;
-  cursor:pointer;border-radius:2px;
-  font-size:13px;letter-spacing:2px;font-family:inherit;
-  transition:all .2s;display:none;
-}
-.next-btn.show{display:block;}
-.next-btn:hover{border-color:var(--accent);color:var(--accent);}
-
-/* Progress bar */
-.exam-progress{
-  width:100%;height:2px;background:var(--border);
-  margin-bottom:20px;border-radius:1px;overflow:hidden;
-}
-.exam-progress-fill{
-  height:100%;background:var(--accent);transition:width .3s;
-}
-
-/* ─── RESULTS ─── */
-.result-title{font-size:13px;letter-spacing:3px;color:var(--dim);margin-bottom:12px;}
-.score-display{
-  font-size:72px;font-weight:900;color:var(--chalk);
-  text-shadow:0 0 40px rgba(127,196,126,.3);
-  margin-bottom:4px;letter-spacing:-2px;
-}
-.score-max{font-size:13px;color:var(--dim);margin-bottom:32px;}
-.ranking{
-  font-size:13px;color:var(--yellow);margin-bottom:24px;letter-spacing:1px;
-}
-.school-card{
-  width:100%;background:rgba(20,28,18,.7);
-  border:1px solid var(--border);border-radius:4px;
-  padding:20px;margin-bottom:20px;text-align:center;
-}
-.school-tier{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:8px;}
-.school-name{font-size:20px;font-weight:700;color:var(--chalk);margin-bottom:6px;}
-.school-major{font-size:13px;color:var(--accent);}
-.school-comment{font-size:12px;color:var(--dim);margin-top:10px;line-height:1.7;}
-
-.breakdown{
-  width:100%;display:flex;gap:8px;margin-bottom:20px;
-}
-.break-item{
-  flex:1;background:rgba(20,28,18,.5);border:1px solid var(--border);
-  border-radius:4px;padding:10px;text-align:center;
-}
-.break-sub{font-size:10px;color:var(--dim);margin-bottom:4px;letter-spacing:1px;}
-.break-score{font-size:18px;font-weight:700;}
-
-.replay-btn{
-  width:100%;background:transparent;border:1px solid var(--accent);
-  color:var(--accent);padding:14px;
-  cursor:pointer;border-radius:2px;
-  font-size:14px;letter-spacing:3px;font-family:inherit;
-  transition:all .2s;
-}
-.replay-btn:hover{background:var(--accent);color:#0a0c0a;}
-.share-tip{font-size:11px;color:var(--dim);margin-top:12px;text-align:center;}
+/* ── MISC ── */
+.spacer{flex:1}
+.mt8{margin-top:8px}
+.mt16{margin-top:16px}
+.mt24{margin-top:24px}
+.mb8{margin-bottom:8px}
+.mb16{margin-bottom:16px}
+.center{text-align:center}
+.bold{font-weight:700}
+.score-bar{height:6px;background:#e0d0b0;border-radius:3px;overflow:hidden;margin:6px 0}
+.score-bar-fill{height:100%;background:#8b6914;transition:width 1s}
+.section-title{font-size:11px;letter-spacing:2px;color:#8b7355;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e0d0b0}
 </style>
 </head>
 <body>
-<div id="app">
-  <div id="screen" class="screen"></div>
-</div>
-
+<div id="app"><div id="root"></div></div>
 <script>
-// ─── DATA ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// 1. CONTENT DATA
+// ─────────────────────────────────────────────────────────────
+const CONTENT = {"eras":{"henan_2003":{"province":"河南","year":2003,"title":"河南 · 2003","tagline":"那年六月原本是七月","desc":"SARS 把所有人的日历往后推了一个月，也把所有人悬着的心多晾了三十天。口罩是标配，考场消毒水的气味混进了试卷的油墨气里，成了那届河南考生独有的嗅觉记忆。全省 82 万人参加了那场推迟后的考试。录取率 39%——每 10 个人里，只有不到 4 个人会拿到通知书。","stats":{"applicants":"82万","acceptanceRate":"39%","rule":"语文150+数学150+英语150+文理综合300，满分750"}},"henan_2008":{"province":"河南","year":2008,"title":"河南 · 2008","tagline":"奥运年，也是沉默年","desc":"5 月 12 日之后，全国的复习室里多了一种说不清的气息——不是悲伤，是一种被时代裹住的沉。学校贴出了捐款通告，班主任说\"好好考试就是对灾区最大的支持\"。北京在筹备开幕式，河南的备考教室里风扇嗡嗡响。92 万考生，录取率 40%。","stats":{"applicants":"92万","acceptanceRate":"40%","rule":"全国卷，满分750，文理分科"}},"henan_2023":{"province":"河南","year":2023,"title":"河南 · 2023","tagline":"口罩摘了，但习惯留下来了","desc":"三年里有过太多推迟和不确定，这一次是真的在正常时间考了。备考室里偶尔还会有人下意识地摸脸，那个口罩已经不在了的地方。全省 131 万考生，创了历史新高，录取率 58%，但高分段竞争比往年更密集。","stats":{"applicants":"131万","acceptanceRate":"58%","rule":"全国乙卷，满分750，文理分科"}},"jiangsu_2003":{"province":"江苏","year":2003,"title":"江苏 · 2003","tagline":"3+2 的最后几年","desc":"江苏当时还在用 3+2 的体系——语数外是主科，另外两门选测。规则相对清晰，考生只需要应对五门。SARS 推迟了考期，江苏的考生和全国一起在七月进的考场，那年夏天分外漫长。全省 36 万考生，本科录取率不到 35%。","stats":{"applicants":"36万","acceptanceRate":"35%","rule":"3+2 体系，语数外+两门选测，满分750"}},"jiangsu_2013":{"province":"江苏","year":2013,"title":"江苏 · 2013","tagline":"等级制的第五年，规则迷宫正深","desc":"选测科目不计入总分，看等级——A+、A、B+、B、C、D，每一个等级背后是一条录取门槛线。这套规则从 2008 年开始，到 2013 年已经是第六届，但每年仍有考生在志愿填报时发现自己的等级不够、总分够用却被退档。","stats":{"applicants":"48万","acceptanceRate":"88%","rule":"语数外各160+40+40=480，选测科目看等级，B以上方可报本科"}},"jiangsu_2017":{"province":"江苏","year":2017,"title":"江苏 · 2017","tagline":"文理分科最后的尾声","desc":"新高考改革的消息已经传了两年，传言说下一届就要变，但 2017 年还在旧规则里。班里有人在提前研究 6 选 3，有人说不用管、轮不到我们。选测科目等级制还在，语数外 480 分的体系还在，大家在一个即将消失的制度里准备最后几场文理分科的考试。","stats":{"applicants":"33万","acceptanceRate":"91%","rule":"语数外各160+40+40=480，选测等级制，平行志愿"}},"beijing_2008":{"province":"北京","year":2008,"title":"北京 · 2008","tagline":"奥运年的考生，本地卷","desc":"北京用的是自主命题的北京卷，不跟全国卷走。奥运会的倒计时挂在市区每一条街上，开幕式定在 8 月，高考结束之后还有两个月的等待。北京考生 7.8 万，本科录取率 70%。","stats":{"applicants":"7.8万","acceptanceRate":"70%","rule":"北京卷，满分750，文理分科，本地高校名额多"}},"beijing_2017":{"province":"北京","year":2017,"title":"北京 · 2017","tagline":"改革就在隔壁省","desc":"浙江和上海已经在跑新高考了，北京还没改。但消息传得很快——等级考、赋分制、院校专业组——这些词在高三教室里飘了一年。6.1 万考生坐进了还是文理分科的考场，本科录取率 78%，在全国依然是最高梯队。","stats":{"applicants":"6.1万","acceptanceRate":"78%","rule":"北京卷，满分750，文理分科，最后几年旧制"}},"beijing_2023":{"province":"北京","year":2023,"title":"北京 · 2023","tagline":"新高考第四年，赋分已成习惯","desc":"北京新高考从 2020 届开始，到 2023 年已经第四年了。6 选 3 的组合，各科赋分，院校专业组填报——规则已经是标配。防疫刚结束，全市 5.4 万考生，本科录取率超过 80%。","stats":{"applicants":"5.4万","acceptanceRate":"80%+","rule":"北京卷，满分750，新高考3+3模式，赋分制"}}},"fixedEvents":{"henan_2003":[{"id":"h2003_01","name":"口罩令","node":2,"scene":"学校通知，从即日起全员上课戴口罩，教室里的二氧化碳浓度已经让后排同学打了三次哈欠。班主任说戴着习惯就好了。","text":"你的眼镜起雾了。上午两节课，你摘下来擦了四次镜片，错过了黑板上两行板书。","options":[{"label":"改坐前排，凑近看黑板","effect":{"mood":-3,"score_modifier":2}},{"label":"把板书拍下来，课后补","effect":{"mood":0,"score_modifier":1}},{"label":"下课问同学借笔记抄","effect":{"mood":2,"score_modifier":0}}]},{"id":"h2003_02","name":"延期通知","node":5,"scene":"5 月下旬，学校广播播报：今年高考推迟至 7 月 7 日。距原定考试时间还有三周，一下子变成了七周。","text":"你在桌上写了一个新的倒计时数字。那根本不是一个可以直接替换的数字——多出来的四十天，你不知道该用来做什么。","options":[{"label":"按原计划继续冲，不浪费","effect":{"mood":0,"score_modifier":5}},{"label":"先松一口气，休息几天再说","effect":{"mood":8,"score_modifier":-2}},{"label":"重新制定复习计划，补薄弱科目","effect":{"mood":-3,"score_modifier":8}}]},{"id":"h2003_03","name":"同学出事了","node":9,"scene":"你的同桌两天没来上课。有人说他家里有人出了状况，有人说是被隔离了。班主任没有多说，只是他的座位空着。","text":"你看了一眼那个空座位。下午数学课，你做到第三道大题的时候停了一下。","options":[{"label":"下课发消息问他状况","effect":{"mood":3,"score_modifier":0}},{"label":"继续复习，什么都没做","effect":{"mood":-4,"score_modifier":3}},{"label":"帮他把今天的课程笔记整理好","effect":{"mood":5,"score_modifier":-2}}]},{"id":"h2003_04","name":"父母的担心","node":14,"scene":"饭桌上，父亲把手放在碗边，说：要不今年别考了，等明年，今年局势不稳。母亲没说话。","text":"你知道他说的「局势」是什么意思。你也知道他说的不是问题，是担心。","options":[{"label":"说你一定去考，这件事不用商量","effect":{"mood":-5,"score_modifier":5}},{"label":"说你再想想，先不表态","effect":{"mood":-8,"score_modifier":-3}},{"label":"说你知道，让他放心，然后转移话题","effect":{"mood":4,"score_modifier":0}}]},{"id":"h2003_05","name":"模拟考出分","node":17,"scene":"学校最后一次全市模拟考成绩出来了。贴在公告栏，全班分数线往下排，你的名字在某处。","text":"你在那行数字前站了大约三秒。那个分数比你预估的低了二十分，或者高了十五分。","options":[{"label":"把错题本翻出来，今晚全部过一遍","effect":{"mood":-6,"score_modifier":8}},{"label":"把卷子收起来，告诉自己模拟不算数","effect":{"mood":3,"score_modifier":-5}},{"label":"照这个节奏继续，不做调整","effect":{"mood":5,"score_modifier":2}}]}],"jiangsu_2017":[{"id":"j2017_01","name":"选科争议","node":3,"scene":"班主任把你留下来，说你现在选的物化地，但按成绩来看，生物和政治可能稳一点。选测科目的等级决定能不能报本科。她说：你要想清楚，你是为了考上，还是为了喜欢。","text":"那两句话之间有一段沉默，你没有填。","options":[{"label":"按她说的换选科组合","effect":{"mood":-5,"score_modifier":6}},{"label":"维持原来的选择","effect":{"mood":5,"score_modifier":0}},{"label":"说再想想，但没有换","effect":{"mood":-8,"score_modifier":-2}}]},{"id":"j2017_02","name":"等级线焦虑","node":7,"scene":"网上流传一份去年的数据：某省级重点高校要求选测科目双 A，全省能达到的考生不到 8%。有人在班群里发出来，下面跟了二十几条回复。","text":"你把那条消息看了两遍，放下手机，书本还开着。","options":[{"label":"不管那个数据，按自己的节奏复习","effect":{"mood":4,"score_modifier":2}},{"label":"把选测科目的复习比重加上去","effect":{"mood":-6,"score_modifier":7}},{"label":"找班主任确认你的等级现在在哪个区间","effect":{"mood":2,"score_modifier":3}}]},{"id":"j2017_03","name":"新高考传言","node":10,"scene":"有人说听到内部消息，江苏明年就要跟浙江一样改赋分制了。班里炸开了锅，有人说庆幸，有人说可惜，有人说管它的。","text":"你坐在位置上，听了一会儿，没有参与那场讨论。","options":[{"label":"觉得庆幸，专心把这届考完","effect":{"mood":5,"score_modifier":0}},{"label":"去查浙江赋分制的资料研究了一晚上","effect":{"mood":-5,"score_modifier":-3}},{"label":"什么都没做，该复习复习","effect":{"mood":0,"score_modifier":2}}]},{"id":"j2017_04","name":"480分的压缩感","node":14,"scene":"有同学算了一道题：在 480 分制里，你每错一道选择题失去的比例，比 750 分制里更大。把他的计算发在桌上，你看了一眼。","text":"这个数字是对的。你把那张纸翻过去，背面是一道导数大题。","options":[{"label":"重新梳理选择题的失分点，专项练","effect":{"mood":-4,"score_modifier":8}},{"label":"不管那个比例，按原来的方式复习","effect":{"mood":3,"score_modifier":1}},{"label":"把那张纸扔掉","effect":{"mood":5,"score_modifier":-2}}]},{"id":"j2017_05","name":"志愿预演","node":18,"scene":"老师发来一张去年的江苏投档线表，让大家对着自己预估的分数提前模拟填一次志愿。你坐下来，看着那些学校的名字，每个旁边一列数字。","text":"你在某所学校的名字旁边停了一下。你不确定是因为那个分数你够得到，还是因为它的名字你认识。","options":[{"label":"按分数来，找稳妥梯度填","effect":{"mood":0,"score_modifier":3}},{"label":"冲一个高于预估线的学校","effect":{"mood":-3,"score_modifier":5}},{"label":"把那所你停下来的学校填进去","effect":{"mood":6,"score_modifier":-1}}]}],"beijing_2023":[{"id":"b2023_01","name":"赋分困惑","node":2,"scene":"一道历史模拟题，按原始分你得了 78，经过赋分变成了 86。隔壁班一个同学原始分 81，赋分后是 83。你把这两个数字写在草稿纸上看了很久。","text":"你发现你不确定你「真正」考了多少分。","options":[{"label":"去找老师解释赋分规则，彻底搞懂","effect":{"mood":-3,"score_modifier":4}},{"label":"只看排名，不看分数","effect":{"mood":2,"score_modifier":2}},{"label":"接受它就是这么运作的，继续复习","effect":{"mood":4,"score_modifier":1}}]},{"id":"b2023_02","name":"院校专业组","node":6,"scene":"班主任说，北京新高考填志愿要按院校专业组来，同一所大学可能分好几个组，选错了组就算分数够也可能没有你想去的专业。","text":"你在本子上写下了你想去的那所学校的名字，然后开始查它今年有几个专业组。","options":[{"label":"把那所学校的所有专业组都查清楚","effect":{"mood":-2,"score_modifier":5}},{"label":"先专注复习，填志愿的事考完再说","effect":{"mood":4,"score_modifier":0}},{"label":"问有经验的师兄师姐要建议","effect":{"mood":3,"score_modifier":2}}]},{"id":"b2023_03","name":"三年的代价","node":9,"scene":"你翻出了高一开学第一天拍的班级合照。那时候还在线下上课，没多久就开始了漫长的居家时期。照片里有人现在还在你班，有人已经不知道去哪了。","text":"你算了一下：高中三年，有将近一年是在家里的屏幕前度过的。","options":[{"label":"把照片收起来，继续刷题","effect":{"mood":-2,"score_modifier":3}},{"label":"发给班群，大家聊了一会儿","effect":{"mood":7,"score_modifier":-2}},{"label":"就那么放着，什么都没做","effect":{"mood":0,"score_modifier":0}}]},{"id":"b2023_04","name":"北京考生身份","node":13,"scene":"你在网上看到一条评论，说北京考生录取率全国最高，是「难度最低的高考」。下面有几百条回复。","text":"你知道那条评论的意思，也知道它只说对了一半。","options":[{"label":"关掉页面，不参与那个讨论","effect":{"mood":2,"score_modifier":0}},{"label":"想了很久，心里不平静","effect":{"mood":-6,"score_modifier":0}},{"label":"告诉自己别管别人怎么说，把自己的考好","effect":{"mood":4,"score_modifier":2}}]},{"id":"b2023_05","name":"最后一次月考","node":17,"scene":"5 月最后一次月考，监考老师全程在走道里来回踱步。走廊里有人在小声讲话，声音透进来，听不清在说什么。","text":"你数了一下那个老师走了多少个来回，然后意识到你刚才有两分钟没有在做题。","options":[{"label":"深呼吸，重新看题目","effect":{"mood":3,"score_modifier":2}},{"label":"向老师示意，让走廊里的人安静","effect":{"mood":-2,"score_modifier":1}},{"label":"把注意力放回试卷，不管外面","effect":{"mood":1,"score_modifier":3}}]}]},"randomEvents":[{"id":"r01","name":"初恋复合","category":"人际关系","scene":"一条消息发进来，是你以为已经结束的那段关系的另一个人。说了一些话，大意是，想重新开始。","text":"你把手机屏幕朝下放。窗外有人在打篮球，球撞到篮板的声音隔三差五传进来。","options":[{"label":"回复说现在不是时候，等考完说","effect":{"mood":-4,"score_modifier":2}},{"label":"回复说好，再说说","effect":{"mood":5,"score_modifier":-8}},{"label":"不回，当没看见","effect":{"mood":-7,"score_modifier":5}}]},{"id":"r02","name":"父母要求报师范","category":"家庭压力","scene":"饭桌上，妈妈说了一个学校的名字，然后说工作稳定、以后有寒暑假、离家近。爸爸低着头吃饭，没有反对，也没有支持。","text":"你夹了一筷子菜，没有放进嘴里。","options":[{"label":"说好，把那个学校加进志愿考虑范围","effect":{"mood":-3,"score_modifier":0},"special":"family_comply"},{"label":"说你有自己的想法，饭后再谈","effect":{"mood":-5,"score_modifier":3},"special":"family_resist"},{"label":"答应了，但没有真的去查那个学校","effect":{"mood":-2,"score_modifier":-2}}]},{"id":"r03","name":"发现邻座有小抄","category":"道德选择","scene":"考前一周，在教室里做模拟，你看见邻桌同学把一张纸叠成了很小一块，压在橡皮下面。那张纸上密密麻麻是字。","text":"那张纸离你的视线不超过三十厘米。","options":[{"label":"假装没有看见","effect":{"mood":-5,"score_modifier":0}},{"label":"课后找那个同学说一下","effect":{"mood":-3,"score_modifier":0}},{"label":"报告监考老师","effect":{"mood":-8,"score_modifier":2}},{"label":"也想用这种方式备考","effect":{"mood":0,"score_modifier":0},"special":"cheat_route"}]},{"id":"r04","name":"语文老师押中作文","category":"意外惊喜","scene":"语文老师在最后一次作文课上押了一个题：「时间与选择」。考前三天，她说今年很可能考这个方向，让大家提前写一篇。","text":"你写了大概五百字，交上去。老师在右上角画了一个圈。","options":[{"label":"把那篇作文背下来","effect":{"mood":3,"score_modifier":10}},{"label":"研究那个圈的思路，扩写成完整范文","effect":{"mood":0,"score_modifier":6}},{"label":"押题这种事不可信，照常备考","effect":{"mood":2,"score_modifier":0}}]},{"id":"r05","name":"突然生病","category":"外部干扰","scene":"凌晨三点，你发现自己发烧了。体温计显示 38.7。家里只有退烧药，没有其他东西。","text":"你把退烧药吃下去，在床上躺着，看着天花板想，明天还有一次模拟考。","options":[{"label":"吃药休息，明天缓过来再说","effect":{"mood":5,"score_modifier":-5}},{"label":"吃完药继续复习","effect":{"mood":-8,"score_modifier":0}},{"label":"让父母明天请假在家休息一天","effect":{"mood":8,"score_modifier":-3}}]},{"id":"r06","name":"彻夜做出了一道大题","category":"意外惊喜","scene":"夜里十一点，你在做一道你之前卡了两周的数列证明题。用了一个之前没试过的角度，草稿纸写了半张。","text":"最后那行等号落下去的时候，你停了大约十秒。","options":[{"label":"把思路整理成笔记，第二天再验证","effect":{"mood":8,"score_modifier":8}},{"label":"继续做下一道","effect":{"mood":3,"score_modifier":5}},{"label":"太累了，睡觉，明天再看","effect":{"mood":5,"score_modifier":2}}]},{"id":"r07","name":"好友崩了","category":"人际关系","scene":"你最好的朋友发来一条消息：我不想考了。下面没有补充。你拨了过去，通了，那边没有说话，过了三秒挂掉了。","text":"你看着那个已断开的通话界面。","options":[{"label":"再打一次，约出来谈","effect":{"mood":5,"score_modifier":-5},"special":"help_others"},{"label":"发消息说等有时间再聊，继续复习","effect":{"mood":-4,"score_modifier":3}},{"label":"去他家待了一个下午","effect":{"mood":8,"score_modifier":-8},"special":"help_others"}]},{"id":"r08","name":"班主任的约谈","category":"意外惊喜","scene":"放学后班主任留下你。她翻出你最近三次月考的成绩，把它们摆在桌上，说：你有希望冲一本线以上。然后她停下来，等你说话。","text":"那三个数字你都认识，但并排放在一起的时候，有些不一样。","options":[{"label":"说你知道，会努力的","effect":{"mood":5,"score_modifier":3}},{"label":"问她具体差哪里，能冲到哪","effect":{"mood":3,"score_modifier":6}},{"label":"说谢谢，然后走了","effect":{"mood":2,"score_modifier":0}}]},{"id":"r09","name":"家里出了事","category":"家庭压力","scene":"父亲打电话来，说了一件事。你听完，挂断，坐在那里没有动。那件事和高考没有关系，但它发生了，而且发生在这个时候。","text":"你不知道要跟谁说。","options":[{"label":"回家待了两天，再回来继续","effect":{"mood":-5,"score_modifier":-5}},{"label":"没有回家，继续在学校，但什么都没做进去","effect":{"mood":-10,"score_modifier":-8}},{"label":"告诉班主任，请了一天假","effect":{"mood":-3,"score_modifier":-3}}]},{"id":"r10","name":"模拟考失常","category":"自我怀疑","scene":"这次模拟比你预估的低了四十分。卷子发下来，你找不到一个说得过去的原因——不是题难，不是发挥差，就是每道题都差了一点点。","text":"你把卷子从上到下翻了一遍，合上，放进抽屉里。","options":[{"label":"今晚把所有失分点整理出来","effect":{"mood":-6,"score_modifier":7}},{"label":"出去跑了三圈，回来再想","effect":{"mood":4,"score_modifier":0}},{"label":"告诉自己这次就当没考","effect":{"mood":3,"score_modifier":-2}}]},{"id":"r11","name":"想放弃","category":"自我怀疑","scene":"第七十三天。你坐在书桌前，把当天的计划表看了五分钟，什么都没有写。窗外有人在街上说话，声音听不清，但知道是在笑。","text":"你想不起来你上一次觉得这件事有意思是什么时候了。","options":[{"label":"强迫自己开始做第一道题","effect":{"mood":-4,"score_modifier":3}},{"label":"出去走一走，半小时后回来","effect":{"mood":5,"score_modifier":0}},{"label":"给自己放半天假","effect":{"mood":8,"score_modifier":-3}}]},{"id":"r12","name":"和父母大吵","category":"家庭压力","scene":"关于你要报的那个专业，你们谈了将近一个小时，最后变成了互相不说话。父亲走进他的房间，带上了门。","text":"那扇门的声音不大，但你听见了。","options":[{"label":"先去道歉，不管谁对谁错","effect":{"mood":5,"score_modifier":0}},{"label":"回自己房间，今晚不提这件事","effect":{"mood":-5,"score_modifier":2}},{"label":"发消息说你明白他的想法，但你要再想想","effect":{"mood":2,"score_modifier":0},"special":"family_resist"}]},{"id":"r13","name":"收到大学宣传册","category":"意外惊喜","scene":"班主任收到一批高校宣传材料，让同学们自取。你顺手拿了一本，翻到某一页，是个你有一点兴趣的专业介绍。","text":"你把那一页折了一个角。","options":[{"label":"把那所学校加进志愿候选里","effect":{"mood":3,"score_modifier":0},"special":"wish_school"},{"label":"查了一下它今年的录取分数线","effect":{"mood":2,"score_modifier":2}},{"label":"把宣传册放进书包，以后再说","effect":{"mood":1,"score_modifier":0}}]},{"id":"r14","name":"誓师大会","category":"人际关系","scene":"学校组织了一次高考誓师大会，在操场上，全年级站成一排，班主任念了一段话，然后让大家喊口号。","text":"那个口号你知道，喊出来的时候你想起你是在哪里第一次听到它的。","options":[{"label":"认真参加，喊得很大声","effect":{"mood":6,"score_modifier":0}},{"label":"参加了，但嘴皮子动了动","effect":{"mood":2,"score_modifier":0}},{"label":"找理由没去","effect":{"mood":-2,"score_modifier":1}}]},{"id":"r15","name":"成绩外泄","category":"人际关系","scene":"班里某个人把全班的模拟考排名截图发到了外面一个群。你不知道是谁，但你的名字和分数就在那张图上，已经传出去了。","text":"你看见那张图是在午饭时间，从同学的手机屏幕上。","options":[{"label":"不管它，继续","effect":{"mood":-3,"score_modifier":2}},{"label":"找班主任说这件事","effect":{"mood":-5,"score_modifier":0}},{"label":"和几个朋友去查是谁发的","effect":{"mood":-6,"score_modifier":-3}}]},{"id":"r16","name":"亲戚的比较","category":"家庭压力","scene":"周末在亲戚家吃饭，一个长辈提起了你表哥当年的成绩，然后看向你，问你有没有把握。","text":"你把那个分数和自己最近的模拟分在心里对了一下。","options":[{"label":"说有，然后换个话题","effect":{"mood":-2,"score_modifier":0}},{"label":"说会努力，没有给出数字","effect":{"mood":2,"score_modifier":0}},{"label":"把你自己的想法说出来","effect":{"mood":4,"score_modifier":2},"special":"family_resist"}]},{"id":"r17","name":"睡前刷手机","category":"外部干扰","scene":"本来打算刷五分钟，结果一个小时过去了。你放下手机，桌灯还亮着，课本摊开在那里。","text":"你知道你今晚的计划没有完成。","options":[{"label":"强撑着再看半小时课本","effect":{"mood":-4,"score_modifier":2}},{"label":"关灯睡觉，明天补","effect":{"mood":3,"score_modifier":-2}},{"label":"把手机放到另一个房间，继续学习","effect":{"mood":-2,"score_modifier":4}}]},{"id":"r18","name":"好题做出来了","category":"意外惊喜","scene":"有一道卷子上的题，你想了三天没有思路，今天在等公共汽车的时候突然想到了一个角度，回家试了一下，推出来了。","text":"你把过程写下来，把那道题圈了起来。","options":[{"label":"整理成笔记模板，找类似的题练","effect":{"mood":7,"score_modifier":8}},{"label":"发给同学，说你做出来了","effect":{"mood":8,"score_modifier":3}},{"label":"把那个想法记下来，继续做别的题","effect":{"mood":4,"score_modifier":5}}]},{"id":"r19","name":"考前一天晚上","category":"外部干扰","scene":"考试前一天。你把所有的准备工作都做完了：证件、铅笔、橡皮、水。然后你坐在那里，不知道还应该做什么。","text":"你没有打开课本。","options":[{"label":"看半小时错题本，然后睡觉","effect":{"mood":-2,"score_modifier":2}},{"label":"看了一部不用动脑子的视频，然后睡觉","effect":{"mood":5,"score_modifier":0}},{"label":"很早就睡了，但睡不着，翻了很久","effect":{"mood":-4,"score_modifier":0}}]},{"id":"r20","name":"被老师夸了","category":"意外惊喜","scene":"一个你尊重的老师在办公室门口叫住你，说上次那道作文写得很好，想用你的作文当范文给其他班看。","text":"你说好，然后走了。走到楼梯口，你停了一下。","options":[{"label":"继续向前走，去上下一节课","effect":{"mood":8,"score_modifier":3}},{"label":"回去问老师具体哪里写得好","effect":{"mood":6,"score_modifier":6}},{"label":"当天下午把那篇作文又改了一遍","effect":{"mood":4,"score_modifier":5}}]}],"examMicroDecisions":[{"id":"e01","subject":"语文","scene":"作文题出来了。题目你见过类似的，但不完全一样。你在草稿纸上列了两个写法：一个稳，一个有点意思。","text":"你看了一下时间，还剩五十分钟写作文。","options":[{"label":"选稳妥的角度，确保基本分","effect":{"base_delta":5,"variance":3}},{"label":"选有意思的角度，赌一把高分","effect":{"base_delta":12,"variance":15}},{"label":"两个方向合并，折中着写","effect":{"base_delta":7,"variance":6}}]},{"id":"e02","subject":"语文","scene":"有一道阅读理解，两个答案在脑子里打架，读了三遍还是没有结论。","text":"边上那道题你会，但这道题还没有答案。","options":[{"label":"先选一个，继续做后面，有时间再回来","effect":{"base_delta":4,"variance":4}},{"label":"在这道题上再花五分钟","effect":{"base_delta":6,"variance":8}},{"label":"选看起来更像答案的那个，直接下一题","effect":{"base_delta":2,"variance":6}}]},{"id":"e03","subject":"数学","scene":"选择题第八题，算了一遍算出来 C，总觉得不对，算第二遍算出来 B。","text":"时间走了两分钟，你还在这道题上。","options":[{"label":"相信第一遍，选 C，继续","effect":{"base_delta":3,"variance":5}},{"label":"再算第三遍","effect":{"base_delta":5,"variance":3}},{"label":"选 B，两种算法里选有把握的那个","effect":{"base_delta":4,"variance":4}}]},{"id":"e04","subject":"数学","scene":"压轴大题第二问，你做出了结论，但中间有一行推导不够严谨，可以过得去但不确定老师会不会扣分。","text":"还有二十分钟，大题还有最后一问。","options":[{"label":"就这样交，先去做最后一问","effect":{"base_delta":4,"variance":5}},{"label":"把那一行擦掉重写，补一行推导","effect":{"base_delta":7,"variance":4}},{"label":"跳过最后一问，把这道题写完整","effect":{"base_delta":5,"variance":6}}]},{"id":"e05","subject":"数学","scene":"最后一道大题第一问，你看了五分钟，完全没有入口。还有三十分钟，你已经做完了前面所有能做的题。","text":"笔尖在草稿纸上划了一个角，没有落下去。","options":[{"label":"继续盯着，再想五分钟","effect":{"base_delta":3,"variance":8}},{"label":"先把会的题目检查一遍，回来再看","effect":{"base_delta":5,"variance":3}},{"label":"写下能想到的任何步骤，拿步骤分","effect":{"base_delta":4,"variance":4}}]},{"id":"e06","subject":"英语","scene":"完形填空有一道，两个选项都说得通，语法没有问题，区别只在语感。","text":"你在两个选项上来回划了三次，没有决定。","options":[{"label":"选第一感觉选的那个","effect":{"base_delta":3,"variance":4}},{"label":"把前后文再通读一遍，再选","effect":{"base_delta":5,"variance":3}},{"label":"跳过，最后再决定","effect":{"base_delta":4,"variance":5}}]},{"id":"e07","subject":"英语","scene":"英语作文你起了个开头，发现和背的那个模板不太一样。改回模板的话，前面两行要擦掉。","text":"还有二十五分钟写作文。","options":[{"label":"改回模板，稳一点","effect":{"base_delta":4,"variance":3}},{"label":"继续按自己起的开头写","effect":{"base_delta":6,"variance":7}},{"label":"把两者结合，接着写","effect":{"base_delta":5,"variance":4}}]},{"id":"e08","subject":"综合","scene":"综合卷，最后一道大题，你对一个知识点的记忆模糊。大题配分很高，但那个知识点是关键。","text":"你手里的笔停在那一行上，不知道该怎么开始。","options":[{"label":"写你记得的，把框架搭出来再填","effect":{"base_delta":6,"variance":5}},{"label":"先跳过这道，把前面的整理一遍","effect":{"base_delta":4,"variance":3}},{"label":"把那个模糊知识点周围所有能写的都写上","effect":{"base_delta":5,"variance":6}}]}],"endings":{"01":{"name":"鲤鱼跃龙门","tagline":"你把命运之绳握得太紧，紧到手心留了疤，却也紧到它没能跑掉。那一百天里每一个不情愿的早晨，它们都算数了。"},"02":{"name":"折翅的鸟","tagline":"你飞得不够高，但你知道你曾经用力扇过翅膀。那个努力过的人是真实的，不因为结果而失去重量。"},"03":{"name":"顺水行舟","tagline":"你从未真正想去哪里，所以河流带你去哪里你就去了哪里。船还在，岸也在，只是那个目的地从来不是你选的。"},"04":{"name":"此路是我开","tagline":"他们说要走的路你没走，你说要走的路他们不懂。多年后你们都沉默了——不是谁赢了，是那个问题终于没有意义了。"},"05":{"name":"乖孩子的代价","tagline":"你给了他们一个满意的答案，而你自己的那道题，留到了以后。以后很长，也许够用，也许不够。"},"06":{"name":"兵败如山倒","tagline":"那一百天里有一天你放弃了，后来你发现那一天之后的所有天都变了。不是惩罚，是因果，它就是这样运作的。"},"07":{"name":"慢热的火","tagline":"你不是没有努力，只是比别人慢了半拍——而那一年，半拍就是一个学校的距离。差这么一点点，不是悲剧，是精确。"},"08":{"name":"旁观者清","tagline":"你帮了太多人，忘了自己也在考试。那些你陪过的人后来都记得你——只是高考成绩单上，那些不算分。"},"09":{"name":"纸牌屋","tagline":"那张小抄没有救你，它只是让你看清楚了你真正害怕的是什么。那个答案比高考的答案更难处理。"},"10":{"name":"另一种自由","tagline":"没有录取通知书的那个夏天，你反而第一次知道了自己想要什么。那个发现是真的，代价也是真的。"}}};
 
-const PREP_QUESTIONS = [
-  {
-    q: "高考前最后三天，你选择怎么度过？",
-    opts: [
-      { text: "每天刷 10 套真题，睡 4 小时", effect: { 知识: 15, 状态: -20 } },
-      { text: "适当复习薄弱点，保证 8 小时睡眠", effect: { 知识: 8, 状态: 10 } },
-      { text: "什么都不看，彻底放松，打游戏", effect: { 知识: -10, 状态: 20 } },
-      { text: "背高中三年所有公式和单词", effect: { 知识: 5, 状态: -15 } },
-    ]
-  },
-  {
-    q: "考试当天早上，妈妈端来一碗热汤面，说"考完再吃"。此时距考试开始还有 25 分钟。",
-    opts: [
-      { text: "快速吃完，心满意足出门", effect: { 知识: 0, 状态: 12 } },
-      { text: "跟妈说不饿，空腹上考场", effect: { 知识: 0, 状态: -10 } },
-      { text: "喝了汤，把面带路上边走边吃", effect: { 知识: 0, 状态: 8 } },
-      { text: "吃了一半，说撑了，快走", effect: { 知识: 0, 状态: 4 } },
-    ]
-  },
-  {
-    q: "进入考场，你发现铅笔盒忘在家了。监考老师借给你一支中性笔，但你习惯用 2B 铅笔答客观题。",
-    opts: [
-      { text: "深呼吸，告诉自己问题不大，继续", effect: { 知识: 0, 状态: 6 } },
-      { text: "向监考老师要求换一间考场", effect: { 知识: 0, 状态: -5 } },
-      { text: "内心崩溃，在草稿纸上写"完了"", effect: { 知识: 0, 状态: -18 } },
-      { text: "借同学的 2B 铅笔，扫了一圈没人有", effect: { 知识: 0, 状态: -8 } },
-    ]
-  },
+// ─────────────────────────────────────────────────────────────
+// 2. CONFIG
+// ─────────────────────────────────────────────────────────────
+const PROVINCES = [
+  {id:'henan',name:'河南',label:'千军万马'},
+  {id:'jiangsu',name:'江苏',label:'规则迷宫'},
+  {id:'beijing',name:'北京',label:'天然滤镜'}
+];
+const YEARS = [2003,2008,2013,2017,2023];
+const OPEN_COMBOS = new Set(['henan_2003','henan_2008','henan_2023','jiangsu_2003','jiangsu_2013','jiangsu_2017','beijing_2008','beijing_2017','beijing_2023']);
+
+// Province base score ranges [min, max, median]
+const PROVINCE_RANGES = {
+  henan:{min:360,max:610,med:460},
+  jiangsu:{min:340,max:590,med:450},
+  beijing:{min:410,max:650,med:510}
+};
+
+// Strategy options for prep nodes
+const STRATEGIES = [
+  {id:'grind_weak',label:'重点攻薄弱科目',desc:'把短板课时集中补',effect:{knowledge:6,mood:-5}},
+  {id:'reinforce',label:'巩固优势科目',desc:'深化已会的内容，稳住基本盘',effect:{knowledge:3,mood:-2}},
+  {id:'balanced',label:'均衡复习',desc:'各科轮流，不偏科',effect:{knowledge:4,mood:0}},
+  {id:'mock',label:'做整套模拟题',desc:'发现问题，也有随机波动',effect:{knowledge:0,mood:-3,mock:true}},
+  {id:'rest',label:'调整状态，适当休息',desc:'不刷题，状态好了效率更高',effect:{knowledge:0,mood:10}},
+  {id:'relax',label:'彻底放松一下',desc:'看个电影，出去走走',effect:{knowledge:-2,mood:15}}
 ];
 
-// 知识=知识储备 状态=临场状态  initial=50/50
-// 综合系数影响最终分数
-
-const QUESTIONS = [
-  // ─── 语文 ───
-  {
-    subject: "语文",
-    q: "下列各句中，没有语病的一项是：",
-    opts: [
-      "A. 通过这次高考，使我深刻认识到了努力的重要性。",
-      "B. 能否保持良好心态，是高考成功的关键。",
-      "C. 这道数学题的解法多种多样，但最简便的方法只有一种。",
-      "D. 他的语文成绩不仅在全班，而且在全年级都是最好的。",
-    ],
-    answer: 2,
-    explain: "A 项缺少主语（通过……使……），B 项两面对一面，D 项语序不当。C 项表述正确。"
-  },
-  {
-    subject: "语文",
-    q: "\"落霞与孤鹜齐飞，秋水共长天一色\" 出自哪位作者的哪篇作品？",
-    opts: [
-      "A. 王勃《滕王阁序》",
-      "B. 欧阳修《醉翁亭记》",
-      "C. 范仲淹《岳阳楼记》",
-      "D. 苏轼《赤壁赋》",
-    ],
-    answer: 0,
-    explain: "此句出自初唐四杰王勃的《滕王阁序》，是描写滕王阁秋景的千古名句。"
-  },
-  {
-    subject: "语文",
-    q: "鲁迅小说《祝福》中，祥林嫂的悲剧核心是什么？",
-    opts: [
-      "A. 丈夫早逝，生活贫困",
-      "B. 封建礼教和迷信对她的精神摧残",
-      "C. 儿子阿毛被狼吃掉",
-      "D. 鲁四老爷不让她参与祝福活动",
-    ],
-    answer: 1,
-    explain: "祥林嫂的悲剧根源是封建礼教与迷信的双重压迫——\"再嫁\"的污名和\"魂灵\"的恐惧最终将她摧毁，鲁迅以此批判封建社会对人的异化。"
-  },
-  // ─── 数学 ───
-  {
-    subject: "数学",
-    q: "已知集合 A = {x | x² - 3x + 2 = 0}，集合 B = {x | x² - 2x - 3 = 0}，则 A∪B = ?",
-    opts: [
-      "A. {1, 2, 3}",
-      "B. {-1, 1, 2, 3}",
-      "C. {1, 2}",
-      "D. {-1, 2, 3}",
-    ],
-    answer: 1,
-    explain: "A = {1, 2}（x²-3x+2=0的解），B = {-1, 3}（x²-2x-3=0的解），A∪B = {-1, 1, 2, 3}。"
-  },
-  {
-    subject: "数学",
-    q: "函数 f(x) = ln(x+1) + (1-x)/(1+x) 的单调性如何？",
-    opts: [
-      "A. 在定义域内单调递增",
-      "B. 在定义域内单调递减",
-      "C. 先增后减",
-      "D. 先减后增",
-    ],
-    answer: 0,
-    explain: "f'(x) = 1/(x+1) - 2/(1+x)² = (x-1)/(x+1)²... 实际上对 x > -1 均有 f'(x) > 0，函数在定义域 (-1, +∞) 上单调递增。"
-  },
-  {
-    subject: "数学",
-    q: "向量 a = (1, √3)，b = (√3, 1)，则 a 与 b 的夹角为：",
-    opts: [
-      "A. 30°",
-      "B. 45°",
-      "C. 60°",
-      "D. 90°",
-    ],
-    answer: 0,
-    explain: "cos θ = (a·b) / (|a||b|) = (√3+√3) / (2×2) = √3/2，所以 θ = 30°。"
-  },
-  // ─── 英语 ───
-  {
-    subject: "英语",
-    q: "Choose the sentence with correct grammar:\n\"I suggested that he ___ to the doctor immediately.\"",
-    opts: [
-      "A. goes",
-      "B. went",
-      "C. go",
-      "D. going",
-    ],
-    answer: 2,
-    explain: "suggest 后的宾语从句用虚拟语气，should + 动词原形，should 可省略，所以用 go（动词原形）。"
-  },
-  {
-    subject: "英语",
-    q: "The phrase \"under the weather\" means:",
-    opts: [
-      "A. in rainy conditions",
-      "B. feeling slightly ill",
-      "C. working outdoors",
-      "D. troubled by emotions",
-    ],
-    answer: 1,
-    explain: "\"under the weather\" 是英语习语，意思是感觉不舒服/生病，相当于 feeling unwell。"
-  },
-  {
-    subject: "英语",
-    q: "Fill in the blank: \"It is not until we lose health ___ we realize its value.\"",
-    opts: [
-      "A. when",
-      "B. which",
-      "C. that",
-      "D. what",
-    ],
-    answer: 2,
-    explain: "这是\"It is not until…that…\"的强调句型，强调时间状语从句。正确填入 that。"
-  },
+// Node atmosphere texts (cycles through)
+const NODE_ATMO = [
+  '教室后排的黑板报还没换，上面是上周写的倒计时。',
+  '今天天气很好，阳光从窗户斜进来，落在课桌的右角。',
+  '下午第三节课，有人趴在桌上睡了，监课老师从门口经过，没有说话。',
+  '外面在刮风。窗缝里进来一点风，把书页翻了一下。',
+  '早自习有人在背单词，声音低低的，听不清在背什么。',
+  '食堂今天有你喜欢的那道菜。',
+  '晚自习快结束的时候，荧光灯闪了一下，然后恢复正常。',
+  '有人在走廊里说话，声音压得很低，但还是听见了两个字：高考。',
+  '今天的错题本又多了三页。',
+  '你在课本的空白处写了一个数字，然后划掉了，写了另一个。',
+  '隔壁班传来一阵笑声，然后很快安静下来。',
+  '桌上的饮料瓶是空的，你没有去倒。',
+  '今天的自习课老师没来，但没有人讲话。',
+  '窗外有一棵树，叶子颜色深了一点。',
+  '你把手机放进抽屉，然后打开，然后又放进去。',
+  '从走廊能看到远处的楼。那些楼里有人不需要考高考。',
+  '今晚月亮很大。备考室的同学没几个注意到。',
+  '有同学把答题本堆了很高，你数了一下，十七本。',
+  '班主任今天没来，有人说他在校长室里。',
+  '今天是第一百天减去某个数字的那一天。'
 ];
 
-// ─── SCHOOL DATA ──────────────────────────────────────────────────────────
-function getSchool(score) {
-  if (score >= 680) return {
-    tier: "★ 顶尖名校",
-    name: "清华大学 / 北京大学",
-    major: "计算机科学与技术",
-    comment: "你站在了中国教育体系的最顶端。凌晨三点的台灯，值了。",
-    color: "#d4b44a"
+// Schools data for volunteer
+const SCHOOLS = [
+  {name:'清华大学 / 北京大学',tier:'顶尖',cut:{henan:700,jiangsu:695,beijing:680},major:'计算机科学、经济学'},
+  {name:'复旦大学',tier:'985',cut:{henan:665,jiangsu:660,beijing:645},major:'经济、管理、文学'},
+  {name:'浙江大学',tier:'985',cut:{henan:662,jiangsu:658,beijing:642},major:'工学、医学、理学'},
+  {name:'武汉大学',tier:'985',cut:{henan:638,jiangsu:634,beijing:618},major:'法学、文学、理工'},
+  {name:'南京大学',tier:'985',cut:{henan:640,jiangsu:636,beijing:620},major:'理学、文学、社会学'},
+  {name:'中国人民大学',tier:'985',cut:{henan:648,jiangsu:644,beijing:628},major:'经济、法学、新闻'},
+  {name:'北京航空航天大学',tier:'211',cut:{henan:620,jiangsu:615,beijing:598},major:'航空、计算机、自动化'},
+  {name:'华中科技大学',tier:'211',cut:{henan:605,jiangsu:600,beijing:583},major:'工学、医学、管理'},
+  {name:'西安交通大学',tier:'211',cut:{henan:608,jiangsu:604,beijing:586},major:'工学、医学、经济'},
+  {name:'郑州大学',tier:'211',cut:{henan:560,jiangsu:null,beijing:null},major:'医学、工学、文学'},
+  {name:'南京师范大学',tier:'省属重点',cut:{henan:548,jiangsu:530,beijing:520},major:'教育、文学、理学'},
+  {name:'河南大学',tier:'省属重点',cut:{henan:520,jiangsu:null,beijing:null},major:'文学、历史、理学'},
+  {name:'某省属本科院校',tier:'普通本科',cut:{henan:480,jiangsu:460,beijing:460},major:'管理、工学、教育'},
+  {name:'某高职院校',tier:'专科',cut:{henan:380,jiangsu:360,beijing:380},major:'市场营销、数控技术'},
+];
+
+// ─────────────────────────────────────────────────────────────
+// 3. STATE
+// ─────────────────────────────────────────────────────────────
+let S = {};
+
+function initState() {
+  S = {
+    screen: 'title',
+    province: null, year: null, comboKey: null,
+    knowledge: 50, mood: 60,
+    currentNode: 0,
+    strategyHistory: [],
+    flags: [],
+    activeEvents: [],       // {type:'fixed'|'random', eventId, nodeIdx}
+    pendingEvent: null,     // event currently shown
+    examIdx: 0,
+    examBonus: 0,
+    baseScore: 0, finalScore: 0,
+    selectedSchool: null, admitted: false,
+    endingId: null,
+    scoreBreakdown: {yu:0,shu:0,ying:0,zong:0}
   };
-  if (score >= 640) return {
-    tier: "985 高校",
-    name: "复旦大学 / 浙江大学",
-    major: "经济学 / 工学",
-    comment: "双一流院校，毕业生起点不低。父母脸上有光。",
-    color: "#7fc47e"
-  };
-  if (score >= 590) return {
-    tier: "211 高校",
-    name: "南京大学 / 武汉大学",
-    major: "文学 / 理学",
-    comment: "重点大学，四年下来取决于你怎么过。",
-    color: "#7fc47e"
-  };
-  if (score >= 520) return {
-    tier: "普通本科",
-    name: "某省属本科院校",
-    major: "管理学 / 工学",
-    comment: "一本线上，稳稳落地。以后的路还很长。",
-    color: "#a0c0e0"
-  };
-  if (score >= 400) return {
-    tier: "专科 / 高职",
-    name: "某职业技术学院",
-    major: "市场营销 / 数控技术",
-    comment: "条条大路通罗马。技能型人才也有春天。",
-    color: "#c09060"
-  };
-  return {
-    tier: "落榜",
-    name: "复读班",
-    major: "再搏一年",
-    comment: "也许你只是还没到时候。明年见。",
-    color: "#e05050"
-  };
+  saveState();
 }
 
-// ─── STATE ────────────────────────────────────────────────────────────────
-let G = {};
-function initGame() {
-  G = {
-    phase: 'title',
-    stats: { 知识: 50, 状态: 50 },
-    prepIdx: 0,
-    qIdx: 0,
-    correct: 0,
-    answers: [],   // per-subject: {语文:0,数学:0,英语:0}
-    subjectCorrect: { 语文: 0, 数学: 0, 英语: 0 },
-    timerVal: 18,
-    timerInterval: null,
-    answered: false,
-  };
+function saveState() {
+  try { localStorage.setItem('gaokao_state', JSON.stringify(S)); } catch(e){}
 }
 
-// ─── RENDER ───────────────────────────────────────────────────────────────
-const screen = document.getElementById('screen');
-function render(html) { screen.innerHTML = html; screen.className = 'screen'; }
+function loadState() {
+  try {
+    const s = localStorage.getItem('gaokao_state');
+    if (s) { S = JSON.parse(s); return true; }
+  } catch(e){}
+  return false;
+}
 
-// Title
+// ─────────────────────────────────────────────────────────────
+// 4. SCORE ENGINE
+// ─────────────────────────────────────────────────────────────
+function calcBaseScore() {
+  const r = PROVINCE_RANGES[S.province];
+  // knowledge 50 = median; each point = about 2.5 pts of score
+  const score = r.med + (S.knowledge - 50) * 2.8;
+  return Math.round(Math.max(r.min + 20, Math.min(r.max - 20, score)));
+}
+
+function applyExamDecision(decision, optIdx) {
+  const opt = decision.options[optIdx];
+  const ef = opt.effect;
+  const moodFactor = S.mood > 70 ? 1.2 : S.mood > 50 ? 1.0 : S.mood > 35 ? 0.8 : 0.6;
+  const variance = (Math.random() * 2 - 1) * ef.variance * moodFactor;
+  return Math.round(ef.base_delta * moodFactor + variance);
+}
+
+function calcFinalScore() {
+  S.baseScore = calcBaseScore();
+  S.finalScore = Math.min(750, Math.max(150, S.baseScore + S.examBonus));
+  // Distribute to subjects roughly
+  const total = S.finalScore;
+  S.scoreBreakdown = {
+    yu: Math.round(total * 0.21 + (Math.random()-0.5)*10),
+    shu: Math.round(total * 0.21 + (Math.random()-0.5)*15),
+    ying: Math.round(total * 0.21 + (Math.random()-0.5)*10),
+    zong: 0
+  };
+  S.scoreBreakdown.zong = S.finalScore - S.scoreBreakdown.yu - S.scoreBreakdown.shu - S.scoreBreakdown.ying;
+  // Clamp all
+  Object.keys(S.scoreBreakdown).forEach(k => {
+    S.scoreBreakdown[k] = Math.max(30, Math.min(150, S.scoreBreakdown[k]));
+  });
+}
+
+function getRanking(score) {
+  if (score >= 690) return '全省前 0.1% · 传说级';
+  if (score >= 650) return '全省前 1% · 顶尖水准';
+  if (score >= 600) return '全省前 5% · 重点线以上';
+  if (score >= 550) return '全省前 15% · 一本线以上';
+  if (score >= 480) return '全省前 35% · 二本线附近';
+  if (score >= 380) return '全省前 60% · 专科线以上';
+  return '未达专科线';
+}
+
+function getSchoolCut(school) {
+  const cut = school.cut[S.province];
+  if (!cut) return null;
+  // Year adjustment: older years have slightly different lines
+  const yearAdj = {2003:-15,2008:-10,2013:-5,2017:0,2023:10};
+  return cut + (yearAdj[S.year] || 0);
+}
+
+function determineEnding() {
+  const score = S.finalScore;
+  const flags = S.flags;
+  const strategies = S.strategyHistory;
+  const restCount = strategies.filter(s=>s==='rest'||s==='relax').length;
+  const grindCount = strategies.filter(s=>s==='grind_weak'||s==='reinforce'||s==='mock').length;
+  const helpOthers = flags.filter(f=>f==='help_others').length;
+  const familyComply = flags.filter(f=>f==='family_comply').length;
+  const familyResist = flags.filter(f=>f==='family_resist').length;
+
+  if (flags.includes('cheat_route')) return '09';
+  if (score >= 640 && grindCount >= 10) return '01';
+  if (score >= 560 && helpOthers >= 2) return '08';
+  if (familyComply >= 2 && score >= 500) return '05';
+  if (familyResist >= 2 && score >= 520) return '04';
+  if (score < 380 && S.mood >= 60 && restCount >= 8) return '10';
+  if (score < 420) return '06';
+  if (score >= 580 && grindCount < 8) return '02';
+  if (score >= 540 && score < 580) return '07';
+  if (restCount >= 12) return '03';
+  return '02';
+}
+
+// ─────────────────────────────────────────────────────────────
+// 5. EVENT SCHEDULING
+// ─────────────────────────────────────────────────────────────
+function setupEvents() {
+  const events = [];
+  // Fixed events for this combo
+  const fixedList = CONTENT.fixedEvents[S.comboKey] || [];
+  fixedList.forEach(ev => events.push({type:'fixed', eventId:ev.id, nodeIdx:ev.node-1}));
+
+  // Random events: pick 5 from pool
+  const pool = [...CONTENT.randomEvents];
+  const chosen = [];
+  while (chosen.length < 5 && pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    chosen.push(pool.splice(idx, 1)[0]);
+  }
+  // Place them at random non-fixed nodes
+  const usedNodes = new Set(events.map(e=>e.nodeIdx));
+  const availNodes = Array.from({length:20},(_,i)=>i).filter(i=>!usedNodes.has(i) && i>0);
+  chosen.forEach((ev, i) => {
+    if (i < availNodes.length) {
+      events.push({type:'random', eventId:ev.id, nodeIdx:availNodes[i]});
+    }
+  });
+
+  S.activeEvents = events;
+}
+
+function getEventForNode(nodeIdx) {
+  return S.activeEvents.find(e => e.nodeIdx === nodeIdx) || null;
+}
+
+function getEventData(type, id) {
+  if (type === 'fixed') {
+    const combo = CONTENT.fixedEvents[S.comboKey] || [];
+    return combo.find(e=>e.id===id);
+  }
+  return CONTENT.randomEvents.find(e=>e.id===id);
+}
+
+// ─────────────────────────────────────────────────────────────
+// 6. RENDER HELPERS
+// ─────────────────────────────────────────────────────────────
+const root = document.getElementById('root');
+
+function render(html) {
+  root.innerHTML = `<div class="screen">${html}</div>`;
+}
+
+function statBars() {
+  const moodPct = Math.max(5, S.mood);
+  const knowPct = Math.max(5, S.knowledge);
+  const moodColor = S.mood > 65 ? '#2d4a2d' : S.mood > 40 ? '#8b6914' : '#8b1a1a';
+  const knowColor = S.knowledge > 65 ? '#2d4a2d' : S.knowledge > 40 ? '#8b6914' : '#8b1a1a';
+  return `
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-label">知识储备</div>
+        <div class="stat-val" style="color:${knowColor}">${S.knowledge}</div>
+        <div class="stat-bar-wrap"><div class="stat-bar-fill know-fill" style="width:${knowPct}%;background:${knowColor}"></div></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">临场状态</div>
+        <div class="stat-val" style="color:${moodColor}">${S.mood}</div>
+        <div class="stat-bar-wrap"><div class="stat-bar-fill mood-fill" style="width:${moodPct}%;background:${moodColor}"></div></div>
+      </div>
+    </div>
+  `;
+}
+
+function timeline() {
+  const dots = Array.from({length:20},(_,i) => {
+    const cls = i < S.currentNode ? 'done' : i === S.currentNode ? 'current' : '';
+    return `<div class="tl-dot ${cls}"></div>`;
+  }).join('');
+  const daysLeft = 100 - S.currentNode * 5;
+  return `<div class="timeline">${dots}<span class="progress-text">距高考 ${daysLeft} 天</span></div>`;
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ─────────────────────────────────────────────────────────────
+// 7. SCREENS
+// ─────────────────────────────────────────────────────────────
+
 function showTitle() {
-  G.phase = 'title';
+  S.screen = 'title';
   render(`
-    <div class="title-badge">2026 · 全国统一高考</div>
-    <div class="title-main">高考</div>
-    <div class="title-sub">GAOKAO SIMULATOR</div>
-    <div class="year-badge">倒计时 0 天</div>
-    <button class="btn-start" onclick="startPrep()">进入考场</button>
-    <div class="title-tip">共 9 道题 · 答完出成绩</div>
+    <div class="kicker">高考命运模拟器 · MVP</div>
+    <h1>高考</h1>
+    <div style="font-family:'STSong',serif;font-size:13px;color:#8b7355;letter-spacing:3px;margin-bottom:32px">GAOKAO SIMULATOR</div>
+    <div class="card" style="margin-bottom:24px">
+      <p>选择省份和年份，重走一遍那段改变命运的 100 天。</p>
+      <p>真实政策背景 · 考场微决策 · 10 种结局</p>
+    </div>
+    <button class="btn btn-primary" onclick="showSelect()">进入考场</button>
+    <div style="margin-top:12px;text-align:center">
+      ${localStorage.getItem('gaokao_state') && JSON.parse(localStorage.getItem('gaokao_state')||'{}').screen !== 'title'
+        ? `<button class="btn" style="font-size:12px" onclick="resumeGame()">继续上一局</button>` : ''}
+    </div>
+    <div class="dim center" style="margin-top:32px">3 省 × 9 组合 · 约 25-30 分钟一局</div>
   `);
 }
 
-// Prep
-function startPrep() {
-  G.phase = 'prep';
-  G.prepIdx = 0;
-  showPrep();
+function resumeGame() {
+  loadState();
+  goToCurrentScreen();
 }
 
-function showPrep() {
-  if (G.prepIdx >= PREP_QUESTIONS.length) {
-    startExam();
-    return;
-  }
-  const pq = PREP_QUESTIONS[G.prepIdx];
-  const dots = PREP_QUESTIONS.map((_, i) =>
-    `<div class="dot ${i < G.prepIdx ? 'done' : i === G.prepIdx ? 'active' : ''}"></div>`
+function goToCurrentScreen() {
+  const map = {
+    title: showTitle, select: showSelect, era: showEra,
+    node: showNode, event: ()=>showEventScreen(S.pendingEvent),
+    examIntro: showExamIntro, examDecision: ()=>showExamDecision(),
+    scoreReveal: showScoreReveal, volunteer: showVolunteer,
+    result: showResult, ending: showEnding
+  };
+  (map[S.screen] || showTitle)();
+}
+
+function showSelect() {
+  S.screen = 'select';
+  const provBtns = PROVINCES.map(p =>
+    `<button class="prov-btn ${S.province===p.id?'sel':''}" onclick="selectProvince('${p.id}')">
+      <div>${p.name}</div><div style="font-size:10px;color:inherit;opacity:.7;margin-top:3px">${p.label}</div>
+    </button>`
+  ).join('');
+
+  const yearBtns = YEARS.map(y => {
+    const locked = S.province && !OPEN_COMBOS.has(`${S.province}_${y}`);
+    const sel = S.year === y;
+    return `<button class="year-btn ${sel?'sel':''} ${locked?'locked':''}" onclick="selectYear(${y},${locked})">${y}<br><span style="font-size:10px">${locked?'未开放':''}</span></button>`;
+  }).join('');
+
+  render(`
+    <div class="kicker">选择你的命运</div>
+    <h2>省份 · 年份</h2>
+    <div class="section-title">省份</div>
+    <div class="province-grid">${provBtns}</div>
+    <div class="section-title">年份 ${!S.province?'<span style="opacity:.5">（请先选省份）</span>':''}</div>
+    <div class="year-grid">${yearBtns}</div>
+    <div style="margin-top:8px">
+      <button class="btn" style="background:#f0e8d0;margin-bottom:8px" onclick="randomSelect()">🎲 随机命运</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="confirmSelect()" ${(!S.province||!S.year)?'disabled style="opacity:.4"':''}>确认，进入游戏</button>
+  `);
+}
+
+function selectProvince(p) {
+  S.province = p; S.year = null; showSelect();
+}
+
+function selectYear(y, locked) {
+  if (locked) return;
+  S.year = y; showSelect();
+}
+
+function randomSelect() {
+  const combos = Array.from(OPEN_COMBOS);
+  const pick = combos[Math.floor(Math.random()*combos.length)];
+  const [p,y] = pick.split('_');
+  S.province = p; S.year = parseInt(y);
+  showSelect();
+}
+
+function confirmSelect() {
+  if (!S.province || !S.year) return;
+  S.comboKey = `${S.province}_${S.year}`;
+  showEra();
+}
+
+function showEra() {
+  S.screen = 'era';
+  const era = CONTENT.eras[S.comboKey];
+  if (!era) { showSelect(); return; }
+  render(`
+    <div class="stamp">${era.title}</div>
+    <div style="font-family:'STSong',serif;font-size:20px;color:#2c1a0e;margin-bottom:8px;letter-spacing:2px">${era.tagline}</div>
+    <div class="card">
+      <p>${era.desc}</p>
+      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">
+        <div><div class="dim">报考人数</div><div class="bold">${era.stats.applicants}</div></div>
+        <div><div class="dim">本科录取率</div><div class="bold">${era.stats.acceptanceRate}</div></div>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0d0b0">
+        <div class="dim" style="margin-bottom:4px">考试制度</div>
+        <div style="font-size:13px;color:#3d2b1a">${era.stats.rule}</div>
+      </div>
+    </div>
+    <div class="card-sm" style="margin-bottom:20px">
+      <div class="dim" style="margin-bottom:6px">你的初始状态</div>
+      <div style="display:flex;gap:20px">
+        <div><span class="dim">知识储备</span> <strong>50</strong></div>
+        <div><span class="dim">临场状态</span> <strong>60</strong></div>
+      </div>
+      <div style="font-size:12px;color:#8b7355;margin-top:8px">100天里的选择会改变这两个数字，最终影响你的考场发挥。</div>
+    </div>
+    <button class="btn btn-primary" onclick="startGame()">开始 100 天备考</button>
+    <button class="btn" style="margin-top:8px" onclick="showSelect()">重新选择</button>
+  `);
+}
+
+function startGame() {
+  S.knowledge = 50; S.mood = 60;
+  S.currentNode = 0; S.strategyHistory = []; S.flags = [];
+  S.examIdx = 0; S.examBonus = 0;
+  setupEvents();
+  showNode();
+}
+
+function showNode() {
+  S.screen = 'node';
+  saveState();
+  const node = S.currentNode;
+  const daysLeft = 100 - node * 5;
+  const dayOf = node * 5 + 5;
+  const atmo = NODE_ATMO[node % NODE_ATMO.length];
+
+  // Period label
+  let period = '备考高峰期';
+  if (node >= 15) period = '最后冲刺';
+  else if (node >= 12) period = '临考前夕';
+  else if (node >= 8) period = '中期复习';
+
+  const stratBtns = STRATEGIES.map(st =>
+    `<button class="btn-opt" onclick="chooseStrategy('${st.id}')">
+      <div class="bold">${st.label}</div>
+      <div style="font-size:12px;color:#6b5d4f;margin-top:3px">${st.desc}</div>
+    </button>`
   ).join('');
 
   render(`
-    <div class="phase-label">考前准备 ${G.prepIdx + 1} / ${PREP_QUESTIONS.length}</div>
-    <div class="prep-title">考前倒计时</div>
-    <div class="progress-dots">${dots}</div>
-    <div class="stat-bar">
-      <div class="stat">
-        <div class="stat-label">知识储备</div>
-        <div class="stat-val ${G.stats.知识 >= 60 ? 'good' : G.stats.知识 >= 40 ? 'warn' : 'bad'}">${G.stats.知识}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div class="kicker">${period}</div>
+        <div style="font-family:'STSong',serif;font-size:18px;color:#1a1206">第 ${dayOf} 天</div>
       </div>
-      <div class="stat">
-        <div class="stat-label">临场状态</div>
-        <div class="stat-val ${G.stats.状态 >= 60 ? 'good' : G.stats.状态 >= 40 ? 'warn' : 'bad'}">${G.stats.状态}</div>
-      </div>
+      <div class="stamp" style="margin:0;font-size:10px;transform:rotate(2deg)">距考 ${daysLeft} 天</div>
     </div>
-    <div class="prep-card">
-      <div class="prep-q">${pq.q}</div>
-      <div class="prep-opts">
-        ${pq.opts.map((o, i) =>
-          `<button class="prep-opt" onclick="choosePrepOpt(${i})">${o.text}</button>`
-        ).join('')}
-      </div>
-    </div>
+    ${timeline()}
+    ${statBars()}
+    <div class="card-sm" style="margin-bottom:16px;font-style:italic;color:#6b5d4f;font-size:13px">${atmo}</div>
+    <div class="section-title">今天的重心放在</div>
+    <div class="btn-list">${stratBtns}</div>
   `);
 }
 
-function choosePrepOpt(i) {
-  const pq = PREP_QUESTIONS[G.prepIdx];
-  const eff = pq.opts[i].effect;
-  G.stats.知识 = Math.max(0, Math.min(100, G.stats.知识 + eff.知识));
-  G.stats.状态 = Math.max(0, Math.min(100, G.stats.状态 + eff.状态));
-  G.prepIdx++;
-  showPrep();
+function chooseStrategy(stratId) {
+  const strat = STRATEGIES.find(s=>s.id===stratId);
+  if (!strat) return;
+
+  // Apply effect
+  let knDelta = strat.effect.knowledge;
+  let moodDelta = strat.effect.mood;
+
+  // Mock exam: random knowledge change
+  if (strat.effect.mock) {
+    knDelta = Math.round((Math.random() * 13) - 5);
+    moodDelta = -3;
+  }
+
+  // Mood modifier on knowledge gain
+  const moodMult = S.mood > 70 ? 1.2 : S.mood > 50 ? 1.0 : S.mood > 35 ? 0.8 : 0.6;
+  knDelta = Math.round(knDelta * moodMult);
+
+  S.knowledge = clamp(S.knowledge + knDelta, 10, 100);
+  S.mood = clamp(S.mood + moodDelta, 10, 100);
+  S.strategyHistory.push(stratId);
+
+  // Check for event at this node
+  const ev = getEventForNode(S.currentNode);
+  if (ev) {
+    const evData = getEventData(ev.type, ev.eventId);
+    if (evData) {
+      S.pendingEvent = { type: ev.type, data: evData };
+      saveState();
+      showEventScreen(S.pendingEvent);
+      return;
+    }
+  }
+
+  advanceNode();
 }
 
-// Exam
-function startExam() {
-  G.phase = 'exam';
-  G.qIdx = 0;
-  G.correct = 0;
-  showQuestion();
+function showEventScreen(ev) {
+  if (!ev) { advanceNode(); return; }
+  S.screen = 'event';
+  saveState();
+  const d = ev.data;
+  const optBtns = d.options.map((opt, i) =>
+    `<button class="btn-opt" onclick="chooseEvent(${i})">${opt.label}</button>`
+  ).join('');
+
+  render(`
+    <div class="stamp" style="margin-bottom:12px">${d.name}</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="dim" style="margin-bottom:8px">发生了</div>
+      <p style="font-style:italic">${d.scene}</p>
+    </div>
+    <div class="q-block" style="margin-bottom:16px">
+      <p style="color:#2c1a0e">${d.text}</p>
+    </div>
+    <div class="section-title">你怎么做</div>
+    <div class="btn-list">${optBtns}</div>
+  `);
 }
 
-function showQuestion() {
-  if (G.qIdx >= QUESTIONS.length) {
-    showResults();
+function chooseEvent(optIdx) {
+  const ev = S.pendingEvent;
+  if (!ev) { advanceNode(); return; }
+  const opt = ev.data.options[optIdx];
+  const ef = opt.effect;
+
+  S.knowledge = clamp(S.knowledge + (ef.score_modifier || 0), 10, 100);
+  S.mood = clamp(S.mood + (ef.mood || 0), 10, 100);
+
+  // Special flags
+  if (opt.special) S.flags.push(opt.special);
+  if (opt.special === 'cheat_route') {
+    // Cheat always gets caught
+    showCheatCaught();
     return;
   }
-  G.answered = false;
-  const q = QUESTIONS[G.qIdx];
-  G.timerVal = 18;
 
-  const progress = ((G.qIdx) / QUESTIONS.length * 100).toFixed(0);
-  const letters = ['A','B','C','D'];
+  S.pendingEvent = null;
+  advanceNode();
+}
+
+function showCheatCaught() {
+  S.screen = 'event';
+  saveState();
+  render(`
+    <div class="stamp red" style="margin-bottom:16px">作弊被查</div>
+    <div class="card">
+      <p>监考老师走过来，把那张纸拿走了。你知道接下来会发生什么。</p>
+      <p>有些路，走进去之前你以为有出口。</p>
+    </div>
+    <div class="q-block" style="margin-bottom:20px">
+      <p>本次考试取消资格。</p>
+    </div>
+    <button class="btn btn-red" onclick="goToEndingDirect('09')">接受结果</button>
+  `);
+}
+
+function goToEndingDirect(endingId) {
+  S.endingId = endingId;
+  calcFinalScore();
+  S.finalScore = 0;
+  S.admitted = false;
+  showEnding();
+}
+
+function advanceNode() {
+  S.currentNode++;
+  S.pendingEvent = null;
+  if (S.currentNode >= 20) {
+    showExamIntro();
+  } else {
+    showNode();
+  }
+}
+
+function showExamIntro() {
+  S.screen = 'examIntro';
+  saveState();
+  const era = CONTENT.eras[S.comboKey];
+  const examDate = {2003:'2003年7月7日',2008:'2008年6月7日',2013:'2013年6月7日',2017:'2017年6月7日',2023:'2023年6月7日'};
+  const date = examDate[S.year] || `${S.year}年6月7日`;
 
   render(`
-    <div class="exam-progress"><div class="exam-progress-fill" style="width:${progress}%"></div></div>
     <div class="exam-header">
-      <div class="subject-badge">${q.subject}</div>
-      <div class="timer-wrap">
-        <div class="timer" id="timer">${G.timerVal}</div>
-        <div class="qnum">${G.qIdx + 1} / ${QUESTIONS.length}</div>
+      <div class="exam-title">${era.province}省 ${S.year} 年普通高等学校招生统一考试</div>
+      <div class="exam-sub">准考证号 ██████████████  姓名 ████</div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="dim" style="margin-bottom:8px">${date} · 09:00</div>
+      <p>你站在考场门口。今天天气很好，也可能不好——你没有特别注意。</p>
+      <p>前一百天的事是真实的。接下来这几个小时，也是真实的。</p>
+      <p>铅笔、橡皮、准考证、水。都在。</p>
+    </div>
+    <div class="card-sm" style="margin-bottom:20px">
+      <div class="dim" style="margin-bottom:6px">你带进考场的</div>
+      <div style="display:flex;gap:20px">
+        <div><span class="dim">知识储备</span> <strong style="color:${S.knowledge>65?'#1e3a1e':S.knowledge>40?'#8b6914':'#8b1a1a'}">${S.knowledge}</strong></div>
+        <div><span class="dim">临场状态</span> <strong style="color:${S.mood>65?'#1e3a1e':S.mood>40?'#8b6914':'#8b1a1a'}">${S.mood}</strong></div>
       </div>
     </div>
-    <div class="question-text">${q.q}</div>
-    <div class="options" id="opts">
-      ${q.opts.map((o, i) => `
-        <button class="opt" id="opt${i}" onclick="selectOpt(${i})">
-          <div class="opt-letter">${letters[i]}</div>
-          <div class="opt-text">${o.replace(/^[A-D]\.\s*/,'')}</div>
-        </button>
-      `).join('')}
-    </div>
-    <div class="feedback" id="feedback"></div>
-    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">
-      ${G.qIdx + 1 < QUESTIONS.length ? '下一题 →' : '查看成绩 →'}
-    </button>
+    <button class="btn btn-primary" onclick="startExam()">进入考场</button>
   `);
-
-  startTimer();
 }
 
-function startTimer() {
-  if (G.timerInterval) clearInterval(G.timerInterval);
-  G.timerInterval = setInterval(() => {
-    G.timerVal--;
-    const t = document.getElementById('timer');
-    if (t) {
-      t.textContent = G.timerVal;
-      t.className = 'timer' + (G.timerVal <= 5 ? ' danger' : G.timerVal <= 10 ? ' warn' : '');
-    }
-    if (G.timerVal <= 0) {
-      clearInterval(G.timerInterval);
-      if (!G.answered) timeUp();
-    }
-  }, 1000);
+function startExam() {
+  S.examIdx = 0;
+  S.examBonus = 0;
+  showExamDecision();
 }
 
-function timeUp() {
-  G.answered = true;
-  const q = QUESTIONS[G.qIdx];
-  const letters = ['A','B','C','D'];
-  // Show correct answer
-  const correctBtn = document.getElementById('opt' + q.answer);
-  if (correctBtn) {
-    correctBtn.classList.add('correct');
-    correctBtn.classList.add('disabled');
+function showExamDecision() {
+  S.screen = 'examDecision';
+  saveState();
+  const decisions = CONTENT.examMicroDecisions;
+  if (S.examIdx >= decisions.length) {
+    finishExam();
+    return;
   }
-  document.querySelectorAll('.opt').forEach(o => o.classList.add('disabled'));
-  const fb = document.getElementById('feedback');
-  if (fb) {
-    fb.className = 'feedback wrong-fb show';
-    fb.innerHTML = `⏱ 时间到！正确答案是 <strong>${letters[q.answer]}</strong>。<br>${q.explain}`;
-  }
-  const nb = document.getElementById('nextBtn');
-  if (nb) nb.className = 'next-btn show';
-}
-
-function selectOpt(i) {
-  if (G.answered) return;
-  G.answered = true;
-  clearInterval(G.timerInterval);
-
-  const q = QUESTIONS[G.qIdx];
-  const isCorrect = i === q.answer;
-  const letters = ['A','B','C','D'];
-
-  if (isCorrect) {
-    G.correct++;
-    G.subjectCorrect[q.subject]++;
-  }
-
-  document.querySelectorAll('.opt').forEach((o, idx) => {
-    o.classList.add('disabled');
-    if (idx === q.answer) o.classList.add('correct');
-    else if (idx === i && !isCorrect) o.classList.add('wrong');
-  });
-
-  const fb = document.getElementById('feedback');
-  if (fb) {
-    fb.className = `feedback ${isCorrect ? 'correct-fb' : 'wrong-fb'} show`;
-    fb.innerHTML = isCorrect
-      ? `✓ 正确！${q.explain}`
-      : `✗ 错了，正确答案是 <strong>${letters[q.answer]}</strong>。<br>${q.explain}`;
-  }
-  const nb = document.getElementById('nextBtn');
-  if (nb) nb.className = 'next-btn show';
-}
-
-function nextQuestion() {
-  clearInterval(G.timerInterval);
-  G.qIdx++;
-  showQuestion();
-}
-
-// Results
-function showResults() {
-  clearInterval(G.timerInterval);
-  G.phase = 'results';
-
-  // Score calc
-  // 满分 750：语文150 数学150 英语150 综合300（简化为3科各150）
-  // 基础分 = correct/total * 满分
-  // 知识加成 + 状态加成
-  const baseRatio = G.correct / QUESTIONS.length;
-  const knowledgeBonus = (G.stats.知识 - 50) * 0.8;
-  const stateBonus = (G.stats.状态 - 50) * 0.6;
-  let rawScore = Math.round(baseRatio * 600 + 60 + knowledgeBonus + stateBonus);
-  rawScore = Math.max(150, Math.min(750, rawScore));
-
-  // per-subject
-  const subjects = ['语文','数学','英语'];
-  const subjectTotal = { 语文: 3, 数学: 3, 英语: 3 };
-  const subjectScores = {};
-  subjects.forEach(s => {
-    const ratio = G.subjectCorrect[s] / subjectTotal[s];
-    const base = Math.round(ratio * 130 + 10);
-    subjectScores[s] = Math.max(10, Math.min(150, base));
-  });
-
-  // Ranking flavor
-  let ranking = '';
-  if (rawScore >= 680) ranking = '全省前 0.1% · 传说级';
-  else if (rawScore >= 640) ranking = '全省前 1% · 顶尖水准';
-  else if (rawScore >= 590) ranking = '全省前 10% · 重点线上';
-  else if (rawScore >= 520) ranking = '全省前 30% · 一本线以上';
-  else if (rawScore >= 400) ranking = '全省前 60% · 专科线以上';
-  else ranking = '未达专科线';
-
-  const school = getSchool(rawScore);
-
-  const breakdown = subjects.map(s => `
-    <div class="break-item">
-      <div class="break-sub">${s}</div>
-      <div class="break-score" style="color:${subjectScores[s]>=100?'#7fc47e':subjectScores[s]>=70?'#d4b44a':'#e05050'}">${subjectScores[s]}</div>
-    </div>
-  `).join('');
+  const d = decisions[S.examIdx];
+  const optBtns = d.options.map((opt, i) =>
+    `<button class="btn-opt" onclick="chooseExamDecision(${i})">${opt.label}</button>`
+  ).join('');
 
   render(`
-    <div class="result-title">2026年 全国统一高考成绩</div>
-    <div class="score-display">${rawScore}</div>
-    <div class="score-max">满分 750 分</div>
-    <div class="ranking">${ranking}</div>
-    <div class="breakdown">${breakdown}</div>
-    <div class="school-card">
-      <div class="school-tier">${school.tier}</div>
-      <div class="school-name" style="color:${school.color}">${school.name}</div>
-      <div class="school-major">${school.major}</div>
-      <div class="school-comment">${school.comment}</div>
+    <div class="exam-header">
+      <div class="exam-title">${d.subject}科目</div>
+      <div class="exam-sub">${S.examIdx+1} / ${decisions.length}</div>
     </div>
-    <button class="replay-btn" onclick="initGame();showTitle()">重新高考</button>
-    <div class="share-tip">截图发给朋友，让他也试试</div>
+    <div class="q-block" style="margin-bottom:12px">
+      <div class="q-num">考场现场</div>
+      <div class="q-text">${d.scene}</div>
+    </div>
+    <p style="color:#3d2b1a;font-size:14px;margin-bottom:16px">${d.text}</p>
+    <div class="section-title">你的处理方式</div>
+    <div class="btn-list">${optBtns}</div>
+    <div class="dim center" style="margin-top:12px">进度 ${S.examIdx+1}/${decisions.length}</div>
   `);
 }
 
-// ─── START ────────────────────────────────────────────────────────────────
-initGame();
-showTitle();
+function chooseExamDecision(optIdx) {
+  const d = CONTENT.examMicroDecisions[S.examIdx];
+  const delta = applyExamDecision(d, optIdx);
+  S.examBonus += delta;
+  S.examIdx++;
+  showExamDecision();
+}
+
+function finishExam() {
+  calcFinalScore();
+  showScoreReveal();
+}
+
+function showScoreReveal() {
+  S.screen = 'scoreReveal';
+  saveState();
+  const ranking = getRanking(S.finalScore);
+  const sb = S.scoreBreakdown;
+
+  render(`
+    <div class="exam-header">
+      <div class="exam-title">${S.year} 年高考成绩通知单</div>
+    </div>
+    <div class="score-big" id="scoreBig">---</div>
+    <div class="dim center mb16">满分 750 分</div>
+    <div class="score-sub-row">
+      <div class="score-sub-item">
+        <div class="score-sub-val" id="sc-yu">--</div>
+        <div class="dim">语文</div>
+      </div>
+      <div class="score-sub-item">
+        <div class="score-sub-val" id="sc-shu">--</div>
+        <div class="dim">数学</div>
+      </div>
+      <div class="score-sub-item">
+        <div class="score-sub-val" id="sc-ying">--</div>
+        <div class="dim">英语</div>
+      </div>
+      <div class="score-sub-item">
+        <div class="score-sub-val" id="sc-zong">--</div>
+        <div class="dim">综合</div>
+      </div>
+    </div>
+    <div class="card-sm" style="text-align:center;margin-bottom:20px">
+      <div style="font-size:12px;color:#8b1a1a">${ranking}</div>
+    </div>
+    <button class="btn btn-primary" id="volunteerBtn" style="display:none" onclick="showVolunteer()">填报志愿 →</button>
+  `);
+
+  // Animate score
+  let cur = 0;
+  const target = S.finalScore;
+  const step = Math.ceil(target / 40);
+  const timer = setInterval(() => {
+    cur = Math.min(cur + step, target);
+    const el = document.getElementById('scoreBig');
+    if (el) el.textContent = cur;
+    if (cur >= target) {
+      clearInterval(timer);
+      // Show breakdown
+      setTimeout(() => {
+        ['yu','shu','ying','zong'].forEach(k => {
+          const el = document.getElementById(`sc-${k}`);
+          if (el) el.textContent = sb[k];
+        });
+        const btn = document.getElementById('volunteerBtn');
+        if (btn) btn.style.display = 'block';
+      }, 500);
+    }
+  }, 35);
+}
+
+function showVolunteer() {
+  S.screen = 'volunteer';
+  saveState();
+  const score = S.finalScore;
+
+  // Filter eligible schools
+  const eligible = SCHOOLS.filter(s => {
+    const cut = getSchoolCut(s);
+    return cut !== null && score >= cut - 30; // show within range
+  });
+
+  const schoolItems = eligible.map((s, i) => {
+    const cut = getSchoolCut(s);
+    const canApply = score >= cut;
+    const reach = score >= cut && score < cut + 20;
+    return `
+      <div class="school-item ${S.selectedSchool===i?'sel':''}" onclick="selectSchool(${i})">
+        <div>
+          <div class="school-name">${s.name}</div>
+          <div class="school-cut">${s.major} · 分数线约 ${cut} 分 ${canApply?'':'<span style="color:#8b1a1a">（有风险）</span>'}</div>
+        </div>
+        <div class="school-tier-badge" style="background:${s.tier==='顶尖'?'#8b1a1a':s.tier==='985'?'#1e3a1e':s.tier==='211'?'#2d4a2d':'#5a4a2a'}">${s.tier}</div>
+      </div>
+    `;
+  }).join('');
+
+  render(`
+    <div class="kicker">志愿填报</div>
+    <h2>选择你的第一志愿</h2>
+    <div class="card-sm" style="margin-bottom:16px">
+      <div class="dim">你的分数</div>
+      <div style="font-size:24px;font-weight:700;color:#2c1a0e">${score} 分</div>
+    </div>
+    ${eligible.length === 0 ? '<div class="card"><p style="color:#8b1a1a">分数较低，可填报专科志愿或考虑复读。</p></div>' : ''}
+    ${schoolItems}
+    <div class="spacer"></div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="submitVolunteer()" ${S.selectedSchool===null?'disabled style="opacity:.4"':''}>提交志愿</button>
+  `);
+}
+
+function selectSchool(idx) {
+  S.selectedSchool = idx;
+  showVolunteer();
+}
+
+function submitVolunteer() {
+  if (S.selectedSchool === null) return;
+  const eligible = SCHOOLS.filter(s => {
+    const cut = getSchoolCut(s);
+    return cut !== null && S.finalScore >= cut - 30;
+  });
+  const school = eligible[S.selectedSchool];
+  if (!school) { S.admitted = false; showResult(); return; }
+  const cut = getSchoolCut(school);
+  S.admitted = S.finalScore >= cut;
+  S.selectedSchool = S.selectedSchool; // save index for display
+  // Store school name for result screen
+  S._schoolName = school.name;
+  S._schoolTier = school.tier;
+  S._schoolCut = cut;
+  showResult();
+}
+
+function showResult() {
+  S.screen = 'result';
+  saveState();
+  S.endingId = determineEnding();
+
+  if (S.admitted) {
+    render(`
+      <div class="stamp stamp-ok" style="margin-bottom:16px">录取通知</div>
+      <div class="card" style="border-color:#2d4a2d;background:#f0f8e8;margin-bottom:16px">
+        <div class="dim" style="margin-bottom:6px">恭喜你被录取至</div>
+        <div style="font-family:'STSong',serif;font-size:22px;color:#1e3a1e;margin-bottom:4px">${S._schoolName || '本科院校'}</div>
+        <div class="dim">分数线 ${S._schoolCut} · 你的分数 ${S.finalScore}</div>
+      </div>
+      <div class="card-sm" style="margin-bottom:20px">
+        <p style="font-size:13px">那个封着你名字的信封，你妈妈在邮差来之前就守在门口了。</p>
+      </div>
+      <button class="btn btn-primary" onclick="showEnding()">查看结局 →</button>
+    `);
+  } else {
+    const reasons = S.finalScore < 380 ? '分数未达专科线' : `差 ${S._schoolCut - S.finalScore} 分未达报考学校分数线`;
+    render(`
+      <div class="stamp red" style="margin-bottom:16px">落榜</div>
+      <div class="card" style="border-color:#c8a96e;margin-bottom:16px">
+        <div class="dim" style="margin-bottom:6px">${reasons}</div>
+        <div style="font-size:14px;color:#3d2b1a">你的分数：${S.finalScore} 分</div>
+      </div>
+      <div class="card-sm" style="margin-bottom:20px">
+        <p style="font-size:13px">那封信没有来。你等了很长时间，然后停止等了。</p>
+      </div>
+      <button class="btn btn-primary" onclick="showEnding()">查看结局 →</button>
+    `);
+  }
+}
+
+function showEnding() {
+  S.screen = 'ending';
+  saveState();
+  if (!S.endingId) S.endingId = determineEnding();
+  const ending = CONTENT.endings[S.endingId];
+  if (!ending) { initState(); showTitle(); return; }
+
+  const bgColors = {
+    '01':'#f0f8e8','02':'#f8f4e8','03':'#f5edd8',
+    '04':'#ece8f5','05':'#f5eee8','06':'#fdf0f0',
+    '07':'#f5f0e8','08':'#e8f0f5','09':'#f5e8e8','10':'#e8f5f0'
+  };
+  const bg = bgColors[S.endingId] || '#f5edd8';
+
+  render(`
+    <div style="text-align:center;margin-bottom:8px">
+      <div class="kicker">结局 ${S.endingId}</div>
+    </div>
+    <div class="ending-name">${ending.name}</div>
+    <hr class="divider">
+    <div class="ending-tagline">${ending.tagline}</div>
+    <hr class="divider">
+    <div class="card-sm" style="margin-bottom:16px;text-align:center">
+      <div class="dim" style="margin-bottom:4px">${S.year} · ${CONTENT.eras[S.comboKey]?.province}</div>
+      <div style="font-size:18px;font-weight:700">${S.finalScore > 0 ? S.finalScore + ' 分' : '取消资格'}</div>
+      <div class="dim">${getRanking(S.finalScore)}</div>
+    </div>
+    <div class="dim center" style="margin-bottom:16px;font-size:12px">截图分享，让朋友也来试试</div>
+    <button class="btn btn-primary" onclick="newGame()">再走一遍</button>
+    <button class="btn" style="margin-top:8px" onclick="showTitle()">返回首页</button>
+  `);
+
+  // Set bg
+  root.querySelector('.screen').style.background = bg;
+}
+
+function newGame() {
+  const p = S.province, y = S.year;
+  initState();
+  S.province = p; S.year = y; S.comboKey = `${p}_${y}`;
+  startGame();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 8. INIT
+// ─────────────────────────────────────────────────────────────
+const hasState = loadState();
+if (hasState && S.screen && S.screen !== 'title') {
+  // Restore to title with resume option
+  S.screen = S.screen; // keep it
+  showTitle();
+} else {
+  initState();
+  showTitle();
+}
 </script>
 </body>
 </html>
