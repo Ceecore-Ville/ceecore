@@ -389,6 +389,26 @@ p{font-size:13.5px;color:var(--ink-soft);line-height:2.1;margin-bottom:10px}
 .sfr-bar-wrap{height:5px;background:var(--paper-alt);border:1px solid var(--border-light);overflow:hidden}
 .sfr-bar-fill{height:100%;transition:width .6s ease;background:var(--green)}
 .sfr-bar-fill.warn{background:#c8a840}.sfr-bar-fill.bad{background:var(--red)}
+
+/* ─── SCENE IMAGES ─── */
+.scene-img{
+  width:100%;height:160px;object-fit:cover;
+  margin:-24px -20px 14px -30px;width:calc(100% + 50px);
+  filter:sepia(40%) brightness(0.85) contrast(1.1);
+  display:block;
+}
+.scene-img-sm{
+  width:calc(100% + 50px);height:120px;object-fit:cover;
+  margin:-24px -20px 14px -30px;
+  filter:sepia(50%) brightness(0.8) contrast(1.1);
+  display:block;
+}
+.era-img{
+  width:calc(100% + 50px);height:140px;object-fit:cover;
+  margin:-24px -20px 16px -30px;
+  filter:sepia(60%) brightness(0.75) contrast(1.15);
+  display:block;
+}
 </style>
 </head>
 <body>
@@ -482,6 +502,46 @@ const NODE_ATMO = [
   '班主任今天没来，有人说他在校长室里。',
   '今天是第一百天减去某个数字的那一天。'
 ];
+
+
+// Extended era settings: province+year specific descriptions and image seed
+const ERA_EXT = {
+  henan_2003:{seed:'sars-classroom',imgSeed:10,tagline:'那年六月原本是七月',desc:'SARS把所有人的日历推迟了一个月，也把所有人悬着的心多晾了三十天。口罩是标配，考场消毒水的气味混进了试卷的油墨气里，成了那届河南考生独有的嗅觉记忆。全省82万人参加了那场推迟后的考试，录取率39%——每10个人里，只有不到4个人拿到通知书。'},
+  henan_2008:{seed:'earthquake-china',imgSeed:15,tagline:'奥运年，也是沉默年',desc:'5月12日之后，全国的复习室里多了一种说不清的气息——不是悲伤，是一种被时代裹住的沉。学校贴出了捐款通告，班主任说"好好考试就是对灾区最大的支持"。北京在筹备开幕式，河南的备考教室里风扇嗡嗡响。92万考生，录取率40%。'},
+  henan_2023:{seed:'post-covid-exam',imgSeed:20,tagline:'口罩摘了，但习惯留下来了',desc:'三年里有过太多推迟和不确定，这一次是真的在正常时间考了。备考室里偶尔还会有人下意识地摸脸，那个口罩已经不在了的地方。全省131万考生，创了历史新高，录取率58%，但高分段竞争比往年更密集。'},
+  jiangsu_2003:{seed:'jiangsu-classroom',imgSeed:25,tagline:'3+2 的最后几年',desc:'江苏当时还在用3+2的体系——语数外是主科，另外两门选测。SARS推迟了考期，江苏的考生和全国一起在七月进的考场，那年夏天分外漫长。全省36万考生，本科录取率不到35%。'},
+  jiangsu_2013:{seed:'jiangsu-reform',imgSeed:30,tagline:'等级制的第五年，规则迷宫正深',desc:'选测科目不计入总分，看等级——A+、A、B+、B、C、D，每一个等级背后是一条录取门槛线。每年仍有考生在志愿填报时发现自己等级不够、总分够用却被退档。省内48万考生，录取率88%。'},
+  jiangsu_2017:{seed:'jiangsu-gaokao',imgSeed:35,tagline:'文理分科最后的尾声',desc:'新高考改革的消息已经传了两年。班里有人在提前研究6选3，有人说不用管。选测等级制还在，语数外480分的体系还在，大家在一个即将消失的制度里准备最后几场文理分科的考试。33万考生，录取率91%。'},
+  beijing_2008:{seed:'beijing-olympics',imgSeed:40,tagline:'奥运年的考生，本地卷',desc:'北京用的是自主命题的北京卷，不跟全国卷走。奥运会的倒计时挂在市区每一条街上，开幕式定在8月，高考结束之后还有两个月的等待。北京考生7.8万，本科录取率70%。'},
+  beijing_2017:{seed:'beijing-campus',imgSeed:45,tagline:'改革就在隔壁省',desc:'浙江和上海已经在跑新高考了，北京还没改。等级考、赋分制、院校专业组——这些词在高三教室里飘了一年。6.1万考生坐进了还是文理分科的考场，本科录取率78%，在全国依然是最高梯队。'},
+  beijing_2023:{seed:'beijing-newhighschool',imgSeed:50,tagline:'新高考第四年，赋分已成习惯',desc:'北京新高考从2020届开始，到2023年已经第四年了。6选3的组合，各科赋分，院校专业组填报——规则已经是标配。防疫刚结束，全市5.4万考生，本科录取率超过80%。'},
+};
+// Fallback descriptions per province (for unlisted years)
+const PROV_DESCS = {
+  henan:'河南是高考人数最多的省份，每年都是千军万马过独木桥。竞争烈度全国少有，每一分都压着无数人的命运。',
+  jiangsu:'江苏高考制度历经多次改革，从3+2到等级制再到新高考，规则的复杂性是全国之最。',
+  beijing:'北京考生的本科录取率长期位居全国前列，本地高校资源丰富，但高分段竞争依然激烈。',
+  guangdong:'南粤经济重镇，百万考生参战，高考竞争与珠三角的就业机会并行构成这一代年轻人的命运场。',
+  sichuan:'天府之国，历来文风鼎盛。山地地形孕育了四川考生的韧性，年年在高考战场上写下属于自己的故事。',
+  shandong:'孔孟之乡，重教传统深厚。山东高考体量庞大，每年百万人以上参考，卷面难度与河南并称全国最烈。',
+  hubei:'武汉是中部高教重镇，但湖北考生面对的竞争一点不轻松。九省通衢，命运也在这里交汇。',
+  hunan:'湖湘大地，人才辈出。高考是湖南年轻人最重要的出路之一，备考室里的灯夜夜亮到很晚。',
+  shanghai:'上海实行新高考最早，赋分制、院校专业组都是从这里开始的。精英云集，规则也最为精密。',
+  zhejiang:'浙江与上海同步推行新高考，也是最早摸索出规律的省份。互联网经济带动了这一代考生的眼界与焦虑。',
+  default:'那年，这片土地上的考场里，有人走出去，有人没有。你的故事，从这里开始。',
+};
+// Image seeds by context
+const IMG_SEEDS = {
+  study:[42,43,44,45,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91],
+  exam:[1000,1001,1002,1003],
+  volunteer:[200,201,202],
+  event_family:[300,301],event_study:[302,303],event_friend:[304,305],
+  event_moral:[306,307],event_surprise:[308,309],event_default:[310,311],
+};
+function getImgSeed(ctx, idx) {
+  const arr = IMG_SEEDS[ctx] || IMG_SEEDS.event_default;
+  return arr[idx % arr.length];
+}
 
 // Schools data for volunteer
 const SCHOOLS = [
@@ -842,19 +902,16 @@ function randomSelect() { titleRandom();
 
 function getEra(province, year) {
   const key = `${province}_${year}`;
-  if (CONTENT.eras[key]) return CONTENT.eras[key];
-  // Fallback: find any era for this province, or use henan_2003
+  const prov = PROVINCES.find(p=>p.id===province);
+  const provName = prov?.name || province;
+  const ext = ERA_EXT[key];
+  if (ext) return {province:provName,year,title:`${provName} · ${year}`,tagline:ext.tagline,desc:ext.desc,imgSeed:ext.imgSeed,stats:CONTENT.eras[key]?.stats||{applicants:'—',acceptanceRate:'—',rule:'全国卷，满分750'}};
+  if (CONTENT.eras[key]) return {...CONTENT.eras[key],imgSeed:20};
+  // province-specific fallback
+  const provDesc = PROV_DESCS[province] || PROV_DESCS.default;
   const provKey = Object.keys(CONTENT.eras).find(k=>k.startsWith(province+'_'));
   const base = CONTENT.eras[provKey] || CONTENT.eras['henan_2003'];
-  const prov = PROVINCES.find(p=>p.id===province);
-  return {
-    ...base,
-    province: prov?.name || province,
-    year: year,
-    title: `${prov?.name||province} · ${year}`,
-    tagline: base.tagline || '那年的考场，属于你',
-    desc: base.desc || '那个年代，无数学子踏上同一条路。',
-  };
+  return {province:provName,year,title:`${provName} · ${year}`,tagline:'那年，命运的刻度落在这里',desc:provDesc,imgSeed:20,stats:base.stats||{applicants:'—',acceptanceRate:'—',rule:'全国卷，满分750'}};
 }
 function confirmSelect() {
   if (!S.province || !S.year) return;
@@ -866,7 +923,9 @@ function showEra() {
   S.screen = 'era';
   const era = getEra(S.province, S.year);
   if (!era) { showTitle(); return; }
+  const eraSeed = era.imgSeed || 20;
   render(`
+    <img class="era-img" src="https://picsum.photos/seed/${eraSeed}/460/180" alt="" loading="eager">
     <div class="stamp">${era.title}</div>
     <div style="font-family:'STSong',serif;font-size:20px;color:#2c1a0e;margin-bottom:8px;letter-spacing:2px">${era.tagline}</div>
     <div class="card">
@@ -944,6 +1003,7 @@ function showNode() {
     </div>
     ${timeline()}
     ${statBars()}
+    <img class="scene-img-sm" src="https://picsum.photos/seed/${getImgSeed('study',node)}/460/130" alt="" loading="lazy">
     <div class="atmo-box">${atmo}</div>
     <div class="section-title">今天怎么过 <span style="font-size:10px;color:var(--ink-dim);letter-spacing:0">(选一项)</span></div>
     <div class="strat-list">${stratBtns}</div>
@@ -1023,7 +1083,11 @@ function showEventScreen(ev) {
     `<button class="btn-opt" onclick="chooseEvent(${i})"><span class="opt-letter">${letters[i]}</span><span class="opt-text">${opt.label}</span></button>`
   ).join('');
 
+  const catMap={家庭压力:'event_family',人际关系:'event_friend',道德选择:'event_moral',意外惊喜:'event_surprise',外部干扰:'event_study',自我怀疑:'event_study'};
+  const evImgCtx = catMap[d.category] || 'event_default';
+  const evImgSeed = getImgSeed(evImgCtx, (d.id||'').charCodeAt(1)||0);
   render(`
+    <img class="scene-img-sm" src="https://picsum.photos/seed/${evImgSeed}/460/130" alt="" loading="lazy">
     <div class="stamp" style="margin-bottom:12px">${d.name}</div>
     <div class="card" style="margin-bottom:16px">
       <div class="dim" style="margin-bottom:8px">发生了</div>
@@ -1099,7 +1163,9 @@ function showExamIntro() {
   const examDate = {2003:'2003年7月7日',2008:'2008年6月7日',2013:'2013年6月7日',2017:'2017年6月7日',2023:'2023年6月7日'};
   const date = examDate[S.year] || `${S.year}年6月7日`;
 
+  const examImgSeed = getImgSeed('exam', S.year % 4);
   render(`
+    <img class="scene-img" src="https://picsum.photos/seed/${examImgSeed}/460/170" alt="" loading="lazy">
     <div class="exam-header">
       <div class="exam-title">${era.province}省 ${S.year} 年普通高等学校招生统一考试</div>
       <div class="exam-sub">准考证号 ██████████████  姓名 ████</div>
@@ -1141,7 +1207,9 @@ function showExamDecision() {
     `<button class="btn-opt" onclick="chooseExamDecision(${i})"><span class="opt-letter">${examLetters[i]}</span><span class="opt-text">${opt.label}</span></button>`
   ).join('');
 
+  const examDSeed = getImgSeed('exam', S.examIdx);
   render(`
+    <img class="scene-img-sm" src="https://picsum.photos/seed/${examDSeed}/460/120" alt="" loading="lazy">
     <div class="exam-header">
       <div class="exam-title">${d.subject}科目</div>
       <div class="exam-sub">${S.examIdx+1} / ${decisions.length}</div>
@@ -1255,7 +1323,9 @@ function showVolunteer() {
     `;
   }).join('');
 
+  const volSeed = getImgSeed('volunteer', 0);
   render(`
+    <img class="scene-img" src="https://picsum.photos/seed/${volSeed}/460/160" alt="" loading="lazy">
     <div class="kicker">志愿填报</div>
     <h2>选择你的第一志愿</h2>
     <div class="card-sm" style="margin-bottom:16px">
