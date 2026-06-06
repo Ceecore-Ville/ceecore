@@ -734,7 +734,7 @@ function showTitle() {
         ${hasResume ? '<button class="btn" style="text-align:center;letter-spacing:1px" onclick="resumeGame()">继续上一局</button>' : ''}
         <button class="btn" style="text-align:center;font-size:12px" onclick="titleRandom()">🎲 随机命运</button>
       </div>
-      <div class="home-dim">3 省 × 9 组合 &middot; 约 25–30 分钟一局</div>
+      <div class="home-dim">34 省区 × 5 年份 &middot; 约 25–30 分钟一局</div>
     </div>
   </div>`;
 }
@@ -749,15 +749,14 @@ function titleSelectYear(y) {
 function titleSelectProvince(p) {
   S.province = p;
   // if current year not available for this province, clear year
-  if (S.year && !OPEN_COMBOS.has(`${p}_${S.year}`)) S.year = null;
+  // all combos open - no year reset
   showTitle();
 }
 
 function titleRandom() {
-  const combos = Array.from(OPEN_COMBOS);
-  const pick = combos[Math.floor(Math.random()*combos.length)];
-  const [p,y] = pick.split('_');
-  S.province = p; S.year = parseInt(y);
+  const allP = PROVINCES.map(p=>p.id);
+  S.province = allP[Math.floor(Math.random()*allP.length)];
+  S.year = YEARS[Math.floor(Math.random()*YEARS.length)];
   confirmSelect();
 }
 
@@ -831,6 +830,22 @@ function selectYear(y, locked) { if (!locked) titleSelectYear(y); }
 function randomSelect() { titleRandom();
 }
 
+function getEra(province, year) {
+  const key = `${province}_${year}`;
+  if (CONTENT.eras[key]) return CONTENT.eras[key];
+  // Fallback: find any era for this province, or use henan_2003
+  const provKey = Object.keys(CONTENT.eras).find(k=>k.startsWith(province+'_'));
+  const base = CONTENT.eras[provKey] || CONTENT.eras['henan_2003'];
+  const prov = PROVINCES.find(p=>p.id===province);
+  return {
+    ...base,
+    province: prov?.name || province,
+    year: year,
+    title: `${prov?.name||province} · ${year}`,
+    tagline: base.tagline || '那年的考场，属于你',
+    desc: base.desc || '那个年代，无数学子踏上同一条路。',
+  };
+}
 function confirmSelect() {
   if (!S.province || !S.year) return;
   S.comboKey = `${S.province}_${S.year}`;
