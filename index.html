@@ -923,11 +923,21 @@ function showTitle() {
   const hasResume = localStorage.getItem('gaokao_state') && JSON.parse(localStorage.getItem('gaokao_state')||'{}').screen !== 'title';
 
   // Year chips — show all 5 years, lock ones not available for selected province
-  const yearTags = {2000:'扩招第一年',2001:'千禧入学',2002:'过渡期',2003:'SARS之年',2004:'高校扩张',2005:'录取新高',2006:'大省压力',2007:'改革前夜',2008:'地震之年',2009:'后危机',2010:'扩招高峰',2011:'高考人数首降',2012:'改革探索',2013:'志愿改革',2014:'新政启动',2015:'取消加分',2016:'改革深化',2017:'新高考前',2018:'新高考元年',2019:'全面推进',2020:'疫情之年',2021:'后疫情',2022:'二次疫情',2023:'解封之年',2024:'全面普通化',2025:'AI时代'};
-  const yearChips = YEARS.map(y => {
-    const sel = S.year === y;
-    return `<button class="year-chip ${sel?'sel':''}" onclick="titleSelectYear(${y})">${y}<span class="yr-tag">${yearTags[y]||''}</span></button>`;
-  }).join('');
+  const yearTags = {2000:'扩招第一年',2001:'千禧入学',2002:'过渡期',2003:'SARS之年',2004:'高校扩张',2005:'录取新高',2006:'大省压力',2007:'改革前夜',2008:'地震之年',2009:'后危机',2010:'扩招高峰',2011:'人数首降',2012:'改革探索',2013:'志愿改革',2014:'新政启动',2015:'取消加分',2016:'改革深化',2017:'新高考前',2018:'新高考元年',2019:'全面推进',2020:'疫情之年',2021:'后疫情',2022:'二次疫情',2023:'解封之年',2024:'全面普通化',2025:'AI时代'};
+  const selYear = S.year || 2017;
+  const yearIdx = YEARS.indexOf(selYear);
+  const pct = Math.round(yearIdx/(YEARS.length-1)*100);
+  const yearSlider = `<div class="year-slider-wrap">
+    <div class="year-slider-display">
+      <span class="year-big">${selYear}</span>
+      <span class="year-tag-lbl">${yearTags[selYear]||''}</span>
+    </div>
+    <input type="range" class="year-range" id="year-range"
+      min="0" max="${YEARS.length-1}" value="${yearIdx}"
+      style="--pct:${pct}%"
+      oninput="handleYearRange(this.value)">
+    <div class="year-range-labels"><span>2000</span><span>2010</span><span>2020</span><span>2025</span></div>
+  </div>`;
 
   const provName = S.province ? PROVINCES.find(p=>p.id===S.province)?.name : null;
   const prompt = S.province && S.year
@@ -944,13 +954,13 @@ function showTitle() {
     <div class="map-section">${chinaMapSVG()}</div>
     <div class="home-bottom">
       <div class="sel-prompt">${prompt}</div>
-      <div class="year-row-scroll" id="year-scroll">${yearChips}</div>
+      ${yearSlider}
       <div class="home-actions">
-        <button class="btn btn-primary" onclick="confirmSelect()" ${(!S.province||!S.year)?'disabled style="opacity:.35"':''}>进 入 考 场</button>
+        <button class="btn btn-primary" onclick="confirmSelect()" ${(!S.province||!S.year)?'disabled style="opacity:.35"':''}>开 始 备 考</button>
         ${hasResume ? '<button class="btn" style="text-align:center;letter-spacing:1px" onclick="resumeGame()">继续上一局</button>' : ''}
         <button class="btn" style="text-align:center;font-size:12px" onclick="titleRandom()">🎲 随机命运</button>
       </div>
-      <div class="home-dim">34 省区 × 5 年份 &middot; 约 25–30 分钟一局</div>
+      <div class="home-dim">34 省区 × 26 年份 &middot; 约 25–30 分钟一局</div>
     </div>
   </div>`;
 }
@@ -958,11 +968,9 @@ function showTitle() {
 function titleSelectYear(y) {
   S.year = y;
   showTitle();
-  // Scroll selected year chip into view
-  requestAnimationFrame(()=>{
-    const sel = document.querySelector('.year-chip.sel');
-    if(sel) sel.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
-  });
+}
+function handleYearRange(idx) {
+  titleSelectYear(YEARS[parseInt(idx)]);
 }
 
 function titleSelectProvince(p) {
