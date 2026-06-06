@@ -963,11 +963,9 @@ function showTitle() {
   const yearSlider = `<select class="year-select" onchange="titleSelectYear(parseInt(this.value))">${yearOptions}</select>
   <div class="year-tag-small">${selYear?yearTags[selYear]||'':''}</div>`;
 
-  const provName = S.province ? PROVINCES.find(p=>p.id===S.province)?.name : null;
-  const prompt = S.province && S.year
-    ? `已选：<strong>${provName} · ${S.year}年</strong>`
-    : S.province ? `已选省份：<strong>${provName}</strong>，请选年份`
-    : '点击地图选择省份';
+  const selProv = S.province ? PROVINCES.find(p=>p.id===S.province) : null;
+  const provName = selProv?.name || null;
+  const provRegion = selProv?.region || '';
 
   root.innerHTML = `<div class="home-screen">
     <div class="home-header">
