@@ -593,7 +593,7 @@ const PROVINCES = [
   {id:'hongkong',name:'香港',label:'东方之珠'},{id:'macau',name:'澳门',label:'博彩之都'},
   {id:'taiwan',name:'台湾',label:'宝岛'}
 ];
-const YEARS = [2003,2008,2013,2017,2023];
+const YEARS = Array.from({length:26},(_,i)=>2000+i); // 2000-2025
 const OPEN_COMBOS = new Set(['henan_2003','henan_2008','henan_2023','jiangsu_2003','jiangsu_2013','jiangsu_2017','beijing_2008','beijing_2017','beijing_2023']);
 
 // Province base score ranges [min, max, median]
@@ -923,11 +923,10 @@ function showTitle() {
   const hasResume = localStorage.getItem('gaokao_state') && JSON.parse(localStorage.getItem('gaokao_state')||'{}').screen !== 'title';
 
   // Year chips — show all 5 years, lock ones not available for selected province
+  const yearTags = {2000:'扩招第一年',2001:'千禧入学',2002:'过渡期',2003:'SARS之年',2004:'高校扩张',2005:'录取新高',2006:'大省压力',2007:'改革前夜',2008:'地震之年',2009:'后危机',2010:'扩招高峰',2011:'高考人数首降',2012:'改革探索',2013:'志愿改革',2014:'新政启动',2015:'取消加分',2016:'改革深化',2017:'新高考前',2018:'新高考元年',2019:'全面推进',2020:'疫情之年',2021:'后疫情',2022:'二次疫情',2023:'解封之年',2024:'全面普通化',2025:'AI时代'};
   const yearChips = YEARS.map(y => {
-    const locked = false; // all years open
     const sel = S.year === y;
-    const tags = {2003:'SARS之年',2008:'地震之年',2013:'志愿改革',2017:'新高考前',2023:'后疫情'};
-    return `<button class="year-chip ${sel?'sel':''} ${locked?'locked':''}" onclick="titleSelectYear(${y})">${y}<span class="yr-tag">${tags[y]||''}</span></button>`;
+    return `<button class="year-chip ${sel?'sel':''}" onclick="titleSelectYear(${y})">${y}<span class="yr-tag">${yearTags[y]||''}</span></button>`;
   }).join('');
 
   const provName = S.province ? PROVINCES.find(p=>p.id===S.province)?.name : null;
@@ -945,7 +944,7 @@ function showTitle() {
     <div class="map-section">${chinaMapSVG()}</div>
     <div class="home-bottom">
       <div class="sel-prompt">${prompt}</div>
-      <div class="year-row">${yearChips}</div>
+      <div class="year-row-scroll" id="year-scroll">${yearChips}</div>
       <div class="home-actions">
         <button class="btn btn-primary" onclick="confirmSelect()" ${(!S.province||!S.year)?'disabled style="opacity:.35"':''}>进 入 考 场</button>
         ${hasResume ? '<button class="btn" style="text-align:center;letter-spacing:1px" onclick="resumeGame()">继续上一局</button>' : ''}
@@ -958,9 +957,12 @@ function showTitle() {
 
 function titleSelectYear(y) {
   S.year = y;
-  // if selected year not available for current province, clear province
-  // no province lock
   showTitle();
+  // Scroll selected year chip into view
+  requestAnimationFrame(()=>{
+    const sel = document.querySelector('.year-chip.sel');
+    if(sel) sel.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+  });
 }
 
 function titleSelectProvince(p) {
@@ -1058,18 +1060,35 @@ function selectYear(y, locked) { if (!locked) titleSelectYear(y); }
 function randomSelect() { titleRandom();
 }
 
+
+// Per-province exam stats by year (applicants in 万, acceptance rate %)
+const PROV_STATS = {
+  henan:{2000:{a:'52万',r:'34%'},2001:{a:'58万',r:'36%'},2002:{a:'64万',r:'38%'},2003:{a:'82万',r:'39%'},2004:{a:'92万',r:'40%'},2005:{a:'100万',r:'42%'},2006:{a:'108万',r:'45%'},2007:{a:'112万',r:'47%'},2008:{a:'92万',r:'40%'},2009:{a:'88万',r:'48%'},2010:{a:'89万',r:'50%'},2011:{a:'84万',r:'52%'},2012:{a:'83万',r:'55%'},2013:{a:'85万',r:'58%'},2014:{a:'87万',r:'60%'},2015:{a:'88万',r:'62%'},2016:{a:'87万',r:'64%'},2017:{a:'98万',r:'66%'},2018:{a:'100万',r:'68%'},2019:{a:'105万',r:'70%'},2020:{a:'115万',r:'72%'},2021:{a:'125万',r:'74%'},2022:{a:'132万',r:'76%'},2023:{a:'131万',r:'58%'},2024:{a:'136万',r:'80%'},2025:{a:'138万',r:'82%'}},
+  jiangsu:{2000:{a:'24万',r:'55%'},2001:{a:'26万',r:'56%'},2002:{a:'30万',r:'57%'},2003:{a:'36万',r:'35%'},2004:{a:'38万',r:'38%'},2005:{a:'42万',r:'40%'},2006:{a:'44万',r:'42%'},2007:{a:'46万',r:'45%'},2008:{a:'50万',r:'48%'},2009:{a:'52万',r:'60%'},2010:{a:'50万',r:'68%'},2011:{a:'45万',r:'78%'},2012:{a:'44万',r:'82%'},2013:{a:'48万',r:'88%'},2014:{a:'47万',r:'89%'},2015:{a:'45万',r:'90%'},2016:{a:'44万',r:'90%'},2017:{a:'33万',r:'91%'},2018:{a:'35万',r:'92%'},2019:{a:'37万',r:'93%'},2020:{a:'38万',r:'93%'},2021:{a:'40万',r:'94%'},2022:{a:'42万',r:'95%'},2023:{a:'44万',r:'95%'},2024:{a:'47万',r:'96%'},2025:{a:'49万',r:'96%'}},
+  beijing:{2000:{a:'7.2万',r:'62%'},2001:{a:'7.5万',r:'65%'},2002:{a:'7.8万',r:'68%'},2003:{a:'8.1万',r:'69%'},2004:{a:'8.3万',r:'70%'},2005:{a:'8.5万',r:'71%'},2006:{a:'8.7万',r:'72%'},2007:{a:'9万',r:'73%'},2008:{a:'7.8万',r:'70%'},2009:{a:'7.5万',r:'72%'},2010:{a:'7.2万',r:'74%'},2011:{a:'6.9万',r:'76%'},2012:{a:'6.6万',r:'78%'},2013:{a:'6.4万',r:'78%'},2014:{a:'6.3万',r:'78%'},2015:{a:'6.2万',r:'79%'},2016:{a:'6.1万',r:'79%'},2017:{a:'6.1万',r:'78%'},2018:{a:'5.9万',r:'80%'},2019:{a:'5.8万',r:'82%'},2020:{a:'5.3万',r:'84%'},2021:{a:'5.5万',r:'86%'},2022:{a:'5.4万',r:'87%'},2023:{a:'5.4万',r:'80%'},2024:{a:'5.7万',r:'88%'},2025:{a:'5.8万',r:'89%'}},
+  guangdong:{2000:{a:'30万',r:'45%'},2001:{a:'33万',r:'47%'},2002:{a:'37万',r:'49%'},2003:{a:'40万',r:'50%'},2004:{a:'45万',r:'52%'},2005:{a:'50万',r:'54%'},2006:{a:'54万',r:'55%'},2007:{a:'60万',r:'56%'},2008:{a:'68万',r:'57%'},2009:{a:'70万',r:'58%'},2010:{a:'72万',r:'60%'},2011:{a:'72万',r:'62%'},2012:{a:'74万',r:'65%'},2013:{a:'75万',r:'68%'},2014:{a:'78万',r:'70%'},2015:{a:'80万',r:'72%'},2016:{a:'82万',r:'74%'},2017:{a:'84万',r:'75%'},2018:{a:'79万',r:'76%'},2019:{a:'80万',r:'78%'},2020:{a:'78万',r:'80%'},2021:{a:'80万',r:'82%'},2022:{a:'82万',r:'84%'},2023:{a:'78万',r:'85%'},2024:{a:'82万',r:'86%'},2025:{a:'84万',r:'87%'}},
+  sichuan:{2000:{a:'40万',r:'42%'},2001:{a:'44万',r:'44%'},2002:{a:'47万',r:'46%'},2003:{a:'50万',r:'47%'},2004:{a:'54万',r:'48%'},2005:{a:'58万',r:'50%'},2006:{a:'62万',r:'52%'},2007:{a:'65万',r:'54%'},2008:{a:'56万',r:'50%'},2009:{a:'55万',r:'58%'},2010:{a:'56万',r:'62%'},2011:{a:'52万',r:'66%'},2012:{a:'50万',r:'70%'},2013:{a:'52万',r:'72%'},2014:{a:'55万',r:'74%'},2015:{a:'58万',r:'76%'},2016:{a:'60万',r:'78%'},2017:{a:'62万',r:'79%'},2018:{a:'65万',r:'80%'},2019:{a:'66万',r:'82%'},2020:{a:'70万',r:'84%'},2021:{a:'75万',r:'85%'},2022:{a:'78万',r:'86%'},2023:{a:'80万',r:'87%'},2024:{a:'83万',r:'88%'},2025:{a:'85万',r:'89%'}},
+  shandong:{2000:{a:'45万',r:'40%'},2001:{a:'50万',r:'42%'},2002:{a:'56万',r:'44%'},2003:{a:'62万',r:'45%'},2004:{a:'68万',r:'48%'},2005:{a:'72万',r:'50%'},2006:{a:'78万',r:'52%'},2007:{a:'84万',r:'54%'},2008:{a:'88万',r:'55%'},2009:{a:'82万',r:'58%'},2010:{a:'80万',r:'62%'},2011:{a:'76万',r:'65%'},2012:{a:'73万',r:'68%'},2013:{a:'74万',r:'70%'},2014:{a:'75万',r:'73%'},2015:{a:'78万',r:'75%'},2016:{a:'80万',r:'77%'},2017:{a:'82万',r:'78%'},2018:{a:'82万',r:'80%'},2019:{a:'83万',r:'82%'},2020:{a:'79万',r:'83%'},2021:{a:'82万',r:'85%'},2022:{a:'85万',r:'86%'},2023:{a:'87万',r:'87%'},2024:{a:'90万',r:'88%'},2025:{a:'92万',r:'89%'}},
+};
+// Default stats by year for provinces without specific data
+const DEFAULT_STATS = {2000:{a:'—',r:'38%'},2001:{a:'—',r:'40%'},2002:{a:'—',r:'42%'},2003:{a:'—',r:'44%'},2004:{a:'—',r:'46%'},2005:{a:'—',r:'48%'},2006:{a:'—',r:'50%'},2007:{a:'—',r:'52%'},2008:{a:'—',r:'54%'},2009:{a:'—',r:'56%'},2010:{a:'—',r:'58%'},2011:{a:'—',r:'60%'},2012:{a:'—',r:'62%'},2013:{a:'—',r:'64%'},2014:{a:'—',r:'66%'},2015:{a:'—',r:'68%'},2016:{a:'—',r:'70%'},2017:{a:'—',r:'72%'},2018:{a:'—',r:'74%'},2019:{a:'—',r:'76%'},2020:{a:'—',r:'78%'},2021:{a:'—',r:'80%'},2022:{a:'—',r:'82%'},2023:{a:'—',r:'84%'},2024:{a:'—',r:'85%'},2025:{a:'—',r:'86%'}};
+function getProvStats(province, year) {
+  const pd = PROV_STATS[province];
+  if(pd && pd[year]) return pd[year];
+  return DEFAULT_STATS[year] || {a:'—',r:'—'};
+}
 function getEra(province, year) {
   const key = `${province}_${year}`;
   const prov = PROVINCES.find(p=>p.id===province);
   const provName = prov?.name || province;
   const ext = ERA_EXT[key];
-  if (ext) return {province:provName,year,title:`${provName} · ${year}`,tagline:ext.tagline,desc:ext.desc,imgSeed:ext.imgSeed,stats:CONTENT.eras[key]?.stats||{applicants:'—',acceptanceRate:'—',rule:'全国卷，满分750'}};
+  if (ext) return {province:provName,year,title:`${provName} · ${year}`,tagline:ext.tagline,desc:ext.desc,imgSeed:ext.imgSeed,stats:(()=>{const ps=getProvStats(province,year);return CONTENT.eras[key]?.stats||{applicants:ps.a,acceptanceRate:ps.r,rule:'全国卷，满分750'};})()};
   if (CONTENT.eras[key]) return {...CONTENT.eras[key],imgSeed:20};
   // province-specific fallback
   const provDesc = PROV_DESCS[province] || PROV_DESCS.default;
   const provKey = Object.keys(CONTENT.eras).find(k=>k.startsWith(province+'_'));
   const base = CONTENT.eras[provKey] || CONTENT.eras['henan_2003'];
-  return {province:provName,year,title:`${provName} · ${year}`,tagline:'那年，命运的刻度落在这里',desc:provDesc,imgSeed:20,stats:base.stats||{applicants:'—',acceptanceRate:'—',rule:'全国卷，满分750'}};
+  return {province:provName,year,title:`${provName} · ${year}`,tagline:'那年，命运的刻度落在这里',desc:provDesc,imgSeed:20,stats:(()=>{const ps=getProvStats(province,year);return {applicants:ps.a,acceptanceRate:ps.r,rule:base.stats?.rule||'全国卷，满分750'};})()};
 }
 function confirmSelect() {
   if (!S.province || !S.year) return;
