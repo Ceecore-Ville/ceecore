@@ -559,6 +559,40 @@ body::before{
   width:100%;height:100%;object-fit:cover;
   filter:sepia(45%) brightness(0.82) contrast(1.08);
 }
+
+/* ─── HOME BOTTOM SELECTION ROW ─── */
+.sel-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border:1px solid var(--border);margin-bottom:10px;
+}
+.sel-col{
+  padding:10px 12px;display:flex;flex-direction:column;gap:4px;
+  border-right:1px solid var(--border);
+}
+.sel-col:last-child{border-right:none}
+.sel-col-label{
+  font-size:9px;letter-spacing:2px;color:var(--ink-dim);text-transform:uppercase;
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+}
+.sel-prov-name{
+  font-size:18px;font-weight:900;color:var(--ink);letter-spacing:2px;
+  font-family:"STSong","SimSun","Songti SC",serif;
+  min-height:24px;
+}
+.sel-prov-name.empty{color:var(--ink-dim);font-size:13px;font-weight:400;font-family:inherit}
+.sel-prov-region{font-size:10px;color:var(--ink-dim)}
+.year-select{
+  width:100%;padding:4px 28px 4px 0;
+  background:transparent;
+  border:none;border-bottom:1.5px solid var(--border);
+  color:var(--ink);font-size:15px;font-weight:700;
+  font-family:"STSong","SimSun","Songti SC",serif;
+  cursor:pointer;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M0 0l5 7 5-7z' fill='%23786244'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 0 center;
+}
+.year-select:focus{outline:none;border-bottom-color:var(--red)}
+.year-tag-small{font-size:10px;color:var(--ink-dim);min-height:14px}
 </style>
 </head>
 <body>
@@ -926,9 +960,8 @@ function showTitle() {
   const yearTags = {2000:'扩招第一年',2001:'千禧入学',2002:'过渡期',2003:'SARS之年',2004:'高校扩张',2005:'录取新高',2006:'大省压力',2007:'改革前夜',2008:'地震之年',2009:'后危机',2010:'扩招高峰',2011:'人数首降',2012:'改革探索',2013:'志愿改革',2014:'新政启动',2015:'取消加分',2016:'改革深化',2017:'新高考前',2018:'新高考元年',2019:'全面推进',2020:'疫情之年',2021:'后疫情',2022:'二次疫情',2023:'解封之年',2024:'全面普通化',2025:'AI时代'};
   const selYear = S.year || 2017;
   const yearOptions = YEARS.map(y=>`<option value="${y}" ${y===selYear?'selected':''}>${y}年 — ${yearTags[y]||''}</option>`).join('');
-  const yearSlider = `<div class="year-select-wrap">
-    <select class="year-select" onchange="titleSelectYear(parseInt(this.value))">${yearOptions}</select>
-  </div>`;
+  const yearSlider = `<select class="year-select" onchange="titleSelectYear(parseInt(this.value))">${yearOptions}</select>
+  <div class="year-tag-small">${selYear?yearTags[selYear]||'':''}</div>`;
 
   const provName = S.province ? PROVINCES.find(p=>p.id===S.province)?.name : null;
   const prompt = S.province && S.year
@@ -944,8 +977,17 @@ function showTitle() {
     </div>
     <div class="map-section">${chinaMapSVG()}</div>
     <div class="home-bottom">
-      <div class="sel-prompt">${prompt}</div>
-      ${yearSlider}
+      <div class="sel-row">
+        <div class="sel-col">
+          <div class="sel-col-label">省份</div>
+          <div class="sel-prov-name ${provName?'':'empty'}">${provName||'← 点击地图选择'}</div>
+          <div class="sel-prov-region">${provRegion}</div>
+        </div>
+        <div class="sel-col">
+          <div class="sel-col-label">年份</div>
+          ${yearSlider}
+        </div>
+      </div>
       <div class="home-actions">
         <button class="btn btn-primary" onclick="confirmSelect()" ${(!S.province||!S.year)?'disabled style="opacity:.35"':''}>开 始 备 考</button>
         ${hasResume ? '<button class="btn" style="text-align:center;letter-spacing:1px" onclick="resumeGame()">继续上一局</button>' : ''}
