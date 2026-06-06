@@ -960,26 +960,43 @@ function determineEnding() {
 // ─────────────────────────────────────────────────────────────
 // 5. EVENT SCHEDULING
 // ─────────────────────────────────────────────────────────────
+// Event phase assignment (early=nodes1-6, mid=nodes7-13, late=nodes14-19)
+const EVENT_PHASES = {r01:'mid',r02:'early',r03:'late',r04:'late',r05:'mid',r06:'mid',r07:'mid',r08:'mid',r09:'early',r10:'mid',r11:'mid',r12:'early',r13:'early',r14:'late',r15:'mid',r16:'early',r17:'early',r18:'mid',r19:'late',r20:'early'};
+
 function setupEvents() {
   const events = [];
-  // Fixed events for this combo
   const fixedList = CONTENT.fixedEvents[S.comboKey] || [];
   fixedList.forEach(ev => events.push({type:'fixed', eventId:ev.id, nodeIdx:ev.node-1}));
 
-  // Random events: pick 5 from pool
-  const pool = [...CONTENT.randomEvents];
-  const chosen = [];
-  while (chosen.length < 5 && pool.length > 0) {
-    const idx = Math.floor(Math.random() * pool.length);
-    chosen.push(pool.splice(idx, 1)[0]);
+  // Split pool by phase
+  const earlyPool = CONTENT.randomEvents.filter(e=>EVENT_PHASES[e.id]==='early'||!EVENT_PHASES[e.id]);
+  const midPool   = CONTENT.randomEvents.filter(e=>EVENT_PHASES[e.id]==='mid');
+  const latePool  = CONTENT.randomEvents.filter(e=>EVENT_PHASES[e.id]==='late');
+
+  function pickRandom(pool, n) {
+    const p=[...pool]; const out=[];
+    while(out.length<n && p.length>0) { const i=Math.floor(Math.random()*p.length); out.push(p.splice(i,1)[0]); }
+    return out;
   }
-  // Place them at random non-fixed nodes
+
+  // Pick 2 early, 2 mid, 1 late
+  const chosen = [
+    ...pickRandom(earlyPool,2),
+    ...pickRandom(midPool,2),
+    ...pickRandom(latePool,1),
+  ];
+
+  // Phase → node ranges
+  const nodeRanges = {early:[1,2,3,4,5,6], mid:[7,8,9,10,11,12,13], late:[14,15,16,17,18,19]};
   const usedNodes = new Set(events.map(e=>e.nodeIdx));
-  const availNodes = Array.from({length:20},(_,i)=>i).filter(i=>!usedNodes.has(i) && i>0);
-  chosen.forEach((ev, i) => {
-    if (i < availNodes.length) {
-      events.push({type:'random', eventId:ev.id, nodeIdx:availNodes[i]});
-    }
+
+  chosen.forEach(ev => {
+    const phase = EVENT_PHASES[ev.id] || 'early';
+    const range = nodeRanges[phase].filter(n=>!usedNodes.has(n));
+    if (range.length === 0) return;
+    const nodeIdx = range[Math.floor(Math.random()*range.length)];
+    usedNodes.add(nodeIdx);
+    events.push({type:'random', eventId:ev.id, nodeIdx});
   });
 
   S.activeEvents = events;
