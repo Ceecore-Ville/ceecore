@@ -428,7 +428,9 @@ const OPEN_COMBOS = new Set(['henan_2003','henan_2008','henan_2023','jiangsu_200
 
 // Province base score ranges [min, max, median]
 const PROVINCE_RANGES = {
-  henan:{min:360,max:610,med:460,
+  henan:{min:360,max:610,med:460},
+  jiangsu:{min:340,max:590,med:450},
+  beijing:{min:410,max:650,med:510},
   guangdong:{min:380,max:630,med:480},sichuan:{min:370,max:620,med:475},
   shandong:{min:375,max:620,med:470},hubei:{min:370,max:615,med:468},
   hunan:{min:365,max:615,med:465},anhui:{min:360,max:610,med:460},
@@ -445,9 +447,6 @@ const PROVINCE_RANGES = {
   hainan:{min:360,max:600,med:455},guangxi:{min:355,max:600,med:450},
   hongkong:{min:400,max:660,med:520},macau:{min:400,max:655,med:515},
   taiwan:{min:395,max:650,med:510}
-},
-  jiangsu:{min:340,max:590,med:450},
-  beijing:{min:410,max:650,med:510}
 };
 
 // Strategy options for prep nodes
@@ -748,8 +747,6 @@ function titleSelectYear(y) {
 
 function titleSelectProvince(p) {
   S.province = p;
-  // if current year not available for this province, clear year
-  // all combos open - no year reset
   showTitle();
 }
 
@@ -799,6 +796,19 @@ function chinaMapSVG() {
 <text class="mp-lbl" data-p="henan" x="480" y="320">河南</text>
 <text class="mp-lbl" data-p="jiangsu" x="597" y="318">江苏</text>
 <text class="mp-lbl" data-p="beijing" x="548" y="262">北京</text>
+<path id="p-taiwan" class="mp-hi" onclick="titleSelectProvince('taiwan')" d="m 611.5,490 2.5,-1.8 2.2,0.5 1.8,2.5 0.5,3.5 -0.8,4.2 -1.5,5 -2.2,3.5 -2,1.5 -1.8,-0.5 -0.5,-2.5 0.8,-4.5 0.5,-5.5 0.5,-5.9 z" />
+<text class="mp-lbl" data-p="taiwan" x="617" y="502" style="font-size:5px">台湾</text>
+<!-- 南海诸岛 decorative box -->
+<g id="nanhai-box">
+<rect x="640" y="480" width="52" height="80" fill="none" stroke="rgba(26,56,32,.25)" stroke-width="0.5" stroke-dasharray="2,2"/>
+<text x="666" y="496" text-anchor="middle" font-size="5" fill="rgba(26,56,32,.5)">南海诸岛</text>
+<!-- 西沙群岛 dot -->
+<circle cx="658" cy="510" r="2" fill="rgba(26,56,32,.15)" stroke="rgba(26,56,32,.35)" stroke-width="0.4"/>
+<text x="658" y="520" text-anchor="middle" font-size="4" fill="rgba(26,56,32,.5)">西沙</text>
+<!-- 南沙群岛 dot -->
+<circle cx="662" cy="540" r="2.5" fill="rgba(26,56,32,.15)" stroke="rgba(26,56,32,.35)" stroke-width="0.4"/>
+<text x="662" y="552" text-anchor="middle" font-size="4" fill="rgba(26,56,32,.5)">南沙</text>
+</g>
 </svg>`;
   if (sel) {
     s = s.replace(`id="p-${sel}" class="mp-hi"`, `id="p-${sel}" class="mp-hi sel"`);
@@ -854,8 +864,8 @@ function confirmSelect() {
 
 function showEra() {
   S.screen = 'era';
-  const era = CONTENT.eras[S.comboKey];
-  if (!era) { showSelect(); return; }
+  const era = getEra(S.province, S.year);
+  if (!era) { showTitle(); return; }
   render(`
     <div class="stamp">${era.title}</div>
     <div style="font-family:'STSong',serif;font-size:20px;color:#2c1a0e;margin-bottom:8px;letter-spacing:2px">${era.tagline}</div>
@@ -1085,7 +1095,7 @@ function advanceNode() {
 function showExamIntro() {
   S.screen = 'examIntro';
   saveState();
-  const era = CONTENT.eras[S.comboKey];
+  const era = getEra(S.province, S.year);
   const examDate = {2003:'2003年7月7日',2008:'2008年6月7日',2013:'2013年6月7日',2017:'2017年6月7日',2023:'2023年6月7日'};
   const date = examDate[S.year] || `${S.year}年6月7日`;
 
@@ -1339,7 +1349,7 @@ function showEnding() {
     <div class="ending-tagline">${ending.tagline}</div>
     <hr class="divider">
     <div class="card-sm" style="margin-bottom:16px;text-align:center">
-      <div class="dim" style="margin-bottom:4px">${S.year} · ${CONTENT.eras[S.comboKey]?.province}</div>
+      <div class="dim" style="margin-bottom:4px">${S.year} · ${(PROVINCES.find(p=>p.id===S.province)||{}).name||S.province}</div>
       <div style="font-size:18px;font-weight:700">${S.finalScore > 0 ? S.finalScore + ' 分' : '取消资格'}</div>
       <div class="dim">${getRanking(S.finalScore)}</div>
     </div>
