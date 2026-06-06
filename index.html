@@ -371,13 +371,7 @@ p{font-size:13.5px;color:var(--ink-soft);line-height:2.1;margin-bottom:10px}
   font-weight:600;
 }
 /* Animate result feedback */
-.strat-result-flash{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:rgba(240,232,210,.97);border:2px solid var(--border);
-  padding:16px 24px;text-align:center;z-index:100;
-  box-shadow:0 4px 20px rgba(0,0,0,.15);
-  animation:flash-in .2s ease;min-width:200px;
-}
+
 @keyframes flash-in{from{opacity:0;transform:translate(-50%,-55%)}to{opacity:1;transform:translate(-50%,-50%)}}
 .sfr-title{font-size:11px;color:var(--ink-dim);letter-spacing:2px;margin-bottom:8px}
 .sfr-delta{display:flex;justify-content:center;gap:12px;margin-bottom:8px}
@@ -1311,7 +1305,7 @@ function showEra() {
 function startGame() {
   S.knowledge = 50; S.mood = 60;
   S.currentNode = 0; S.strategyHistory = []; S.flags = [];
-  S.examIdx = 0; S.examBonus = 0;
+  S.examIdx = 0; S.examBonus = 0; S.activeEvents = []; S.pendingEvent = null;
   setupEvents();
   showNode();
 }
@@ -1367,8 +1361,10 @@ function showNode() {
 }
 
 function chooseStrategy(stratId) {
+  if (window._choosingStrategy) return;
+  window._choosingStrategy = true;
   const strat = STRATEGIES.find(s=>s.id===stratId);
-  if (!strat) return;
+  if (!strat) { window._choosingStrategy = false; return; }
 
   // Disable cards immediately
   document.querySelectorAll('.strat-card').forEach(c=>{c.style.pointerEvents='none';c.style.opacity='.5';});
@@ -1415,6 +1411,7 @@ function chooseStrategy(stratId) {
 
   setTimeout(() => {
     flash.remove();
+    window._choosingStrategy = false;
     const ev = getEventForNode(S.currentNode);
     if (ev) {
       const evData = getEventData(ev.type, ev.eventId);
@@ -1438,9 +1435,9 @@ function showEventScreen(ev) {
   const optBtns = d.options.map((opt, i) =>
     `<button class="btn-opt" onclick="chooseEvent(${i})"><span class="opt-letter">${letters[i]}</span><span class="opt-text">${opt.label}</span></button>`
   ).join('');
-  const evImgCtx = catMap[d.category] || 'event_default';
+  const catMap2={家庭压力:'event_family',人际关系:'event_friend',道德选择:'event_moral',意外惊喜:'event_surprise',外部干扰:'event_study',自我怀疑:'event_study'};
   render(`
-    <div class="scene-banner-sm"><img src="${d.category==='家庭压力'?IMG.campus:d.category==='意外惊喜'?IMG.campus:IMG.classroom}" alt=""></div>
+    <div class="scene-banner-sm"><img src="${d.category==='家庭压力'||d.category==='道德选择'?IMG.campus:d.category==='意外惊喜'?IMG.campus:IMG.classroom}" alt=""></div>
     <div class="stamp" style="margin-bottom:12px">${d.name}</div>
     <div class="card" style="margin-bottom:16px">
       <div class="dim" style="margin-bottom:8px">发生了</div>
